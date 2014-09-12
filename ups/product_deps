@@ -23,6 +23,9 @@ defaultqual e5
 # gdmldir -  
 # fwdir   -  
 #
+incdir  -
+fcldir  -
+libdir  -
 bindir  product_dir    bin
 
 # table fragment to set various environment variables.
