@@ -50,10 +50,10 @@ only_for_build  cetbuildtools   v3_13_00
 
 # We now define allowed qualifiers and the corresponding qualifiers for the depdencies.
 # Make a table by adding columns before "notes". 
-qualifier	art		notes
-e5:debug	nu:e5:debug
-e5:opt		nu:e5:opt	
-e5:prof		nu:e5:prof	
+qualifier	art		sam_web_client	 jobsub_tools	notes
+e5:debug	nu:e5:debug	-nq-		 -nq-
+e5:opt		nu:e5:opt	-nq-		 -nq-
+e5:prof		nu:e5:prof	-nq-		 -nq-
 
 # Preserve tabs and formatting in emacs and vi / vim:
 
