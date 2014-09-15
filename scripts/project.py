@@ -83,7 +83,7 @@
 #              OFFSITE,FERMICLOUD,PAID_CLOUD,FERMICLOUD8G).
 #              Default: DEDICATED,OPPORTUNISTIC.
 # <lines>   - Arbitrary condor commands (expert option, jobsub_submit.py --lines=...).
-# <server>  - Jobsub server (expert option, jobsub_submit.py --jobsub_server=...).
+# <server>  - Jobsub server (expert option, jobsub_submit.py --jobsub-server=...).
 # <site>    - Specify site (default jobsub decides).
 #
 # <script>  - Name of batch worker script (default condor_lar.sh).
@@ -2278,11 +2278,6 @@ def main(argv):
         if project.script != workscript:
             shutil.copy(project.script, workscript)
 
-        # Yun-Tse 2014/6/3.
-        # For jobsub_client modify the workname to file://workname
-        if project.server != '':
-            workname = "file://%s/%s" % (stage.workdir, workname)
-
         # Copy and rename sam start project script to work directory.
 
         workstartscript = ''
@@ -2302,11 +2297,6 @@ def main(argv):
             workstopscript = os.path.join(stage.workdir, workstopname)
             if project.stop_script != workstopscript:
                 shutil.copy(project.stop_script, workstopscript)
-
-        # Yun-Tse 2014/6/3.
-        # For jobsub_client modify the workname to file://workname
-        if project.server != '':
-            workname = "file://%s/%s" % (stage.workdir, workname)
 
         # Copy worker initialization script to work directory.
 
@@ -2517,7 +2507,7 @@ def main(argv):
             if proxy != '':
                 command.append('-x %s' % proxy)
         else:
-            command.append('--jobsub_server=%s' % project.server)
+            command.append('--jobsub-server=%s' % project.server)
             if project.resource != '':
                 command.append('--resource-provides=usage_model=%s' % project.resource)
             if project.lines != '':
@@ -2540,7 +2530,11 @@ def main(argv):
 
         # Batch script.
 
-        command.append(workname)
+        if project.server == '':
+            command.append(workname)
+        else:
+            workurl = "file://%s/%s" % (stage.workdir, workname)
+            command.append(workurl)
 
         # Larsoft options.
 
@@ -2603,7 +2597,7 @@ def main(argv):
                 start_command.append('--grid')
                 start_command.append('--opportunistic')
             else:
-                command.append('--jobsub_server=%s' % project.server)
+                command.append('--jobsub-server=%s' % project.server)
                 if project.resource != '':
                     start_command.append('--resource-provides=usage_model=%s' % project.resource)
                 if project.lines != '':
@@ -2613,7 +2607,11 @@ def main(argv):
 
             # Start project script.
 
-            start_command.append(workstartname)
+            if project.server == '':
+                start_command.append(workstartname)
+            else:
+                workstarturl = "file://%s/%s" % (stage.workdir, workstartname)
+                start_command.append(workstarturl)
 
             # Sam options.
 
@@ -2635,12 +2633,12 @@ def main(argv):
             # General options.
             
             stop_command.append('--group=%s' % project.group)
-            if jobsub_server == '':
+            if project.server == '':
                 stop_command.append('-q')       # Mail on error (only).
                 stop_command.append('--grid')
                 stop_command.append('--opportunistic')
             else:
-                command.append('--jobsub_server=%s' % project.server)
+                command.append('--jobsub-server=%s' % project.server)
                 if project.resource != '':
                     stop_command.append('--resource-provides=usage_model=%s' % project.resource)
                 if project.lines != '':
@@ -2650,7 +2648,11 @@ def main(argv):
 
             # Stop project script.
 
-            stop_command.append(workstopname)
+            if project.server == '':
+                stop_command.append(workstopname)
+            else:
+                workstopurl = "file://%s/%s" % (stage.workdir, workstopname)
+                stop_command.append(workstopurl)
 
             # Sam options.
 
