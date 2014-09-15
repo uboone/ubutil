@@ -42,7 +42,7 @@ table_fragment_end
 product          version
 art             v1_10_00b
 sam_web_client	-		optional
-jobsub_tools	-		optional
+jobsub_client	v1_0_rc4	optional
 
 # list products required ONLY for the build
 # any products here must NOT have qualifiers
@@ -50,7 +50,7 @@ only_for_build  cetbuildtools   v3_13_00
 
 # We now define allowed qualifiers and the corresponding qualifiers for the depdencies.
 # Make a table by adding columns before "notes". 
-qualifier	art		sam_web_client	 jobsub_tools	notes
+qualifier	art		sam_web_client	 jobsub_client	notes
 e5:debug	nu:e5:debug	-nq-		 -nq-
 e5:opt		nu:e5:opt	-nq-		 -nq-
 e5:prof		nu:e5:prof	-nq-		 -nq-
