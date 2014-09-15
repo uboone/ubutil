@@ -79,6 +79,11 @@
 #             overridden for individual stages by <stage><numjobs>.
 # <os>      - Specify batch OS (comma-separated list: SL5,SL6).
 #             Default let jobsub decide.
+# <resource> - Jobsub resources (comma-separated list: DEDICATED,OPPORTUNISTIC,
+#              OFFSITE,FERMICLOUD,PAID_CLOUD,FERMICLOUD8G).
+#              Default: DEDICATED,OPPORTUNISTIC.
+# <lines>   - Arbitrary condor commands (expert option, jobsub_submit.py --lines=...).
+# <site>    - Specify site (default jobsub decides).
 #
 # <script>  - Name of batch worker script (default condor_lar.sh).
 #             The batch script must be on the execution path.
@@ -471,6 +476,9 @@ class ProjectDef:
         self.num_events = 0               # Total events (all jobs).
         self.num_jobs = 1                 # Number of jobs.
         self.os = ''                      # Batch OS.
+        self.resource = 'DEDICATED,OPPORTUNISTIC' # Jobsub resources.
+        self.lines = ''                   # Arbitrary condor commands.
+        self.site = ''                    # Site.
         self.histmerge = 'hadd -T'        # Default histogram merging program.
         self.release_tag = ''             # Larsoft release tag.
         self.release_qual = 'debug'       # Larsoft release qualifier.
@@ -522,6 +530,24 @@ class ProjectDef:
         os_elements = project_element.getElementsByTagName('os')
         if os_elements:
             self.os = os_elements[0].firstChild.data
+
+        # Resource (subelement).
+
+        resource_elements = project_element.getElementsByTagName('resource')
+        if resource_elements:
+            self.resource = resource_elements[0].firstChild.data
+
+        # Lines (subelement).
+
+        lines_elements = project_element.getElementsByTagName('lines')
+        if lines_elements:
+            self.lines = lines_elements[0].firstChild.data
+
+        # Site (subelement).
+
+        site_elements = project_element.getElementsByTagName('site')
+        if site_elements:
+            self.site = site_elements[0].firstChild.data
 
         # Histmerge (subelement).
 
@@ -693,6 +719,9 @@ class ProjectDef:
         result += 'Total events = %d\n' % self.num_events
         result += 'Number of jobs = %d\n' % self.num_jobs
         result += 'OS = %s\n' % self.os
+        result += 'Resource = %s\n' % self.resource
+        result += 'Lines = %s\n' % self.lines
+        result += 'Site = %s\n' % self.site
         result += 'Histogram merging program = %s\n' % self.histmerge
         result += 'Larsoft release tag = %s\n' % self.release_tag
         result += 'Larsoft release qualifier = %s\n' % self.release_qual
@@ -2484,38 +2513,38 @@ def main(argv):
 
         # Larsoft options.
 
-        command.extend(['--group', project.group])
-        command.extend(['-g'])
+        command.extend([' --group', project.group])
+        command.extend([' -g'])
         #command.extend(['-c', os.path.basename(stage.fclname)])
-        command.extend(['-c', 'wrapper.fcl'])
+        command.extend([' -c', 'wrapper.fcl'])
         if project.release_tag != '':
-            command.extend(['-r', project.release_tag])
-        command.extend(['-b', project.release_qual])
+            command.extend([' -r', project.release_tag])
+        command.extend([' -b', project.release_qual])
         if project.local_release_dir != '':
-            command.extend(['--localdir', project.local_release_dir])
+            command.extend([' --localdir', project.local_release_dir])
         if project.local_release_tar != '':
-            command.extend(['--localtar', project.local_release_tar])
+            command.extend([' --localtar', project.local_release_tar])
         if project.ubfcl != '':
-            command.extend(['--ubfcl', project.ubfcl])
-        command.extend(['--workdir', stage.workdir])
-        command.extend(['--outdir', stage.outdir])
+            command.extend([' --ubfcl', project.ubfcl])
+        command.extend([' --workdir', stage.workdir])
+        command.extend([' --outdir', stage.outdir])
         if stage.inputfile != '':
-            command.extend(['-s', stage.inputfile])
+            command.extend([' -s', stage.inputfile])
         elif input_list_name != '':
-            command.extend(['-S', input_list_name])
+            command.extend([' -S', input_list_name])
         elif inputdef != '':
-            command.extend(['--sam_defname', inputdef,
-                            '--sam_project', prjname])
-        command.extend(['-n', '%d' % project.num_events])
-        command.extend(['--njobs', '%d' % stage.num_jobs ])
+            command.extend([' --sam_defname', inputdef,
+                            ' --sam_project', prjname])
+        command.extend([' -n', '%d' % project.num_events])
+        command.extend([' --njobs', '%d' % stage.num_jobs ])
         if stage.init_script != '':
-            command.extend(['--init-script',
+            command.extend([' --init-script',
                             os.path.join('.', os.path.basename(stage.init_script))])
         if stage.init_source != '':
-            command.extend(['--init-source',
+            command.extend([' --init-source',
                             os.path.join('.', os.path.basename(stage.init_source))])
         if stage.end_script != '':
-            command.extend(['--end-script',
+            command.extend([' --end-script',
                             os.path.join('.', os.path.basename(stage.end_script))])
 
         # If input is from sam, also construct a dag file.
@@ -2546,13 +2575,13 @@ def main(argv):
 
             # Sam options.
 
-            start_command.extend(['--sam_defname', inputdef,
-                                  '--sam_project', prjname,
-                                  '-g'])
+            start_command.extend([' --sam_defname', inputdef,
+                                  ' --sam_project', prjname,
+                                  ' -g'])
 
             # Output directory.
 
-            start_command.extend(['--outdir', stage.outdir])
+            start_command.extend([' --outdir', stage.outdir])
 
             # Stop project jobsub command.
                 
@@ -2571,12 +2600,12 @@ def main(argv):
 
             # Sam options.
 
-            stop_command.extend(['--sam_project', prjname,
-                                 '-g'])
+            stop_command.extend([' --sam_project', prjname,
+                                 ' -g'])
 
             # Output directory.
 
-            stop_command.extend(['--outdir', stage.outdir])
+            stop_command.extend([' --outdir', stage.outdir])
 
             # Create dagNabbit.py configuration script in the work directory.
 
@@ -2661,7 +2690,7 @@ def main(argv):
                 
                     new_command = command
                     #new_command.extend(['--cluster', '%d' % missing_pairs[0][0]])
-                    new_command.extend(['--procmap', procmapname])
+                    new_command.extend([' --procmap', procmapname])
                     subprocess.call(new_command)
 
             else:
