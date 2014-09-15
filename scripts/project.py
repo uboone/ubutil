@@ -83,6 +83,7 @@
 #              OFFSITE,FERMICLOUD,PAID_CLOUD,FERMICLOUD8G).
 #              Default: DEDICATED,OPPORTUNISTIC.
 # <lines>   - Arbitrary condor commands (expert option, jobsub_submit.py --lines=...).
+# <server>  - Jobsub server (expert option, jobsub_submit.py --jobsub_server=...).
 # <site>    - Specify site (default jobsub decides).
 #
 # <script>  - Name of batch worker script (default condor_lar.sh).
@@ -478,6 +479,7 @@ class ProjectDef:
         self.os = ''                      # Batch OS.
         self.resource = 'DEDICATED,OPPORTUNISTIC' # Jobsub resources.
         self.lines = ''                   # Arbitrary condor commands.
+        self.server = ''                  # Jobsub server.
         self.site = ''                    # Site.
         self.histmerge = 'hadd -T'        # Default histogram merging program.
         self.release_tag = ''             # Larsoft release tag.
@@ -542,6 +544,12 @@ class ProjectDef:
         lines_elements = project_element.getElementsByTagName('lines')
         if lines_elements:
             self.lines = lines_elements[0].firstChild.data
+
+        # Server (subelement).
+
+        server_elements = project_element.getElementsByTagName('server')
+        if server_elements:
+            self.server = server_elements[0].firstChild.data
 
         # Site (subelement).
 
@@ -721,6 +729,7 @@ class ProjectDef:
         result += 'OS = %s\n' % self.os
         result += 'Resource = %s\n' % self.resource
         result += 'Lines = %s\n' % self.lines
+        result += 'Jobsub server = %s\n' % self.server
         result += 'Site = %s\n' % self.site
         result += 'Histogram merging program = %s\n' % self.histmerge
         result += 'Larsoft release tag = %s\n' % self.release_tag
@@ -2269,6 +2278,11 @@ def main(argv):
         if project.script != workscript:
             shutil.copy(project.script, workscript)
 
+        # Yun-Tse 2014/6/3.
+        # For jobsub_client modify the workname to file://workname
+        if project.server != '':
+            workname = "file://%s/%s" % (stage.workdir, workname)
+
         # Copy and rename sam start project script to work directory.
 
         workstartscript = ''
@@ -2288,6 +2302,11 @@ def main(argv):
             workstopscript = os.path.join(stage.workdir, workstopname)
             if project.stop_script != workstopscript:
                 shutil.copy(project.stop_script, workstopscript)
+
+        # Yun-Tse 2014/6/3.
+        # For jobsub_client modify the workname to file://workname
+        if project.server != '':
+            workname = "file://%s/%s" % (stage.workdir, workname)
 
         # Copy worker initialization script to work directory.
 
@@ -2482,17 +2501,29 @@ def main(argv):
 
         # Construct jobsub command line for workers.
 
-        command = ['jobsub']
+        if project.server == '':
+            command = ['jobsub']
+        else:
+            command = ['jobsub_submit.py']
         command_njobs = 1
 
         # Jobsub options.
         
-        command.append('-q')       # Mail on error (only).
-        command.append('--grid')
-        command.append('--opportunistic')
         command.append('--group=%s' % project.group)
-        if proxy != '':
-            command.append('-x %s' % proxy)
+        if project.server == '':
+            command.append('-q')       # Mail on error (only).
+            command.append('--grid')
+            command.append('--opportunistic')
+            if proxy != '':
+                command.append('-x %s' % proxy)
+        else:
+            command.append('--jobsub_server=%s' % project.server)
+            if project.resource != '':
+                command.append('--resource-provides=usage_model=%s' % project.resource)
+            if project.lines != '':
+                command.append('--lines=%s' % project.lines)
+            if project.site != '':
+                command.append('--site=%s' % project.site)
         if project.os != '':
             command.append('--OS=%s' % project.os)
         if submit:
@@ -2515,7 +2546,6 @@ def main(argv):
 
         command.extend([' --group', project.group])
         command.extend([' -g'])
-        #command.extend(['-c', os.path.basename(stage.fclname)])
         command.extend([' -c', 'wrapper.fcl'])
         if project.release_tag != '':
             command.extend([' -r', project.release_tag])
@@ -2560,14 +2590,26 @@ def main(argv):
 
             # Start project jobsub command.
                 
-            start_command = ['jobsub']
+            if project.server == '':
+                start_command = ['jobsub']
+            else:
+                start_command = ['jobsub_submit.py']
 
             # General options.
             
-            start_command.append('-q')       # Mail on error (only).
-            start_command.append('--grid')
-            start_command.append('--opportunistic')
             start_command.append('--group=%s' % project.group)
+            if project.server == '':
+                start_command.append('-q')       # Mail on error (only).
+                start_command.append('--grid')
+                start_command.append('--opportunistic')
+            else:
+                command.append('--jobsub_server=%s' % project.server)
+                if project.resource != '':
+                    start_command.append('--resource-provides=usage_model=%s' % project.resource)
+                if project.lines != '':
+                    command.append('--lines=%s' % project.lines)
+                if project.site != '':
+                    start_command.append('--site=%s' % project.site)
 
             # Start project script.
 
@@ -2585,14 +2627,26 @@ def main(argv):
 
             # Stop project jobsub command.
                 
-            stop_command = ['jobsub']
+            if project.server == '':
+                stop_command = ['jobsub']
+            else:
+                stop_command = ['jobsub_submit.py']
 
             # General options.
             
-            stop_command.append('-q')       # Mail on error (only).
-            stop_command.append('--grid')
-            stop_command.append('--opportunistic')
             stop_command.append('--group=%s' % project.group)
+            if jobsub_server == '':
+                stop_command.append('-q')       # Mail on error (only).
+                stop_command.append('--grid')
+                stop_command.append('--opportunistic')
+            else:
+                command.append('--jobsub_server=%s' % project.server)
+                if project.resource != '':
+                    stop_command.append('--resource-provides=usage_model=%s' % project.resource)
+                if project.lines != '':
+                    command.append('--lines=%s' % project.lines)
+                if project.site != '':
+                    stop_command.append('--site=%s' % project.site)
 
             # Stop project script.
 
@@ -2689,7 +2743,6 @@ def main(argv):
                     # Update command.
                 
                     new_command = command
-                    #new_command.extend(['--cluster', '%d' % missing_pairs[0][0]])
                     new_command.extend([' --procmap', procmapname])
                     subprocess.call(new_command)
 
