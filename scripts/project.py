@@ -479,7 +479,7 @@ class ProjectDef:
         self.os = ''                      # Batch OS.
         self.resource = 'DEDICATED,OPPORTUNISTIC' # Jobsub resources.
         self.lines = ''                   # Arbitrary condor commands.
-        self.server = ''                  # Jobsub server.
+        self.server = 'https://fifebatch.fnal.gov:8443'   # Jobsub server.
         self.site = ''                    # Site.
         self.histmerge = 'hadd -T'        # Default histogram merging program.
         self.release_tag = ''             # Larsoft release tag.
@@ -2278,6 +2278,11 @@ def main(argv):
         if project.script != workscript:
             shutil.copy(project.script, workscript)
 
+        # Yun-Tse 2014/6/3.
+        # For jobsub_client modify the workname to file://workname
+        if project.server != '':
+            workname = "file://%s/%s" % (stage.workdir, workname)
+
         # Copy and rename sam start project script to work directory.
 
         workstartscript = ''
@@ -2298,9 +2303,10 @@ def main(argv):
             if project.stop_script != workstopscript:
                 shutil.copy(project.stop_script, workstopscript)
 
-        # Yun-Tse 2014/6/3 starts: Modify the workname to
-        # file://workname
-        workname = "file://%s/%s" % (stage.workdir, workname)
+        # Yun-Tse 2014/6/3.
+        # For jobsub_client modify the workname to file://workname
+        if project.server != '':
+            workname = "file://%s/%s" % (stage.workdir, workname)
 
         # Copy worker initialization script to work directory.
 
@@ -2495,32 +2501,31 @@ def main(argv):
 
         # Construct jobsub command line for workers.
 
-        # Yun-Tse 2014/6/3 starts
-        # command = ['jobsub']
-        command = ['jobsub_submit.py']
+        if project.server == '':
+            command = ['jobsub']
+        else:
+            command = ['jobsub_submit.py']
         command_njobs = 1
 
         # Jobsub options.
         
-        # command.append('-q')       # Mail on error (only).
-        # command.append('--grid')
-        # command.append('--opportunistic')
         command.append('--group=%s' % project.group)
-        if project.resource != '':
-            command.append('--resource-provides=usage_model=%s' % project.resource)
-        if project.lines != '':
-            command.append('--lines=%s' % project.lines)
-        if project.server != '':
+        if project.server == '':
+            command.append('-q')       # Mail on error (only).
+            command.append('--grid')
+            command.append('--opportunistic')
+            if proxy != '':
+                command.append('-x %s' % proxy)
+        else:
             command.append('--jobsub_server=%s' % project.server)
-        if project.site != '':
-            command.append('--site=%s' % project.site)
-        # if proxy != '':
-        #     command.extend(['-x', '%s' % proxy])
+            if project.resource != '':
+                command.append('--resource-provides=usage_model=%s' % project.resource)
+            if project.lines != '':
+                command.append('--lines=%s' % project.lines)
+            if project.site != '':
+                command.append('--site=%s' % project.site)
         if project.os != '':
             command.append('--OS=%s' % project.os)
-
-        #command.append('--jobsub-server=https://fifebatch1.fnal.gov:8443')
-
         if submit:
             command_njobs = stage.num_jobs
             command.extend(['-N', '%d' % command_njobs])
@@ -2561,10 +2566,7 @@ def main(argv):
             command.extend([' --sam_defname', inputdef,
                             ' --sam_project', prjname])
         command.extend([' -n', '%d' % project.num_events])
-        # Yun-Tse 2014/6/3: Tentatively end the submission command
-        # here; NEED TO MODIFY!!!
         command.extend([' --njobs', '%d' % stage.num_jobs ])
-        # Yun-Tse 2014/6/3 stops
         if stage.init_script != '':
             command.extend([' --init-script',
                             os.path.join('.', os.path.basename(stage.init_script))])
@@ -2587,24 +2589,27 @@ def main(argv):
                 sys.exit(1)
 
             # Start project jobsub command.
-            # Yun-Tse 2014/6/6 starts
-            # start_command = ['jobsub']
-            start_command = ['jobsub_submit.py']
+                
+            if project.server == '':
+                start_command = ['jobsub']
+            else:
+                start_command = ['jobsub_submit.py']
 
             # General options.
             
-            # start_command.append('-q')       # Mail on error (only).
-            # start_command.append('--grid')
-            # start_command.append('--opportunistic')
             start_command.append('--group=%s' % project.group)
-            if project.resource != '':
-                start_command.append('--resource-provides=usage_model=%s' % project.resource)
-            if project.lines != '':
-                command.append('--lines=%s' % project.lines)
-            if project.server != '':
+            if project.server == '':
+                start_command.append('-q')       # Mail on error (only).
+                start_command.append('--grid')
+                start_command.append('--opportunistic')
+            else:
                 command.append('--jobsub_server=%s' % project.server)
-            if project.site != '':
-                start_command.append('--site=%s' % project.site)
+                if project.resource != '':
+                    start_command.append('--resource-provides=usage_model=%s' % project.resource)
+                if project.lines != '':
+                    command.append('--lines=%s' % project.lines)
+                if project.site != '':
+                    start_command.append('--site=%s' % project.site)
 
             # Start project script.
 
@@ -2622,24 +2627,26 @@ def main(argv):
 
             # Stop project jobsub command.
                 
-            # stop_command = ['jobsub']
-            stop_command = ['jobsub_submit.py']
+            if project.server == '':
+                stop_command = ['jobsub']
+            else:
+                stop_command = ['jobsub_submit.py']
 
             # General options.
             
-            # stop_command.append('-q')       # Mail on error (only).
-            # stop_command.append('--grid')
-            # stop_command.append('--opportunistic')
             stop_command.append('--group=%s' % project.group)
-            if project.resource != '':
-                stop_command.append('--resource-provides=usage_model=%s' % project.resource)
-            if project.lines != '':
-                command.append('--lines=%s' % project.lines)
-            if project.server != '':
+            if jobsub_server == '':
+                stop_command.append('-q')       # Mail on error (only).
+                stop_command.append('--grid')
+                stop_command.append('--opportunistic')
+            else:
                 command.append('--jobsub_server=%s' % project.server)
-            if project.site != '':
-                stop_command.append('--site=%s' % project.site)
-            # Yun-Tse 2014/6/6 stops
+                if project.resource != '':
+                    stop_command.append('--resource-provides=usage_model=%s' % project.resource)
+                if project.lines != '':
+                    command.append('--lines=%s' % project.lines)
+                if project.site != '':
+                    stop_command.append('--site=%s' % project.site)
 
             # Stop project script.
 
