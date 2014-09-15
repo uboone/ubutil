@@ -42,7 +42,7 @@ table_fragment_end
 product          version
 art             v1_10_00b
 sam_web_client	-		optional
-jobsub_client	v1_0_rc4	optional
+jobsub_client	v1_0		optional
 
 # list products required ONLY for the build
 # any products here must NOT have qualifiers
