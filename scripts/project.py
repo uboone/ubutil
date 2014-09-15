@@ -83,6 +83,7 @@
 #              OFFSITE,FERMICLOUD,PAID_CLOUD,FERMICLOUD8G).
 #              Default: DEDICATED,OPPORTUNISTIC.
 # <lines>   - Arbitrary condor commands (expert option, jobsub_submit.py --lines=...).
+# <server>  - Jobsub server (expert option, jobsub_submit.py --jobsub_server=...).
 # <site>    - Specify site (default jobsub decides).
 #
 # <script>  - Name of batch worker script (default condor_lar.sh).
@@ -478,6 +479,7 @@ class ProjectDef:
         self.os = ''                      # Batch OS.
         self.resource = 'DEDICATED,OPPORTUNISTIC' # Jobsub resources.
         self.lines = ''                   # Arbitrary condor commands.
+        self.server = ''                  # Jobsub server.
         self.site = ''                    # Site.
         self.histmerge = 'hadd -T'        # Default histogram merging program.
         self.release_tag = ''             # Larsoft release tag.
@@ -542,6 +544,12 @@ class ProjectDef:
         lines_elements = project_element.getElementsByTagName('lines')
         if lines_elements:
             self.lines = lines_elements[0].firstChild.data
+
+        # Server (subelement).
+
+        server_elements = project_element.getElementsByTagName('server')
+        if server_elements:
+            self.server = server_elements[0].firstChild.data
 
         # Site (subelement).
 
@@ -721,6 +729,7 @@ class ProjectDef:
         result += 'OS = %s\n' % self.os
         result += 'Resource = %s\n' % self.resource
         result += 'Lines = %s\n' % self.lines
+        result += 'Jobsub server = %s\n' % self.server
         result += 'Site = %s\n' % self.site
         result += 'Histogram merging program = %s\n' % self.histmerge
         result += 'Larsoft release tag = %s\n' % self.release_tag
@@ -2501,6 +2510,8 @@ def main(argv):
             command.append('--resource-provides=usage_model=%s' % project.resource)
         if project.lines != '':
             command.append('--lines=%s' % project.lines)
+        if project.server != '':
+            command.append('--jobsub_server=%s' % project.server)
         if project.site != '':
             command.append('--site=%s' % project.site)
         # if proxy != '':
@@ -2590,6 +2601,8 @@ def main(argv):
                 start_command.append('--resource-provides=usage_model=%s' % project.resource)
             if project.lines != '':
                 command.append('--lines=%s' % project.lines)
+            if project.server != '':
+                command.append('--jobsub_server=%s' % project.server)
             if project.site != '':
                 start_command.append('--site=%s' % project.site)
 
@@ -2622,6 +2635,8 @@ def main(argv):
                 stop_command.append('--resource-provides=usage_model=%s' % project.resource)
             if project.lines != '':
                 command.append('--lines=%s' % project.lines)
+            if project.server != '':
+                command.append('--jobsub_server=%s' % project.server)
             if project.site != '':
                 stop_command.append('--site=%s' % project.site)
             # Yun-Tse 2014/6/6 stops
