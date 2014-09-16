@@ -84,6 +84,8 @@
 #              Default: DEDICATED,OPPORTUNISTIC.
 # <lines>   - Arbitrary condor commands (expert option, jobsub_submit.py --lines=...).
 # <server>  - Jobsub server (expert option, jobsub_submit.py --jobsub-server=...).
+#             If blank, use jobsub_tools.  If "-" (hyphen), use jobsub_client, but 
+#             omit --jobsub-server option (use default server).
 # <site>    - Specify site (default jobsub decides).
 #
 # <script>  - Name of batch worker script (default condor_lar.sh).
@@ -2507,7 +2509,8 @@ def main(argv):
             if proxy != '':
                 command.append('-x %s' % proxy)
         else:
-            command.append('--jobsub-server=%s' % project.server)
+            if project.server != '-':
+                command.append('--jobsub-server=%s' % project.server)
             if project.resource != '':
                 command.append('--resource-provides=usage_model=%s' % project.resource)
             if project.lines != '':
@@ -2597,7 +2600,8 @@ def main(argv):
                 start_command.append('--grid')
                 start_command.append('--opportunistic')
             else:
-                command.append('--jobsub-server=%s' % project.server)
+                if project.server != '-':
+                    command.append('--jobsub-server=%s' % project.server)
                 if project.resource != '':
                     start_command.append('--resource-provides=usage_model=%s' % project.resource)
                 if project.lines != '':
@@ -2638,7 +2642,8 @@ def main(argv):
                 stop_command.append('--grid')
                 stop_command.append('--opportunistic')
             else:
-                command.append('--jobsub-server=%s' % project.server)
+                if project.server != '-':
+                    command.append('--jobsub-server=%s' % project.server)
                 if project.resource != '':
                     stop_command.append('--resource-provides=usage_model=%s' % project.resource)
                 if project.lines != '':
