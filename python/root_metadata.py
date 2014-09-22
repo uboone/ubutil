@@ -9,7 +9,9 @@ import sys, os, string, subprocess, json, project_utilities
 myargv = sys.argv
 sys.argv = myargv[0:1]
 sys.argv.append('-n')
-os.environ['TERM'] = 'vt100'    # Prevent root from printing garbage on initialization.
+# Prevent root from printing garbage on initialization.
+if os.environ.has_key('TERM'):
+    del os.environ['TERM']
 import ROOT
 ROOT.gErrorIgnoreLevel = ROOT.kError
 sys.argv = myargv
