@@ -31,6 +31,7 @@ bindir  product_dir    bin
 # table fragment to set various environment variables.
 table_fragment_begin
     #envSet(GROUP, uboone)
+    envSet(JOBSUB_GROUP, uboone)
     envSet(EXPERIMENT, uboone)
     envSet(SAM_EXPERIMENT, uboone)
     pathPrepend(PYTHONPATH, ${UPS_PROD_DIR}/python)
