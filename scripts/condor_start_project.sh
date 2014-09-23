@@ -128,6 +128,16 @@ if [ x$SAM_PROJECT = x ]; then
   exit 1
 fi
 
+# Ifdh may already be setup by jobsub wrapper.
+# If not, set it up here.
+
+echo "IFDHC_DIR=$IFDHC_DIR"
+if [ x$IFDHC_DIR = x ]; then
+  echo "Setting up ifdhc, because jobsub did not set it up."
+  setup ifdhc
+fi
+echo "IFDHC_DIR=$IFDHC_DIR"
+
 # Set options for ifdh.
 
 if [ $GRID -ne 0 ]; then
