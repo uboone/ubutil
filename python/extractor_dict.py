@@ -16,10 +16,10 @@ def getmetadata(inputfile):
 	# Extract metadata into a pipe.
 	local = project_utilities.path_to_local(inputfile)
 	if local != '':
-		proc = subprocess.Popen(["sam_metadata_dumper", local], stdout=subprocess.PIPE)
+		proc = subprocess.Popen(["sam_metadata_dumper", "-H", local], stdout=subprocess.PIPE)
 	else:
 		url = project_utilities.path_to_url(inputfile)
-		proc = subprocess.Popen(["sam_metadata_dumper", url], stdout=subprocess.PIPE)
+		proc = subprocess.Popen(["sam_metadata_dumper", "-H", url], stdout=subprocess.PIPE)
 	lines = proc.stdout.readlines()
 	if local != '' and local != inputfile:
 		os.remove(local)

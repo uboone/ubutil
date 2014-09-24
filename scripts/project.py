@@ -42,6 +42,8 @@
 # --upload     - Upload files to enstore.
 # --define     - Make sam dataset definition.
 # --undefine   - Delete sam dataset definition.
+# --audit      - compare input files to output files and look for extra 
+#		 or misssing files and take subsequent action
 #
 # Information only actions:
 #
@@ -1957,6 +1959,7 @@ def main(argv):
     submit = 0
     check = 0
     checkana = 0
+    audit = 0
     stage_status = 0
     makeup = 0
     clean = 0
@@ -2010,6 +2013,9 @@ def main(argv):
         elif args[0] == '--checkana':
             checkana = 1
             del args[0]
+	elif args[0] == '--audit':
+	    audit = 1
+	    del args[0]     
         elif args[0] == '--status':
             stage_status = 1
             del args[0]
@@ -2082,7 +2088,7 @@ def main(argv):
     
     # Make sure that no more than one action was specified (except clean and info options).
 
-    num_action = submit + check + checkana + stage_status + makeup + define + undefine + declare
+    num_action = submit + check + checkana + audit + stage_status + makeup + define + undefine + declare
     if num_action > 1:
         print 'More than one action was specified.'
         return 1
@@ -2411,7 +2417,102 @@ def main(argv):
         rc = docheck(stage.outdir, project.num_events, stage.num_jobs,
                      has_input_files, stage.inputdef,
                      checkana, xml_has_metadata, stage.histmerge)
-
+		     
+    if audit:
+        import_samweb()
+	if stage.name == 'gen':
+		print 'No auditing for "gen" stage...exiting!'
+		sys.exit(1)
+	#Are there other ways to get output files other than through definition!?
+	outputlist = []
+	outparentlist = []
+	if stage.defname != '':	
+		query = 'isparentof: (defname: %s) and availability: anylocation' %(stage.defname)
+		outparentlist = samweb.listFiles(dimensions=query)
+		outputlist = samweb.listFiles(defname=stage.defname)
+	else:
+		print "Output definition not found...exiting!"
+		sys.exit(1)
+			
+	#to get input files one can use definition or get inputlist given to that stage or get input files for a given stage as get_input_files(stage)
+	inputlist = []	
+	if stage.inputdef != '':
+	        import_samweb()
+		inputlist=samweb.listFiles(defname=stage.inputdef)
+	elif stage.inputlist != '':
+		ilist = []
+		if project_utilities.safeexist(stage.inputlist):
+		    ilist = project_utilities.saferead(stage.inputlist)
+		inputlist = [] 
+		for i in ilist:
+		    inputlist.append(os.path.basename(string.strip(i)))	
+	else:
+		print "Input definition and/or input list doesn't exist...exiting!"
+		sys.exit(1)
+    
+	difflist = set(inputlist)^set(outparentlist)
+	mc = 0;
+	me = 0;
+	for item in difflist:
+		if item in inputlist:
+			mc = mc+1
+			if mc==1:
+				missingfilelistname = os.path.join(stage.outdir, 'missingfiles.list')
+    				missingfilelist = safeopen(missingfilelistname)
+			if mc>=1:
+				missingfilelist.write("%s\n" %item)	
+		elif item in outparentlist:
+			me = me+1
+			childcmd = 'samweb list-files "ischildof: (file_name=%s) and availability: anylocation"' %(item)
+			children = subprocess.check_output(childcmd, shell = True).splitlines()
+			rmfile = list(set(children) & set(outputlist))[0]
+			if me ==1:
+			   flist = []
+			   fnlist = os.path.join(stage.outdir, 'files.list')
+			   if project_utilities.safeexist(fnlist):
+			     flist = project_utilities.saferead(fnlist)
+			     slist = []  
+			     for line in flist:
+	                        slist.append(string.split(line)[0])
+			   else:
+			     print 'No files.list file found, run project.py --check'
+			     sys.exit(1)
+			   #make a dictionary or jason file  
+			   #sdict = {'content_status':'bad'}			     
+			   #make a .json file with { "content_status": "bad"} json fragment
+			   #json = open("jsonfile.json","w")
+			   #json.write("{ \"content_status\": \"bad\" }")
+			   #json.close()	
+			#declare the content status of the file as bad in SAM
+			#samweb.modifyFileMetadata(rmfile, sdict)
+			#mmd_cmd = 'samweb modify-metadata %s %s' %(rmfile,"jsonfile.json")
+		        #subprocess.check_output(mmd_cmd, shell = True)	 
+			#temporary fix for declaring the content_status of a file as bad in SAM. 
+			mmd_cmd = 'curl --cert /tmp/x509up_u$(id -u) --insecure -d "status=bad" -d "comment=declared%20bad" https://samweb.fnal.gov:8483/sam/uboone/api/files/name/'+rmfile+'/content_status'
+			subprocess.check_output(mmd_cmd, shell = True)	
+			print '\nDeclaring the status of the following file as bad:', rmfile
+			#remove this file from the files.list in the output directory			
+			fn = []  
+			fn = [x for x in slist if os.path.basename(string.strip(x)) != rmfile] 
+   			thefile = safeopen(fnlist)
+		        for item in fn:
+			    thefile.write("%s\n" % item) 
+	
+	if mc==0 and me==0:
+		print "Everything in order..exiting"
+		sys.exit(1)
+	else:	
+		print 'Missing parent file(s) = ', mc
+		print 'Extra parent file(s) = ',me
+	
+	if mc != 0:
+		missingfilelist.close()	
+		print "Creating missingfiles.list in the output directory....done!"
+	if me != 0:
+	        thefile.close()	
+		#os.remove("jsonfile.json")
+		print "For extra parent files, files.list redefined and content status declared as bad in SAM...done!"	     
+    
     if check_definition or define:
 
         # Make sam dataset definition.
@@ -2776,3 +2877,11 @@ def main(argv):
 
 if __name__ == '__main__':
     sys.exit(main(sys.argv))
+    
+'''inputlist = [] 			 
+		inp = open(stage.inputlist,"r")
+		for line in inp:
+			columns = line.split("/")
+			columns = [col.strip() for col in columns]
+			inputlist.append(columns[8])
+		inp.close()'''    
