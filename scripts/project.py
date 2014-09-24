@@ -82,8 +82,8 @@
 # <resource> - Jobsub resources (comma-separated list: DEDICATED,OPPORTUNISTIC,
 #              OFFSITE,FERMICLOUD,PAID_CLOUD,FERMICLOUD8G).
 #              Default: DEDICATED,OPPORTUNISTIC.
-# <lines>   - Arbitrary condor commands (expert option, jobsub_submit.py --lines=...).
-# <server>  - Jobsub server (expert option, jobsub_submit.py --jobsub-server=...).
+# <lines>   - Arbitrary condor commands (expert option, jobsub_submit --lines=...).
+# <server>  - Jobsub server (expert option, jobsub_submit --jobsub-server=...).
 #             If blank, use jobsub_tools.  If "-" (hyphen), use jobsub_client, but 
 #             omit --jobsub-server option (use default server).
 # <site>    - Specify site (default jobsub decides).
@@ -2496,7 +2496,7 @@ def main(argv):
         if project.server == '':
             command = ['jobsub']
         else:
-            command = ['jobsub_submit.py']
+            command = ['jobsub_submit']
         command_njobs = 1
 
         # Jobsub options.
@@ -2578,7 +2578,7 @@ def main(argv):
 
         if prjname != '':
 
-            # At this point, it is an error of the start and stop project
+            # At this point, it is an error if the start and stop project
             # scripts were not found.
 
             if workstartname == '' or workstopname == '':
@@ -2590,7 +2590,7 @@ def main(argv):
             if project.server == '':
                 start_command = ['jobsub']
             else:
-                start_command = ['jobsub_submit.py']
+                start_command = ['jobsub']
 
             # General options.
             
@@ -2600,14 +2600,14 @@ def main(argv):
                 start_command.append('--grid')
                 start_command.append('--opportunistic')
             else:
-                if project.server != '-':
-                    command.append('--jobsub-server=%s' % project.server)
                 if project.resource != '':
                     start_command.append('--resource-provides=usage_model=%s' % project.resource)
                 if project.lines != '':
-                    command.append('--lines=%s' % project.lines)
+                    start_command.append('--lines=%s' % project.lines)
                 if project.site != '':
                     start_command.append('--site=%s' % project.site)
+            if project.os != '':
+                start_command.append('--OS=%s' % project.os)
 
             # Start project script.
 
@@ -2632,7 +2632,7 @@ def main(argv):
             if project.server == '':
                 stop_command = ['jobsub']
             else:
-                stop_command = ['jobsub_submit.py']
+                stop_command = ['jobsub']
 
             # General options.
             
@@ -2642,14 +2642,14 @@ def main(argv):
                 stop_command.append('--grid')
                 stop_command.append('--opportunistic')
             else:
-                if project.server != '-':
-                    command.append('--jobsub-server=%s' % project.server)
                 if project.resource != '':
                     stop_command.append('--resource-provides=usage_model=%s' % project.resource)
                 if project.lines != '':
-                    command.append('--lines=%s' % project.lines)
+                    stop_command.append('--lines=%s' % project.lines)
                 if project.site != '':
                     stop_command.append('--site=%s' % project.site)
+            if project.os != '':
+                stop_command.append('--OS=%s' % project.os)
 
             # Stop project script.
 
@@ -2681,7 +2681,7 @@ def main(argv):
                 if not first:
                     dag.write(' ')
                 dag.write(word)
-                if word == 'jobsub':
+                if word[:6] == 'jobsub':
                     dag.write(' -n')
                 first = False
             dag.write('\n</serial>\n')
@@ -2701,8 +2701,10 @@ def main(argv):
                         else:
                             if not first:
                                 dag.write(' ')
+                            if word[:6] == 'jobsub':
+                                word = 'jobsub'
                             dag.write(word)
-                            if word == 'jobsub':
+                            if word[:6] == 'jobsub':
                                 dag.write(' -n')
                             first = False
                 dag.write(' --process %d\n' % process)
@@ -2716,7 +2718,7 @@ def main(argv):
                 if not first:
                     dag.write(' ')
                 dag.write(word)
-                if word == 'jobsub':
+                if word[:6] == 'jobsub':
                     dag.write(' -n')
                 first = False
             dag.write('\n</serial>\n')
@@ -2724,7 +2726,15 @@ def main(argv):
 
             # Update the main submission command to use dagNabbit.py instead of jobsub.
 
-            command = ['dagNabbit.py', '-i', dagfilepath, '-s']
+            if project.server == '':
+                command = ['dagNabbit.py', '-i', dagfilepath, '-s']
+            else:
+                command = ['jobsub_submit_dag']
+                command.append('--group=%s' % project.group)
+                if project.server != '-':
+                    command.append('--jobsub-server=%s' % project.server)
+                dagfileurl = 'file://'+ dagfilepath
+                command.append(dagfileurl)
 
         os.chdir(stage.workdir)
 
