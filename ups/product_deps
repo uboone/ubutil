@@ -42,8 +42,8 @@ table_fragment_end
 
 product          version
 art             v1_12_00
-sam_web_client	-		optional
-jobsub_tools	-		optional
+sam_web_client	-		-	optional
+jobsub_tools	-		-	optional
 
 cetbuildtools	v4_02_02	-	only_for_build
 end_product_list
