@@ -44,6 +44,7 @@ product          version
 art             v1_12_01
 sam_web_client	-		-	optional
 jobsub_tools	-		-	optional
+jobsub_client	-		-	optional
 
 cetbuildtools	v4_02_02	-	only_for_build
 end_product_list
