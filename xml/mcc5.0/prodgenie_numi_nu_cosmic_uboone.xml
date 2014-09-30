@@ -83,7 +83,7 @@
     <workdir>/uboone/app/users/uboonepro/&release;/mergeana/&name;</workdir>
     <numjobs>100</numjobs>
     <targetsize>8000000000</targetsize>
-    <datatier>reconstructed-3d</datatier>
+    <datatier>reconstructed/datatier>
     <defname>&name;_&tag;</defname>
   </stage>
 

@@ -128,6 +128,36 @@ if [ x$SAM_PROJECT = x ]; then
   exit 1
 fi
 
+# Initialize microboone ups products and mrb.
+
+OASIS_DIR="/cvmfs/oasis.opensciencegrid.org/microboone/products/"
+FERMIAPP_DIR="/grid/fermiapp/products/uboone/"
+
+echo "Initializing ups and mrb."
+  
+if [[ -d "${FERMIAPP_DIR}" ]]; then
+  echo "Sourcing ${FERMIAPP_DIR}setup_uboone.sh file"
+  source ${FERMIAPP_DIR}/setup_uboone.sh
+
+elif [[ -d "${OASIS_DIR}" ]]; then
+  echo "Sourcing the ${OASIS_DIR}setup_uboone.sh file"
+  source ${OASIS_DIR}/setup_uboone.sh
+
+else
+  echo "Could not find MRB initialization script setup_uboone.sh"
+  exit 1
+fi
+
+# Ifdh may already be setup by jobsub wrapper.
+# If not, set it up here.
+
+echo "IFDHC_DIR=$IFDHC_DIR"
+if [ x$IFDHC_DIR = x ]; then
+  echo "Setting up ifdhc, because jobsub did not set it up."
+  setup ifdhc
+fi
+echo "IFDHC_DIR=$IFDHC_DIR"
+
 # Set options for ifdh.
 
 if [ $GRID -ne 0 ]; then

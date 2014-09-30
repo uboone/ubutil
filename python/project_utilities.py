@@ -109,8 +109,8 @@ def get_proxy():
 
 def path_to_url(path):
     url = path
-    if path[0:6] == '/pnfs/':
-        url = 'root://fndca1.fnal.gov:1094/pnfs/fnal.gov/usr/' + path[6:]
+    #if path[0:6] == '/pnfs/':
+    #    url = 'root://fndca1.fnal.gov:1094/pnfs/fnal.gov/usr/' + path[6:]
     return url
 
 # Function to optionally convert a filesystem path into an srm url.

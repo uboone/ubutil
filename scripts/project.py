@@ -42,6 +42,8 @@
 # --upload     - Upload files to enstore.
 # --define     - Make sam dataset definition.
 # --undefine   - Delete sam dataset definition.
+# --audit      - compare input files to output files and look for extra 
+#		 or misssing files and take subsequent action
 #
 # Information only actions:
 #
@@ -82,8 +84,8 @@
 # <resource> - Jobsub resources (comma-separated list: DEDICATED,OPPORTUNISTIC,
 #              OFFSITE,FERMICLOUD,PAID_CLOUD,FERMICLOUD8G).
 #              Default: DEDICATED,OPPORTUNISTIC.
-# <lines>   - Arbitrary condor commands (expert option, jobsub_submit.py --lines=...).
-# <server>  - Jobsub server (expert option, jobsub_submit.py --jobsub-server=...).
+# <lines>   - Arbitrary condor commands (expert option, jobsub_submit --lines=...).
+# <server>  - Jobsub server (expert option, jobsub_submit --jobsub-server=...).
 #             If blank, use jobsub_tools.  If "-" (hyphen), use jobsub_client, but 
 #             omit --jobsub-server option (use default server).
 # <site>    - Specify site (default jobsub decides).
@@ -1855,7 +1857,7 @@ def docheck_locations(dim, outdir, add, clean, remove, upload):
 
                     loc_filename = os.path.join(loc, filename)
                     print 'Copying %s to dropbox directory %s.' % (filename, dropbox)
-                    subprocess.call(['ifdh', 'cp', loc_filename, dropbox_filename])
+                    subprocess.call(['ifdh', 'cp', '--force=gridftp', loc_filename, dropbox_filename])
 
     return 0
 
@@ -1957,6 +1959,7 @@ def main(argv):
     submit = 0
     check = 0
     checkana = 0
+    audit = 0
     stage_status = 0
     makeup = 0
     clean = 0
@@ -2010,6 +2013,9 @@ def main(argv):
         elif args[0] == '--checkana':
             checkana = 1
             del args[0]
+	elif args[0] == '--audit':
+	    audit = 1
+	    del args[0]     
         elif args[0] == '--status':
             stage_status = 1
             del args[0]
@@ -2082,7 +2088,7 @@ def main(argv):
     
     # Make sure that no more than one action was specified (except clean and info options).
 
-    num_action = submit + check + checkana + stage_status + makeup + define + undefine + declare
+    num_action = submit + check + checkana + audit + stage_status + makeup + define + undefine + declare
     if num_action > 1:
         print 'More than one action was specified.'
         return 1
@@ -2411,7 +2417,102 @@ def main(argv):
         rc = docheck(stage.outdir, project.num_events, stage.num_jobs,
                      has_input_files, stage.inputdef,
                      checkana, xml_has_metadata, stage.histmerge)
-
+		     
+    if audit:
+        import_samweb()
+	if stage.name == 'gen':
+		print 'No auditing for "gen" stage...exiting!'
+		sys.exit(1)
+	#Are there other ways to get output files other than through definition!?
+	outputlist = []
+	outparentlist = []
+	if stage.defname != '':	
+		query = 'isparentof: (defname: %s) and availability: anylocation' %(stage.defname)
+		outparentlist = samweb.listFiles(dimensions=query)
+		outputlist = samweb.listFiles(defname=stage.defname)
+	else:
+		print "Output definition not found...exiting!"
+		sys.exit(1)
+			
+	#to get input files one can use definition or get inputlist given to that stage or get input files for a given stage as get_input_files(stage)
+	inputlist = []	
+	if stage.inputdef != '':
+	        import_samweb()
+		inputlist=samweb.listFiles(defname=stage.inputdef)
+	elif stage.inputlist != '':
+		ilist = []
+		if project_utilities.safeexist(stage.inputlist):
+		    ilist = project_utilities.saferead(stage.inputlist)
+		inputlist = [] 
+		for i in ilist:
+		    inputlist.append(os.path.basename(string.strip(i)))	
+	else:
+		print "Input definition and/or input list doesn't exist...exiting!"
+		sys.exit(1)
+    
+	difflist = set(inputlist)^set(outparentlist)
+	mc = 0;
+	me = 0;
+	for item in difflist:
+		if item in inputlist:
+			mc = mc+1
+			if mc==1:
+				missingfilelistname = os.path.join(stage.outdir, 'missingfiles.list')
+    				missingfilelist = safeopen(missingfilelistname)
+			if mc>=1:
+				missingfilelist.write("%s\n" %item)	
+		elif item in outparentlist:
+			me = me+1
+			childcmd = 'samweb list-files "ischildof: (file_name=%s) and availability: anylocation"' %(item)
+			children = subprocess.check_output(childcmd, shell = True).splitlines()
+			rmfile = list(set(children) & set(outputlist))[0]
+			if me ==1:
+			   flist = []
+			   fnlist = os.path.join(stage.outdir, 'files.list')
+			   if project_utilities.safeexist(fnlist):
+			     flist = project_utilities.saferead(fnlist)
+			     slist = []  
+			     for line in flist:
+	                        slist.append(string.split(line)[0])
+			   else:
+			     print 'No files.list file found, run project.py --check'
+			     sys.exit(1)
+			   #make a dictionary or jason file  
+			   #sdict = {'content_status':'bad'}			     
+			   #make a .json file with { "content_status": "bad"} json fragment
+			   #json = open("jsonfile.json","w")
+			   #json.write("{ \"content_status\": \"bad\" }")
+			   #json.close()	
+			#declare the content status of the file as bad in SAM
+			#samweb.modifyFileMetadata(rmfile, sdict)
+			#mmd_cmd = 'samweb modify-metadata %s %s' %(rmfile,"jsonfile.json")
+		        #subprocess.check_output(mmd_cmd, shell = True)	 
+			#temporary fix for declaring the content_status of a file as bad in SAM. 
+			mmd_cmd = 'curl --cert /tmp/x509up_u$(id -u) --insecure -d "status=bad" -d "comment=declared%20bad" https://samweb.fnal.gov:8483/sam/uboone/api/files/name/'+rmfile+'/content_status'
+			subprocess.check_output(mmd_cmd, shell = True)	
+			print '\nDeclaring the status of the following file as bad:', rmfile
+			#remove this file from the files.list in the output directory			
+			fn = []  
+			fn = [x for x in slist if os.path.basename(string.strip(x)) != rmfile] 
+   			thefile = safeopen(fnlist)
+		        for item in fn:
+			    thefile.write("%s\n" % item) 
+	
+	if mc==0 and me==0:
+		print "Everything in order..exiting"
+		sys.exit(1)
+	else:	
+		print 'Missing parent file(s) = ', mc
+		print 'Extra parent file(s) = ',me
+	
+	if mc != 0:
+		missingfilelist.close()	
+		print "Creating missingfiles.list in the output directory....done!"
+	if me != 0:
+	        thefile.close()	
+		#os.remove("jsonfile.json")
+		print "For extra parent files, files.list redefined and content status declared as bad in SAM...done!"	     
+    
     if check_definition or define:
 
         # Make sam dataset definition.
@@ -2496,7 +2597,7 @@ def main(argv):
         if project.server == '':
             command = ['jobsub']
         else:
-            command = ['jobsub_submit.py']
+            command = ['jobsub_submit']
         command_njobs = 1
 
         # Jobsub options.
@@ -2578,7 +2679,7 @@ def main(argv):
 
         if prjname != '':
 
-            # At this point, it is an error of the start and stop project
+            # At this point, it is an error if the start and stop project
             # scripts were not found.
 
             if workstartname == '' or workstopname == '':
@@ -2590,7 +2691,7 @@ def main(argv):
             if project.server == '':
                 start_command = ['jobsub']
             else:
-                start_command = ['jobsub_submit.py']
+                start_command = ['jobsub_submit']
 
             # General options.
             
@@ -2601,13 +2702,15 @@ def main(argv):
                 start_command.append('--opportunistic')
             else:
                 if project.server != '-':
-                    command.append('--jobsub-server=%s' % project.server)
+                    start_command.append('--jobsub-server=%s' % project.server)
                 if project.resource != '':
                     start_command.append('--resource-provides=usage_model=%s' % project.resource)
                 if project.lines != '':
-                    command.append('--lines=%s' % project.lines)
+                    start_command.append('--lines=%s' % project.lines)
                 if project.site != '':
                     start_command.append('--site=%s' % project.site)
+            if project.os != '':
+                start_command.append('--OS=%s' % project.os)
 
             # Start project script.
 
@@ -2632,7 +2735,7 @@ def main(argv):
             if project.server == '':
                 stop_command = ['jobsub']
             else:
-                stop_command = ['jobsub_submit.py']
+                stop_command = ['jobsub_submit']
 
             # General options.
             
@@ -2643,13 +2746,15 @@ def main(argv):
                 stop_command.append('--opportunistic')
             else:
                 if project.server != '-':
-                    command.append('--jobsub-server=%s' % project.server)
+                    stop_command.append('--jobsub-server=%s' % project.server)
                 if project.resource != '':
                     stop_command.append('--resource-provides=usage_model=%s' % project.resource)
                 if project.lines != '':
-                    command.append('--lines=%s' % project.lines)
+                    stop_command.append('--lines=%s' % project.lines)
                 if project.site != '':
                     stop_command.append('--site=%s' % project.site)
+            if project.os != '':
+                stop_command.append('--OS=%s' % project.os)
 
             # Stop project script.
 
@@ -2681,7 +2786,7 @@ def main(argv):
                 if not first:
                     dag.write(' ')
                 dag.write(word)
-                if word == 'jobsub':
+                if word[:6] == 'jobsub':
                     dag.write(' -n')
                 first = False
             dag.write('\n</serial>\n')
@@ -2701,8 +2806,10 @@ def main(argv):
                         else:
                             if not first:
                                 dag.write(' ')
+                            if word[:6] == 'jobsub':
+                                word = 'jobsub'
                             dag.write(word)
-                            if word == 'jobsub':
+                            if word[:6] == 'jobsub':
                                 dag.write(' -n')
                             first = False
                 dag.write(' --process %d\n' % process)
@@ -2716,7 +2823,7 @@ def main(argv):
                 if not first:
                     dag.write(' ')
                 dag.write(word)
-                if word == 'jobsub':
+                if word[:6] == 'jobsub':
                     dag.write(' -n')
                 first = False
             dag.write('\n</serial>\n')
@@ -2724,7 +2831,15 @@ def main(argv):
 
             # Update the main submission command to use dagNabbit.py instead of jobsub.
 
-            command = ['dagNabbit.py', '-i', dagfilepath, '-s']
+            if project.server == '':
+                command = ['dagNabbit.py', '-i', dagfilepath, '-s']
+            else:
+                command = ['jobsub_submit_dag']
+                command.append('--group=%s' % project.group)
+                if project.server != '-':
+                    command.append('--jobsub-server=%s' % project.server)
+                dagfileurl = 'file://'+ dagfilepath
+                command.append(dagfileurl)
 
         os.chdir(stage.workdir)
 
@@ -2766,3 +2881,11 @@ def main(argv):
 
 if __name__ == '__main__':
     sys.exit(main(sys.argv))
+    
+'''inputlist = [] 			 
+		inp = open(stage.inputlist,"r")
+		for line in inp:
+			columns = line.split("/")
+			columns = [col.strip() for col in columns]
+			inputlist.append(columns[8])
+		inp.close()'''    

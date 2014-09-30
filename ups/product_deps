@@ -2,8 +2,8 @@
 
 # The *parent* line must the first non-commented line and defines this product and version
 # The version should be of the form vxx_yy_zz (e.g. v01_02_03)
-parent ubutil v01_01_00
-defaultqual e5
+parent ubutil v01_03_00
+defaultqual e6
 
 # These optional lines define the installed directories where headers,
 # libraries, and executables will be found.
@@ -31,6 +31,7 @@ bindir  product_dir    bin
 # table fragment to set various environment variables.
 table_fragment_begin
     #envSet(GROUP, uboone)
+    envSet(JOBSUB_GROUP, uboone)
     envSet(EXPERIMENT, uboone)
     envSet(SAM_EXPERIMENT, uboone)
     pathPrepend(PYTHONPATH, ${UPS_PROD_DIR}/python)
@@ -40,20 +41,21 @@ table_fragment_end
 # Add the dependent product and version
 
 product          version
-art             v1_10_00b
-sam_web_client	-		optional
-jobsub_client	v1_0		optional
+art             v1_12_01
+sam_web_client	-		-	optional
+jobsub_tools	-		-	optional
 
-# list products required ONLY for the build
-# any products here must NOT have qualifiers
-only_for_build  cetbuildtools   v3_13_00   
+cetbuildtools	v4_02_02	-	only_for_build
+end_product_list
+
 
 # We now define allowed qualifiers and the corresponding qualifiers for the depdencies.
 # Make a table by adding columns before "notes". 
-qualifier	art		sam_web_client	 jobsub_client	notes
-e5:debug	nu:e5:debug	-nq-		 -nq-
-e5:opt		nu:e5:opt	-nq-		 -nq-
-e5:prof		nu:e5:prof	-nq-		 -nq-
+qualifier	art		sam_web_client	 jobsub_tools	notes
+e6:debug	nu:e6:debug	-nq-		 -nq-
+e6:opt		nu:e6:opt	-nq-		 -nq-
+e6:prof		nu:e6:prof	-nq-		 -nq-
+end_qualifier_list
 
 # Preserve tabs and formatting in emacs and vi / vim:
 
