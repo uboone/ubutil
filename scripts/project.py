@@ -2691,7 +2691,7 @@ def main(argv):
             if project.server == '':
                 start_command = ['jobsub']
             else:
-                start_command = ['jobsub_submit']
+                start_command = ['jobsub']
 
             # General options.
             
@@ -2701,8 +2701,6 @@ def main(argv):
                 start_command.append('--grid')
                 start_command.append('--opportunistic')
             else:
-                if project.server != '-':
-                    start_command.append('--jobsub-server=%s' % project.server)
                 if project.resource != '':
                     start_command.append('--resource-provides=usage_model=%s' % project.resource)
                 if project.lines != '':
@@ -2735,7 +2733,7 @@ def main(argv):
             if project.server == '':
                 stop_command = ['jobsub']
             else:
-                stop_command = ['jobsub_submit']
+                stop_command = ['jobsub']
 
             # General options.
             
@@ -2745,8 +2743,6 @@ def main(argv):
                 stop_command.append('--grid')
                 stop_command.append('--opportunistic')
             else:
-                if project.server != '-':
-                    stop_command.append('--jobsub-server=%s' % project.server)
                 if project.resource != '':
                     stop_command.append('--resource-provides=usage_model=%s' % project.resource)
                 if project.lines != '':
