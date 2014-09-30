@@ -107,6 +107,14 @@ while [ $# -gt 0 ]; do
   shift
 done
 
+# Get qualifier.
+
+qual=e5
+ver=`echo $rel | cut -c2-3`
+if [ $ver -gt 2 ]; then
+  qual=e6
+fi
+
 # Delete existing xml files.
 
 rm -f *.xml
@@ -227,7 +235,7 @@ do
   <!-- Larsoft information -->
   <larsoft>
     <tag>&release;</tag>
-    <qual>e5:prof</qual>
+    <qual>${qual}:prof</qual>
 EOF
   echo "local=$local"
   if [ x$local != x ]; then
