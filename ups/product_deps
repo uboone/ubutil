@@ -52,10 +52,10 @@ end_product_list
 
 # We now define allowed qualifiers and the corresponding qualifiers for the depdencies.
 # Make a table by adding columns before "notes". 
-qualifier	art		sam_web_client	 jobsub_tools	notes
-e6:debug	nu:e6:debug	-nq-		 -nq-
-e6:opt		nu:e6:opt	-nq-		 -nq-
-e6:prof		nu:e6:prof	-nq-		 -nq-
+qualifier	art		sam_web_client	 jobsub_tools	jobsub_client	notes
+e6:debug	nu:e6:debug	-nq-		 -nq-		-nq-
+e6:opt		nu:e6:opt	-nq-		 -nq-		-nq-
+e6:prof		nu:e6:prof	-nq-		 -nq-		-nq-
 end_qualifier_list
 
 # Preserve tabs and formatting in emacs and vi / vim:
