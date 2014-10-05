@@ -1133,6 +1133,8 @@ services.user.CatalogInterface:
   webURI: "$PURL"
 }
 
+services.FileCatalogMetadata.processID: "$CPID"
+
 services.user.FileTransfer:
 {
   service_provider: "IFFileTransfer"
