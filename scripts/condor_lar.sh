@@ -141,7 +141,7 @@
 #     scratch directory and deletes processed input files during job execution.
 #
 #
-# 7.  Using option -n or --nevts to limit number of events processed:
+# 7.  Using option -n or --nevts to limit number of events processed: 
 #
 #     a) If no input files are specified (e.g. mc generation), --nevts
 #        specifies total number of events among all workers.
