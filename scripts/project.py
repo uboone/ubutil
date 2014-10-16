@@ -18,9 +18,6 @@
 #                       more than one project description).
 # --stage <stage>     - Project stage (required if project contains
 #                       more than one stage).
-# --histmerge <program> - Override default histogram merging program
-#                         (no effect on histogram merging specified
-#                         at stage level).
 # --tmpdir <tempdir>  - Override TMPDIR internally.  If TMPDIR is set
 #                       use ifdh cp instead of xrootd for accessing
 #                       content of root files in dCache.
@@ -32,6 +29,10 @@
 # --submit     - Submit all jobs for specified stage.
 # --check      - Check results for specified stage and print message.
 # --checkana   - Check analysis results for specified stage and print message.
+# --mergehist  - merge histogram files using hadd -T
+# --mergentuple- merge ntuple files using hadd
+# --merge      - merge non-ART root files using the specified merging program in the XML file
+#	         (default hadd -T)
 # --status     - Print status of each stage.
 # --makeup     - Submit makeup jobs for specified stage.
 # --clean      - Delete output from specified project and stage.
@@ -102,9 +103,8 @@
 # <ubxml>   - Ubxml version (default none).
 # <filetype> - Sam file type ("data" or "mc", default none).
 # <runtype>  - Sam run type (normally "physics", default none).
-# <histmerge> - Default histogram merging program (default "hadd -T", 
+# <merge>    - special histogram merging program (default "hadd -T", 
 #               can be overridden at each stage).
-#
 # <stage name="stagename"> - Information about project stage.  There can
 #             be multiple instances of this tag with different name
 #             attributes.  The name attribute is optional if there is
@@ -145,9 +145,8 @@
 # <stage><endscript>  - Worker end-of-job script (condor_lar.sh --end-script).
 #                       Initialization/end-of-job scripts can be specified using an
 #                       absolute or relative path relative to the current directory.
-# <stage><histmerge>  - Name of histogram merging program or script (default specified
-#                       at project level, or global default "hadd -T").
-#
+# <stage><merge>  - Name of special histogram merging program or script (default "hadd -T", 
+#                       can be overridden at each stage).
 #
 #
 # <fcldir>  - Directory in which to search for fcl files (optional, repeatable).
@@ -253,7 +252,7 @@ class StageDef:
 
     # Constructor.
 
-    def __init__(self, stage_element, default_input_list, default_num_jobs, default_histmerge):
+    def __init__(self, stage_element, default_input_list, default_num_jobs, default_merge):
 
         # Assign default values.
         
@@ -271,7 +270,7 @@ class StageDef:
         self.init_script = ''  # Worker initialization script.
         self.init_source = ''  # Worker initialization bash source script.
         self.end_script = ''   # Worker end-of-job script.
-        self.histmerge = default_histmerge # Histogram merging program
+        self.merge = default_merge    # Histogram merging program
 
         # Extract values from xml.
 
@@ -385,10 +384,10 @@ class StageDef:
 
         # Histogram merging program.
 
-        histmerge_elements = stage_element.getElementsByTagName('histmerge')
-        if histmerge_elements:
-            self.histmerge = histmerge_elements[0].firstChild.data
-
+        merge_elements = stage_element.getElementsByTagName('merge')
+        if merge_elements:
+            self.merge = merge_elements[0].firstChild.data
+	
         # Done.
 
         return
@@ -410,7 +409,7 @@ class StageDef:
         result += 'Worker initialization script = %s\n' % self.init_script
         result += 'Worker initialization source script = %s\n' % self.init_source
         result += 'Worker end-of-job script = %s\n' % self.end_script
-        result += 'Histogram merging program = %s\n' % self.histmerge
+        result += 'Special histogram merging program = %s\n' % self.merge
         return result
 
     # Raise an exception if any specified input file/list doesn't exist.
@@ -470,7 +469,7 @@ class ProjectDef:
     # Constructor.
     # project_element argument can be an xml element or None.
 
-    def __init__(self, project_element, override_histmerge):
+    def __init__(self, project_element, override_merge):
 
         # Assign default values.
         
@@ -485,7 +484,7 @@ class ProjectDef:
         self.lines = ''                   # Arbitrary condor commands.
         self.server = '-'                 # Jobsub server.
         self.site = ''                    # Site.
-        self.histmerge = 'hadd -T'        # Default histogram merging program.
+        self.merge = 'hadd -T'               # histogram merging program.
         self.release_tag = ''             # Larsoft release tag.
         self.release_qual = 'debug'       # Larsoft release qualifier.
         self.local_release_dir = ''       # Larsoft local release directory.
@@ -561,17 +560,17 @@ class ProjectDef:
         if site_elements:
             self.site = site_elements[0].firstChild.data
 
-        # Histmerge (subelement).
-
-        histmerge_elements = project_element.getElementsByTagName('histmerge')
-        if histmerge_elements:
-            if histmerge_elements[0].firstChild:
-                self.histmerge = histmerge_elements[0].firstChild.data
+        # merge (subelement).
+ 	
+        merge_elements = project_element.getElementsByTagName('merge')
+        if merge_elements:
+            if merge_elements[0].firstChild:
+                self.merge = merge_elements[0].firstChild.data
             else:
-                self.histmerge = ''
-        if override_histmerge != '':
-            self.histmerge = override_histmerge
-
+                self.merge = ''
+        if override_merge != '':
+            self.merge = override_merge
+	    
         # Larsoft (subelement).
 
         larsoft_elements = project_element.getElementsByTagName('larsoft')
@@ -716,7 +715,7 @@ class ProjectDef:
             self.stages.append(StageDef(stage_element, 
                                         default_input_list, 
                                         self.num_jobs, 
-                                        self.histmerge))
+                                        self.merge))
             default_input_list = os.path.join(self.stages[-1].outdir, 'files.list')
 
         # Done.
@@ -735,7 +734,7 @@ class ProjectDef:
         result += 'Lines = %s\n' % self.lines
         result += 'Jobsub server = %s\n' % self.server
         result += 'Site = %s\n' % self.site
-        result += 'Histogram merging program = %s\n' % self.histmerge
+        result += 'Histogram merging program = %s\n' % self.merge
         result += 'Larsoft release tag = %s\n' % self.release_tag
         result += 'Larsoft release qualifier = %s\n' % self.release_qual
         result += 'Local test release directory = %s\n' % self.local_release_dir
@@ -1175,7 +1174,7 @@ def get_input_files(stage):
 
 # Check project results in the specified directory.
 
-def docheck(dir, num_events, num_jobs, has_input_files, input_def, ana, has_metadata, histmerge):
+def docheck(dir, num_events, num_jobs, has_input_files, input_def, ana, has_metadata):
 
     # This method expects to find several subdirectories named as
     # <cluster>_<process>, where the <process> part of the subdirectory
@@ -1217,9 +1216,8 @@ def docheck(dir, num_events, num_jobs, has_input_files, input_def, ana, has_meta
     # 3.  missing.txt - List of missing (cluster, process).
     # 4.  sam_projects.list - List of successful sam projects.
     # 5.  cpids.list        - list of successful consumer process ids.
-    # 6.  hists.list  - List of non-art histogram root files (histograms and/or ntuples).
-    # 7.  hist.root   - Merged histogram file (excludes TTrees).
-    #                   Made using "hadd -T hist.root @hlists.list" (or equivalent).
+    # 6.  filesana.list  - List of non-art root files (histograms and/or ntuples).
+
 
     import_samweb()
 
@@ -1239,7 +1237,7 @@ def docheck(dir, num_events, num_jobs, has_input_files, input_def, ana, has_meta
     cluster = 0    # Most recent cluster.
     process = 0    # Most recent process.
     procmap = {}   # procmap[process][cluster] = <list of art root files and event counts>
-    hists = []     # List of non-art root files.
+    filesana = []     # List of non-art root files.
     sam_projects = []
     cpids = []
 
@@ -1364,7 +1362,7 @@ def docheck(dir, num_events, num_jobs, has_input_files, input_def, ana, has_meta
 
                         # Save good histogram files.
 
-                        hists.extend(subhists)
+                        filesana.extend(subhists)
 
                         # Count good events and root files.
 
@@ -1393,13 +1391,8 @@ def docheck(dir, num_events, num_jobs, has_input_files, input_def, ana, has_meta
     missingname = os.path.join(dir, 'missing.txt')
     missing = safeopen(missingname)
 
-    histlistname = os.path.join(dir, 'hists.list')
-    histlist = safeopen(histlistname)
-
-    histurlsname_temp = 'histurls.list'
-    if os.path.exists(histurlsname_temp):
-        os.remove(histurlsname_temp)
-    histurls = open(histurlsname_temp, 'w')
+    filesanalistname = os.path.join(dir, 'filesana.list')
+    filesanalist = safeopen(filesanalistname)
 
     # See if there are any missing processes and generate file "missing.txt."
     # Skip this step for sam input.
@@ -1424,54 +1417,27 @@ def docheck(dir, num_events, num_jobs, has_input_files, input_def, ana, has_meta
                 filelist.write('%s\n' % root[0])
                 eventslist.write('%s %d\n' % root)
 
-    # Generate "hists.list."
+    # Generate "filesana.list."
 
-    for hist in hists:
-        histlist.write('%s\n' % hist)
-        histurls.write('%s\n' % project_utilities.path_to_url(hist))
+    for hist in filesana:
+        filesanalist.write('%s\n' % hist)
 
     # Print summary.
 
     if ana:
         print "%d processes completed successfully." % nproc
-        print "%d total good histogram files." % len(hists)
+        print "%d total good histogram files." % len(filesana)
     else:
         print "%d total good events." % nev_tot
         print "%d total good root files." % nroot_tot
-        print "%d total good histogram files." % len(hists)
+        print "%d total good histogram files." % len(filesana)
 
     # Close files.
 
     filelist.close()
     eventslist.close()
     missing.close()
-    histlist.close()
-    histurls.close()
-
-    # Make merged histogram file using histmerge.
-
-    if len(hists) > 0 and histmerge != '':
-        print "Merging %d histogram files using %s." % (len(hists), histmerge)
-
-        histname = os.path.join(dir, 'hist.root')
-        if histname[0:6] == '/pnfs/':
-            histname_temp = 'hist.root'
-        else:
-            histname_temp = histname
-        if os.path.exists(histname_temp):
-            os.remove(histname_temp)
-        comlist = histmerge.split()
-        comlist.extend(["-v", "0", "-f", "-k", histname_temp, '@' + histurlsname_temp])
-        rc = subprocess.call(comlist)
-        if rc != 0:
-            print "%s exit status %d" % (histmerge, rc)
-        if histname != histname_temp:
-            if project_utilities.safeexist(histname):
-                os.remove(histname)
-            if os.path.exists(histname_temp):
-                subprocess.call(['ifdh', 'cp', histname_temp, histname])
-                os.remove(histname_temp)
-    os.remove(histurlsname_temp)
+    filesanalist.close()
 
     # Make sam files.
 
@@ -1955,10 +1921,13 @@ def main(argv):
     xmlfile = ''
     projectname = ''
     stagename = ''
-    override_histmerge = ''
+    override_merge = ''
+    merge = 0
     submit = 0
     check = 0
     checkana = 0
+    mergehist = 0
+    mergentuple = 0
     audit = 0
     stage_status = 0
     makeup = 0
@@ -1998,9 +1967,6 @@ def main(argv):
         elif args[0] == '--stage' and len(args) > 1:
             stagename = args[1]
             del args[0:2]
-        elif args[0] == '--histmerge' and len(args) > 1:
-            override_histmerge = args[1]
-            del args[0:2]
         elif args[0] == '--tmpdir' and len(args) > 1:
             os.environ['TMPDIR'] = args[1]
             del args[0:2]
@@ -2013,6 +1979,15 @@ def main(argv):
         elif args[0] == '--checkana':
             checkana = 1
             del args[0]
+	elif args[0] == '--merge':
+	    merge = 1
+            del args[0]     
+	elif args[0] == '--mergehist':
+            mergehist = 1
+            del args[0]  
+	elif args[0] == '--mergentuple':
+            mergentuple = 1
+            del args[0]     
 	elif args[0] == '--audit':
 	    audit = 1
 	    del args[0]     
@@ -2088,7 +2063,7 @@ def main(argv):
     
     # Make sure that no more than one action was specified (except clean and info options).
 
-    num_action = submit + check + checkana + audit + stage_status + makeup + define + undefine + declare
+    num_action = submit + check + checkana + merge + mergehist + mergentuple + audit + stage_status + makeup + define + undefine + declare
     if num_action > 1:
         print 'More than one action was specified.'
         return 1
@@ -2105,7 +2080,7 @@ def main(argv):
 
     # Convert the project element into a ProjectDef object.
 
-    project = ProjectDef(project_element, override_histmerge)
+    project = ProjectDef(project_element, override_merge)
 
     # Make sure that we have a kerberos ticket if we might need one to submit jobs.
 
@@ -2416,7 +2391,61 @@ def main(argv):
         has_input_files = stage.inputfile != '' or stage.inputlist != ''
         rc = docheck(stage.outdir, project.num_events, stage.num_jobs,
                      has_input_files, stage.inputdef,
-                     checkana, xml_has_metadata, stage.histmerge)
+                     checkana, xml_has_metadata)
+		   
+    # Make merged histogram or ntuple files using proper hadd option. 
+    # Makes a merged root file called anahist.root in the project output directory
+    
+    if mergehist or mergentuple or merge:
+     
+        hlist = []
+	hnlist = os.path.join(stage.outdir, 'filesana.list')
+	if project_utilities.safeexist(hnlist):
+	  hlist = project_utilities.saferead(hnlist)	
+	else:
+	  print 'No filesana.list file found, run project.py --checkana'
+	  sys.exit(1)	
+	  
+	histurlsname_temp = 'histurls.list'
+        if os.path.exists(histurlsname_temp):
+             os.remove(histurlsname_temp)
+        histurls = open(histurlsname_temp, 'w') 
+	
+	for hist in hlist:
+             histurls.write('%s\n' % project_utilities.path_to_url(hist)) 	
+        histurls.close()
+       	
+        if len(hlist) > 0:
+	   name = os.path.join(stage.outdir, 'anahist.root')
+	   if name[0:6] == '/pnfs/':
+           	name_temp = 'anahist.root'
+           else:
+           	name_temp = name 
+		     
+           if mergehist:
+  		mergecom = "hadd -T"
+	   elif mergentuple:
+	     	mergecom = "hadd"
+           elif merge:
+	        mergecom = stage.merge
+           
+	   print "Merging %d root files using %s." % (len(hlist), mergecom)
+			          			         
+           if os.path.exists(name_temp):
+               os.remove(name_temp)
+           comlist = mergecom.split()
+           comlist.extend(["-v", "0", "-f", "-k", name_temp, '@' + histurlsname_temp])
+           rc = subprocess.call(comlist)
+           if rc != 0:
+               print "%s exit status %d" % (mergecom, rc)
+           if name != name_temp:
+               if project_utilities.safeexist(name):
+        	   os.remove(name)
+               if os.path.exists(name_temp):
+        	   subprocess.call(['ifdh', 'cp', name_temp, name])
+        	   os.remove(name_temp)
+           os.remove(histurlsname_temp)		     
+		     
 		     
     if audit:
         import_samweb()
