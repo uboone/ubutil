@@ -544,6 +544,7 @@ else
   echo "Could not find MRB initialization script setup_uboone.sh"
   exit 1
 fi
+echo PRODUCTS=$PRODUCTS
 
 # Ifdh may already be setup by jobsub wrapper.
 # If not, set it up here.
@@ -663,7 +664,7 @@ echo "Scratch directory: $TMP"
 # Copy files from work directory to scratch directory.
 
 echo "Fetching files from work directory."
-ifdh cp -r $WORKDIR work
+ifdh cp -r $IFDH_OPT $WORKDIR work
 stat=$?
 if [ $stat -ne 0 ]; then
   echo "ifdh cp failed with status ${stat}."
