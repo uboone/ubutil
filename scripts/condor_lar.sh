@@ -760,21 +760,39 @@ fi
 # Setup local test release, if any.
 
 if [ x$LOCALDIR != x ]; then
-  #if [ $GRID -ne 0 ]; then
-  #  echo "Local test release may not be specified in grid-friendly mode."
-  #  exit 1
-  #fi
-  echo "Setting up local test release in directory ${LOCALDIR}."
-  if [ ! -d $LOCALDIR ]; then
-    echo "Local test release directory $LOCALDIR does not exist."
+  mkdir $TMP/local
+  cd $TMP/local
+
+  # Copy test release directory recursively.
+
+  echo "Copying local test release from directory ${LOCALDIR}."
+
+  # Make sure ifdhc is setup.
+
+  if [ x$IFDHC_DIR = x ]; then
+    echo "Setting up ifdhc before fetching local directory."
+    setup ifdhc
+  fi
+  echo "IFDHC_DIR=$IFDHC_DIR"
+  ifdh cp -r $IFDH_OPT $LOCALDIR .
+  stat=$?
+  if [ $stat -ne 0 ]; then
+    echo "ifdh cp failed with status ${stat}."
+    exit $stat
+  fi
+  find . -name \*.py -exec chmod +x {} \;
+
+  # Setup the environment.
+
+  cd $TMP/work
+  echo "Initializing localProducts from ${LOCALDIR}."
+  if [ ! -f $TMP/local/setup ]; then
+    echo "Local test release directory $LOCALDIR does not contain a setup script."
     exit 1
   fi
-  if [ ! -f ${LOCALDIR}/setup ]; then
-    echo "Local test release directory $LOCALDIR does not contain a setup script."
-    exit
-  fi
-  echo "Initializing localProducts from ${LOCALDIR}."
-  . $LOCALDIR/setup
+  sed "s@setenv MRB_INSTALL.*@setenv MRB_INSTALL ${TMP}/local@" $TMP/local/setup | \
+  sed "s@setenv MRB_TOP.*@setenv MRB_TOP ${TMP}@" > $TMP/local/setup.local
+  . $TMP/local/setup.local
   #echo "MRB_INSTALL=${MRB_INSTALL}."
   #echo "MRB_QUALS=${MRB_QUALS}."
   echo "Setting up all localProducts."
@@ -802,7 +820,7 @@ if [ x$LOCALTAR != x ]; then
     setup ifdhc
   fi
   echo "IFDHC_DIR=$IFDHC_DIR"
-  ifdh cp $LOCALTAR local.tar
+  ifdh cp $IFDH_OPT $LOCALTAR local.tar
   stat=$?
   if [ $stat -ne 0 ]; then
     echo "ifdh cp failed with status ${stat}."
@@ -885,7 +903,7 @@ if [ $USE_SAM -eq 0 -a x$INFILE != x ]; then
   NFILE_TOTAL=1
   LOCAL_INFILE=`basename $INFILE`
   echo "Copying $INFILE"
-  ifdh cp $INFILE $LOCAL_INFILE
+  ifdh cp $IFDH_OPT $INFILE $LOCAL_INFILE
   stat=$?
   if [ $stat -ne 0 ]; then
     echo "ifdh cp failed with status ${stat}."
@@ -979,7 +997,7 @@ elif [ $USE_SAM -eq 0 -a x$INLIST != x ]; then
         LOCAL_INFILE=input${nfile}.root
       fi
       echo "Copying $infile"
-      ifdh cp $infile $LOCAL_INFILE
+      ifdh cp $IFDH_OPT $infile $LOCAL_INFILE
       stat=$?
       if [ $stat -ne 0 ]; then
         echo "ifdh cp failed with status ${stat}."
