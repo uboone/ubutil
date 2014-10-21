@@ -82,13 +82,13 @@
 #             overridden for individual stages by <stage><numjobs>.
 # <os>      - Specify batch OS (comma-separated list: SL5,SL6).
 #             Default let jobsub decide.
+# <server>  - Jobsub server (expert option, jobsub_submit --jobsub-server=...).
+#             If blank, use jobsub_tools.  If "-" (hyphen), use jobsub_client, but 
+#             omit --jobsub-server option (use default server).
 # <resource> - Jobsub resources (comma-separated list: DEDICATED,OPPORTUNISTIC,
 #              OFFSITE,FERMICLOUD,PAID_CLOUD,FERMICLOUD8G).
 #              Default: DEDICATED,OPPORTUNISTIC.
 # <lines>   - Arbitrary condor commands (expert option, jobsub_submit --lines=...).
-# <server>  - Jobsub server (expert option, jobsub_submit --jobsub-server=...).
-#             If blank, use jobsub_tools.  If "-" (hyphen), use jobsub_client, but 
-#             omit --jobsub-server option (use default server).
 # <site>    - Specify site (default jobsub decides).
 #
 # <script>  - Name of batch worker script (default condor_lar.sh).
@@ -147,6 +147,11 @@
 #                       absolute or relative path relative to the current directory.
 # <stage><merge>  - Name of special histogram merging program or script (default "hadd -T", 
 #                       can be overridden at each stage).
+# <stage><resource> - Jobsub resources (comma-separated list: DEDICATED,OPPORTUNISTIC,
+#                     OFFSITE,FERMICLOUD,PAID_CLOUD,FERMICLOUD8G).
+#                     Default: DEDICATED,OPPORTUNISTIC.
+# <stage><lines>   - Arbitrary condor commands (expert option, jobsub_submit --lines=...).
+# <stage><site>    - Specify site (default jobsub decides).
 #
 #
 # <fcldir>  - Directory in which to search for fcl files (optional, repeatable).
@@ -271,6 +276,9 @@ class StageDef:
         self.init_source = ''  # Worker initialization bash source script.
         self.end_script = ''   # Worker end-of-job script.
         self.merge = default_merge    # Histogram merging program
+        self.resource = ''     # Jobsub resources.
+        self.lines = ''        # Arbitrary condor commands.
+        self.site = ''         # Site.
 
         # Extract values from xml.
 
@@ -388,6 +396,24 @@ class StageDef:
         if merge_elements:
             self.merge = merge_elements[0].firstChild.data
 	
+        # Resource (subelement).
+
+        resource_elements = stage_element.getElementsByTagName('resource')
+        if resource_elements:
+            self.resource = resource_elements[0].firstChild.data
+
+        # Lines (subelement).
+
+        lines_elements = stage_element.getElementsByTagName('lines')
+        if lines_elements:
+            self.lines = lines_elements[0].firstChild.data
+
+        # Site (subelement).
+
+        site_elements = stage_element.getElementsByTagName('site')
+        if site_elements:
+            self.site = site_elements[0].firstChild.data
+
         # Done.
 
         return
@@ -410,6 +436,9 @@ class StageDef:
         result += 'Worker initialization source script = %s\n' % self.init_source
         result += 'Worker end-of-job script = %s\n' % self.end_script
         result += 'Special histogram merging program = %s\n' % self.merge
+        result += 'Resource = %s\n' % self.resource
+        result += 'Lines = %s\n' % self.lines
+        result += 'Site = %s\n' % self.site
         return result
 
     # Raise an exception if any specified input file/list doesn't exist.
@@ -2641,11 +2670,17 @@ def main(argv):
         else:
             if project.server != '-':
                 command.append('--jobsub-server=%s' % project.server)
-            if project.resource != '':
+            if stage.resource != '':
+                command.append('--resource-provides=usage_model=%s' % stage.resource)
+            elif project.resource != '':
                 command.append('--resource-provides=usage_model=%s' % project.resource)
-            if project.lines != '':
+            if stage.lines != '':
+                command.append('--lines=%s' % stage.lines)
+            elif project.lines != '':
                 command.append('--lines=%s' % project.lines)
-            if project.site != '':
+            if stage.site != '':
+                command.append('--site=%s' % stage.site)
+            elif project.site != '':
                 command.append('--site=%s' % project.site)
         if project.os != '':
             command.append('--OS=%s' % project.os)
@@ -2730,11 +2765,17 @@ def main(argv):
                 start_command.append('--grid')
                 start_command.append('--opportunistic')
             else:
-                if project.resource != '':
+                if stage.resource != '':
+                    command.append('--resource-provides=usage_model=%s' % stage.resource)
+                elif project.resource != '':
                     start_command.append('--resource-provides=usage_model=%s' % project.resource)
-                if project.lines != '':
+                if stage.lines != '':
+                    command.append('--lines=%s' % stage.lines)
+                elif project.lines != '':
                     start_command.append('--lines=%s' % project.lines)
-                if project.site != '':
+                if stage.site != '':
+                    command.append('--site=%s' % stage.site)
+                elif project.site != '':
                     start_command.append('--site=%s' % project.site)
             if project.os != '':
                 start_command.append('--OS=%s' % project.os)
@@ -2772,11 +2813,17 @@ def main(argv):
                 stop_command.append('--grid')
                 stop_command.append('--opportunistic')
             else:
-                if project.resource != '':
+                if stage.resource != '':
+                    command.append('--resource-provides=usage_model=%s' % stage.resource)
+                elif project.resource != '':
                     stop_command.append('--resource-provides=usage_model=%s' % project.resource)
-                if project.lines != '':
+                if stage.lines != '':
+                    command.append('--lines=%s' % stage.lines)
+                elif project.lines != '':
                     stop_command.append('--lines=%s' % project.lines)
-                if project.site != '':
+                if stage.site != '':
+                    command.append('--site=%s' % stage.site)
+                elif project.site != '':
                     stop_command.append('--site=%s' % project.site)
             if project.os != '':
                 stop_command.append('--OS=%s' % project.os)

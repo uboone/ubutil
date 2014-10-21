@@ -781,6 +781,7 @@ if [ x$LOCALDIR != x ]; then
     exit $stat
   fi
   find . -name \*.py -exec chmod +x {} \;
+  find . -name \*.sh -exec chmod +x {} \;
 
   # Setup the environment.
 
