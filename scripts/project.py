@@ -99,8 +99,6 @@
 # <larsoft><qual> - Build qualifier (default "debug", or "prof").
 # <larsoft><local> - Local test release directory or tarball (default none).
 #
-# <ubfcl>   - Ubfcl version (default none).
-# <ubxml>   - Ubxml version (default none).
 # <filetype> - Sam file type ("data" or "mc", default none).
 # <runtype>  - Sam run type (normally "physics", default none).
 # <merge>    - special histogram merging program (default "hadd -T", 
@@ -157,8 +155,7 @@
 # <fcldir>  - Directory in which to search for fcl files (optional, repeatable).
 #             Fcl files are searched for in the following directories, in order.
 #             1.  Fcl directories specified using <fcldir>.
-#             2.  The specified ubfcl version directory.
-#             3.  $FHICL_FILE_PATH.
+#             2.  $FHICL_FILE_PATH.
 #             Regardless of where an fcl file is found, a copy is placed
 #             in the work directory before job submission.  It is an
 #             error of the fcl file isn't found.
@@ -518,10 +515,7 @@ class ProjectDef:
         self.release_qual = 'debug'       # Larsoft release qualifier.
         self.local_release_dir = ''       # Larsoft local release directory.
         self.local_release_tar = ''       # Larsoft local release tarball.
-        self.ubfcl = ''                   # Ubfcl version.
-        self.ubxml = ''                   # Ubxml version.
         self.file_type = ''               # Sam file type.
-        self.run_type = ''                # Sam run type.
         self.script = 'condor_lar.sh'     # Batch script.
         self.start_script = 'condor_start_project.sh'  # Sam start project script.
         self.stop_script = 'condor_stop_project.sh'    # Sam stop project script.
@@ -634,29 +628,11 @@ class ProjectDef:
         if self.local_release_tar != '' and not os.path.exists(self.local_release_tar):
             raise IOError, "Local release directory/tarball %s does not exist." % self.local_release_tar
             
-        # Ubfcl version (subelement).
-
-        ubfcl_elements = project_element.getElementsByTagName('ubfcl')
-        if ubfcl_elements:
-            self.ubfcl = ubfcl_elements[0].firstChild.data
-
-        # Ubxml version (subelement).
-
-        ubxml_elements = project_element.getElementsByTagName('ubxml')
-        if ubxml_elements:
-            self.ubxml = ubxml_elements[0].firstChild.data
-
         # Sam file type (subelement).
 
         file_type_elements = project_element.getElementsByTagName('filetype')
         if file_type_elements:
             self.file_type = file_type_elements[0].firstChild.data
-
-        # Sam run type (subelement).
-
-        run_type_elements = project_element.getElementsByTagName('runtype')
-        if run_type_elements:
-            self.run_type = run_type_elements[0].firstChild.data
 
         # Batch script (subelement).
 
@@ -708,21 +684,6 @@ class ProjectDef:
         for fclpath_element in fclpath_elements:
             self.fclpath.append(fclpath_element.firstChild.data)
 
-        # Add ubfcl version directory.
-
-        if self.ubfcl != '':
-
-            # Loop over products directories.
-
-            proc = subprocess.Popen(['ups', 'list', '-K@PROD_DIR', 'ubfcl', self.ubfcl],
-                                    stdout=subprocess.PIPE)
-            lines = proc.stdout.readlines()
-            proc.wait()
-            for line in lines:
-                dir = line.replace('"','').strip()
-                if os.path.exists(dir):
-                    self.fclpath.append(dir)
-
         # Add $FHICL_FILE_PATH.
 
         if os.environ.has_key('FHICL_FILE_PATH'):
@@ -768,10 +729,7 @@ class ProjectDef:
         result += 'Larsoft release qualifier = %s\n' % self.release_qual
         result += 'Local test release directory = %s\n' % self.local_release_dir
         result += 'Local test release tarball = %s\n' % self.local_release_tar
-        result += 'Ubfcl verion = %s\n' % self.ubfcl
-        result += 'Ubxml verion = %s\n' % self.ubxml
         result += 'File type = %s\n' % self.file_type
-        result += 'Run type = %s\n' % self.run_type
         result += 'Batch script = %s\n' % self.script
         result += 'Start sam project script = %s\n' % self.start_script
         result += 'Stop sam project script = %s\n' % self.stop_script
@@ -1571,10 +1529,7 @@ def dimensions(project, stage):
     dim = dim + ' and data_tier %s' % stage.data_tier
     dim = dim + ' and ub_project.name %s' % project.name
     dim = dim + ' and ub_project.stage %s' % stage.name
-    if project.ubxml != '': 
-        dim = dim + ' and ub_project.version %s' % project.ubxml
-    else:
-        dim = dim + ' and ub_project.version %s' % project.release_tag
+    dim = dim + ' and ub_project.version %s' % project.release_tag
     dim = dim + ' and availability: anylocation'
     return dim
 
@@ -2139,11 +2094,6 @@ def main(argv):
     if outdir:
         print stage.outdir
 
-    # Do fcl action now.
-
-    if fcl:
-        print stage.fclname, project.ubfcl
-
     # Do defname action now.
 
     if defname:
@@ -2226,9 +2176,7 @@ def main(argv):
         # Generate overrides for sam metadata fcl parameters.
         # Only do this if our xml file appears to contain sam metadata.
 
-        xml_has_metadata = project.file_type != '' or \
-                           project.run_type != '' or \
-                           project.ubxml != ''
+        xml_has_metadata = project.file_type != ''
         if xml_has_metadata:
 
             # Add overrides for FileCatalogMetadata.
@@ -2245,40 +2193,11 @@ def main(argv):
                 wrapper_fcl.write('services.FileCatalogMetadata.fileType: "%s"\n' % \
                                   project.file_type)
 
-            # Add overrides for FileCatalogMetadataExtras.
-        
-            sep = 'services.user.FileCatalogMetadataExtras.Metadata:\n  ['
+            # Add experiment-specific sam metadata.
 
-            # Add overrides for project (name, stage, version).
-            # These are the main metadata attributes for identifying mc samples.
-            
-            wrapper_fcl.write('%s "ubProjectName", "%s"\n  ' % (sep, project.name))
-            sep = ','
-            if stage.name:
-                wrapper_fcl.write('%s "ubProjectStage", "%s"\n  ' % (sep, stage.name))
-            if project.ubxml:
-                wrapper_fcl.write('%s "ubProjectVersion", "%s"\n  ' % (sep, project.ubxml))
-            elif project.release_tag:
-                wrapper_fcl.write('%s "ubProjectVersion", "%s"\n  ' % (sep, project.release_tag))
-
-            # Run type.
-
-            if project.run_type:
-                wrapper_fcl.write('%s "runType", "%s"\n  ' % (sep, project.run_type))
-                sep = ','
-
-            # Other xml attributes may or may not represent sam metadata.
-            # We include them only if we have added other overrides for
-            # FileCatalogMetadataExtras.
-            
-            if sep == ',':
-                wrapper_fcl.write('%s "fileFormat", "root"\n  ' % sep)
-                if project.group:
-                    wrapper_fcl.write('%s "group", "%s"\n  ' % (sep, project.group))
-                wrapper_fcl.write('%s "fclName", "%s"\n  ' % (sep,
-                                                              os.path.basename(stage.fclname)))
-                wrapper_fcl.write('%s "fclVersion", "%s"\n  ' % (sep, project.ubfcl))
-            wrapper_fcl.write(']\n')
+            sam_metadata = project_utilities.get_sam_metadata(project, stage)
+            if sam_metadata:
+                wrapper_fcl.write(sam_metadata)
 
         wrapper_fcl.close()
 
@@ -2412,9 +2331,7 @@ def main(argv):
 
         # Check results from specified project stage.
         
-        xml_has_metadata = project.file_type != '' or \
-                           project.run_type != '' or \
-                           project.ubxml != ''
+        xml_has_metadata = project.file_type != ''
         #input_files = get_input_files(stage)
         #print input_files
         has_input_files = stage.inputfile != '' or stage.inputlist != ''
@@ -2716,8 +2633,6 @@ def main(argv):
             command.extend([' --localdir', project.local_release_dir])
         if project.local_release_tar != '':
             command.extend([' --localtar', project.local_release_tar])
-        if project.ubfcl != '':
-            command.extend([' --ubfcl', project.ubfcl])
         command.extend([' --workdir', stage.workdir])
         command.extend([' --outdir', stage.outdir])
         if stage.inputfile != '':

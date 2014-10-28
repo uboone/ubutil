@@ -68,6 +68,14 @@ def get_dcache_server():
 def get_dropbox(filename):
     raise RuntimeError, 'Function get_dropbox not implemented.'
 
+# Function to return string containing sam metadata in the form 
+# of an fcl configuraiton.  It is intended that this function
+# may be overridden in experiment_utilities.py.
+
+def get_sam_metadata(project, stage):
+    result = ''
+    return result
+
 # Get role (normally 'Analysis' or 'Production').
 
 def get_role():
