@@ -516,6 +516,7 @@ class ProjectDef:
         self.local_release_dir = ''       # Larsoft local release directory.
         self.local_release_tar = ''       # Larsoft local release tarball.
         self.file_type = ''               # Sam file type.
+        self.run_type = ''                # Sam run type.
         self.script = 'condor_lar.sh'     # Batch script.
         self.start_script = 'condor_start_project.sh'  # Sam start project script.
         self.stop_script = 'condor_stop_project.sh'    # Sam stop project script.
@@ -634,6 +635,12 @@ class ProjectDef:
         if file_type_elements:
             self.file_type = file_type_elements[0].firstChild.data
 
+        # Sam run type (subelement).
+
+        run_type_elements = project_element.getElementsByTagName('runtype')
+        if run_type_elements:
+            self.run_type = run_type_elements[0].firstChild.data
+
         # Batch script (subelement).
 
         script_elements = project_element.getElementsByTagName('script')
@@ -730,6 +737,7 @@ class ProjectDef:
         result += 'Local test release directory = %s\n' % self.local_release_dir
         result += 'Local test release tarball = %s\n' % self.local_release_tar
         result += 'File type = %s\n' % self.file_type
+        result += 'Run type = %s\n' % self.run_type
         result += 'Batch script = %s\n' % self.script
         result += 'Start sam project script = %s\n' % self.start_script
         result += 'Stop sam project script = %s\n' % self.stop_script
@@ -2176,7 +2184,8 @@ def main(argv):
         # Generate overrides for sam metadata fcl parameters.
         # Only do this if our xml file appears to contain sam metadata.
 
-        xml_has_metadata = project.file_type != ''
+        xml_has_metadata = project.file_type != '' or \
+                           project.run_type != ''
         if xml_has_metadata:
 
             # Add overrides for FileCatalogMetadata.
@@ -2192,6 +2201,10 @@ def main(argv):
             if project.file_type:
                 wrapper_fcl.write('services.FileCatalogMetadata.fileType: "%s"\n' % \
                                   project.file_type)
+            if project.run_type:
+                wrapper_fcl.write('services.FileCatalogMetadata.runType: "%s"\n  ' % \
+                                  project.run_type)
+
 
             # Add experiment-specific sam metadata.
 
