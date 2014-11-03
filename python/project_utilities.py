@@ -143,6 +143,11 @@ def safeexist(path):
 
 def test_proxy():
     global proxy_ok
+
+    # Disable proxy check, as we currently don't use it.
+
+    proxy_ok = True
+
     if not proxy_ok:
         try:
             subprocess.check_call(['voms-proxy-info', '-exists'], stdout=-1)
