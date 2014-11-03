@@ -888,6 +888,7 @@ def dostatus(project):
 
             nfile = 0
             nev = 0
+            nerror = 0
             nmiss = 0
 
             # Count good files and events.
@@ -901,15 +902,22 @@ def dostatus(project):
                         nfile = nfile + 1
                         nev = nev + int(words[1])
 
-            # Count bad files.
+            # Count errors.
 
-            missingfile = os.path.join(outdir, 'missing.txt')
+            badfile = os.path.join(outdir, 'bad.list')
+            if project_utilities.safeexist(badfile):
+                lines = project_utilities.saferead(badfile)
+                nerror = nerror + len(lines)
+
+            # Count missing files.
+
+            missingfile = os.path.join(outdir, 'missing_files.list')
             if project_utilities.safeexist(missingfile):
                 lines = project_utilities.saferead(missingfile)
                 nmiss = nmiss + len(lines)
 
-            print 'Stage %s: %d good output files, %d events, %d bad or missing output files.' % (
-                stagename, nfile, nev, nmiss)
+            print 'Stage %s: %d good output files, %d events, %d errors, %d missing files.' % (
+                stagename, nfile, nev, nerror, nmiss)
 
         else:
 
@@ -1169,25 +1177,20 @@ def get_input_files(stage):
 
 # Check project results in the specified directory.
 
-def docheck(dir, num_events, num_jobs, has_input_files, input_def, ana, has_metadata):
+def docheck(project, stage, ana):
 
-    # This method expects to find several subdirectories named as
-    # <cluster>_<process>, where the <process> part of the subdirectory
-    # name is a small integer.
+    # This method performs various checks on worker subdirectories, named
+    # as <cluster>_<process>, where <cluster> and <process> are integers.
+    # In contrast, sam start and stop project jobs are named as
+    # <cluster>_start and <cluster>_stop.
     #
-    # In case of file (list) input, or no input, we expect to have unique
-    # process numbers in the range [0, num_jobs).  In the case of sam input,
-    # process numbers are not necessarily unique, and they have no fixed
-    # range.  However the pair (cluster, process) should still be unique.
-    #
-    # Return 0 if all checks are OK, otherwise return number of missing files.
+    # Return 0 if all checks are OK.
     #
     # The following checks are performed.
     #
-    # 1.  Make sure subdirectories are as expected (complain about missing
-    #     subdirectories).
+    # 1.  Make sure subdirectory names are as expected.
     #
-    # 2.  Look for at least one art root file in each subdirectory (*.root)
+    # 2.  Look for at least one art root file in each worker subdirectory
     #     containing a valid Events TTree.  Complain about any
     #     that do not contain such a root file.
     #
@@ -1197,7 +1200,7 @@ def docheck(dir, num_events, num_jobs, has_input_files, input_def, ana, has_meta
     #
     # 5.  Check job exit status (saved in lar.stat).
     #
-    # 6.  For sam input, make sure that file sam_project.txt and cpid.txt is present.
+    # 6.  For sam input, make sure that files sam_project.txt and cpid.txt are present.
     #
     # 7.  Check that any non-art root files are openable.
     #
@@ -1208,15 +1211,19 @@ def docheck(dir, num_events, num_jobs, has_input_files, input_def, ana, has_meta
     #
     # 1.  files.list  - List of good root files.
     # 2.  events.list - List of good root files and number of events in each file.
-    # 3.  missing.txt - List of missing (cluster, process).
-    # 4.  sam_projects.list - List of successful sam projects.
-    # 5.  cpids.list        - list of successful consumer process ids.
-    # 6.  filesana.list  - List of non-art root files (histograms and/or ntuples).
-
+    # 3.  bad.list    - List of worker subdirectories with problems.
+    # 4.  missing_files.list - List of unprocessed input files.
+    # 5.  sam_projects.list - List of successful sam projects.
+    # 6.  cpids.list        - list of successful consumer process ids.
+    # 7.  filesana.list  - List of non-art root files (histograms and/or ntuples).
+    #
+    # For projects with no input (i.e. generator jobs), if there are fewer than
+    # the requisite number of good generator jobs, a "missing_files.list" will be
+    # generated with lines containing /dev/null.
 
     import_samweb()
-
-    print 'Checking directory %s' % dir
+    has_metadata = project.file_type != '' or project.run_type != ''
+    print 'Checking directory %s' % stage.outdir
 
     # Default result is success.
 
@@ -1229,16 +1236,16 @@ def docheck(dir, num_events, num_jobs, has_input_files, input_def, ana, has_meta
 
     # Loop over subdirectories (ignore files and directories named *_start and *_stop).
 
-    cluster = 0    # Most recent cluster.
-    process = 0    # Most recent process.
-    procmap = {}   # procmap[process][cluster] = <list of art root files and event counts>
+    procmap = {}      # procmap[subdir] = <list of art root files and event counts>
     filesana = []     # List of non-art root files.
-    sam_projects = []
-    cpids = []
+    sam_projects = [] # List of sam projects.
+    cpids = []        # List of successful sam consumer process ids.
+    uris = []         # List of input files processed successfully.
+    bad_workers = []  # List of bad worker subdirectories.
 
-    subdirs = os.listdir(dir)
+    subdirs = os.listdir(stage.outdir)
     for subdir in subdirs:
-        subpath = os.path.join(dir, subdir)
+        subpath = os.path.join(stage.outdir, subdir)
         dirok = project_utilities.fast_isdir(subpath)
 
         # Update list of sam projects from start job.
@@ -1254,27 +1261,7 @@ def docheck(dir, num_events, num_jobs, has_input_files, input_def, ana, has_meta
 
         if dirok and not subpath[-6:] == '_start' and not subpath[-5:] == '_stop':
 
-            # Found a subdirectory.
-
-            # First check for naming problems.
-            
             bad = 0
-            clus_proc = parsedir(subdir)
-            if clus_proc is None:
-                bad = 1
-            else:
-                cluster = clus_proc[0]
-                process = clus_proc[1]
-
-                # Check process.
-
-                if input_def == '':
-                    if process < 0 or process >= num_jobs:
-                        print 'Process number %d out of range.' % process
-                        bad = 1
-                    if procmap.has_key(process):
-                        print 'Duplicate process number %d.' % process
-                        bad = 1
 
             # Check lar exit status (if any).
 
@@ -1292,30 +1279,6 @@ def docheck(dir, num_events, num_jobs, has_input_files, input_def, ana, has_meta
                         print 'Bad file lar.stat in subdirectory %s.' % subdir
                         bad = 1
 
-            # Check existence of sam_project.txt.
-            # Update sam_projects.
-
-            if not bad and input_def != '':
-                filename = os.path.join(subpath, 'sam_project.txt')
-                if not project_utilities.safeexist(filename):
-                    bad = 1
-                if not bad:
-                    sam_project = project_utilities.saferead(filename)[0].strip()
-                    if not sam_project in sam_projects:
-                        sam_projects.append(sam_project)
-
-            # Check existence of cpid.txt
-            # Update cpids.
-
-            if not bad and input_def != '':
-                filename = os.path.join(subpath, 'cpid.txt')
-                if not project_utilities.safeexist(filename):
-                    bad = 1
-                if not bad:
-                    cpid = project_utilities.saferead(filename)[0].strip()
-                    if not cpid in cpids:
-                        cpids.append(cpid)
-
             # Now check root files in this subdirectory.
 
             if not bad:
@@ -1327,44 +1290,74 @@ def docheck(dir, num_events, num_jobs, has_input_files, input_def, ana, has_meta
                         print 'Problem with root file(s) in subdirectory %s.' % subdir
                         bad = 1
 
+            # Check for duplicate filenames (only if metadata is being generated).
+
+            if not bad and has_metadata:
+                for root in roots:
+                    rootname = os.path.basename(root[0])
+                    for s in procmap.keys():
+                        oldroots = procmap[s]
+                        for oldroot in oldroots:
+                            oldrootname = os.path.basename(oldroot[0])
+                            if rootname == oldrootname:
+                                print 'Duplicate filename %s in subdirectory %s' % (rootname,
+                                                                                    subdir)
+                                olddir = os.path.basename(os.path.dirname(oldroot[0]))
+                                print 'Previous subdirectory %s' % olddir
+                                bad = 1
+
+            # Check existence of sam_project.txt and cpid.txt.
+            # Update sam_projects and cpids.
+
+            if not bad and stage.inputdef != '':
+                filename1 = os.path.join(subpath, 'sam_project.txt')
+                if not project_utilities.safeexist(filename1):
+                    print 'Could not find file sam_project.txt'
+                    bad = 1
+                filename2 = os.path.join(subpath, 'cpid.txt')
+                if not project_utilities.safeexist(filename2):
+                    print 'Could not find file cpid.txt'
+                    bad = 1
                 if not bad:
+                    sam_project = project_utilities.saferead(filename1)[0].strip()
+                    if not sam_project in sam_projects:
+                        sam_projects.append(sam_project)
+                    cpid = project_utilities.saferead(filename2)[0].strip()
+                    if not cpid in cpids:
+                        cpids.append(cpid)
 
-                    # Check if any root file names match previously found root file names.
-                    # If so, count both this process as bad.
+            # Check existence of transferred_uris.txt.
+            # Update list of uris.
 
-                    if has_metadata:
-                        for root in roots:
-                            rootname = os.path.basename(root[0])
-                            for p in procmap.keys():
-                                for c in procmap[p].keys():
-                                    oldroots = procmap[p][c]
-                                    for oldroot in oldroots:
-                                        oldrootname = os.path.basename(oldroot[0])
-                                        if rootname == oldrootname:
-                                            print 'Duplicate filename %s in subdirectory %s' % (rootname,
-                                                                                                subdir)
-                                            olddir = os.path.basename(os.path.dirname(oldroot[0]))
-                                            print 'Previous subdirectory %s' % olddir
-                                            bad = 1
+            if not bad and (stage.inputlist !='' or stage.inputfile != ''):
+                filename = os.path.join(subpath, 'transferred_uris.list')
+                if not project_utilities.safeexist(filename):
+                    print 'Could not find file transferred_uris.list'
+                    bad = 1
+                if not bad:
+                    lines = project_utilities.saferead(filename)
+                    for line in lines:
+                        uri = line.strip()
+                        uris.append(uri)
 
-                    if not bad:
-                    
-                        # Save good root files.
-                    
-                        if not procmap.has_key(process):
-                            procmap[process] = {}
-                        procmap[process][cluster] = roots
+            # Save information about good root files.
 
-                        # Save good histogram files.
+            if not bad:
+                procmap[subdir] = roots
 
-                        filesana.extend(subhists)
+                # Save good histogram files.
 
-                        # Count good events and root files.
+                filesana.extend(subhists)
 
-                        nev_tot = nev_tot + nev
-                        nroot_tot = nroot_tot + len(roots)
+                # Count good events and root files.
 
-                        # Save good transferred files.
+                nev_tot = nev_tot + nev
+                nroot_tot = nroot_tot + len(roots)
+
+            # Update list of bad workers.
+
+            if bad:
+                bad_workers.append(subdir)
 
             # Print/save result of checks for one subdirectory.
 
@@ -1377,45 +1370,65 @@ def docheck(dir, num_events, num_jobs, has_input_files, input_def, ana, has_meta
 
     # Open files.
 
-    filelistname = os.path.join(dir, 'files.list')
+    filelistname = os.path.join(stage.outdir, 'files.list')
     filelist = safeopen(filelistname)
 
-    eventslistname = os.path.join(dir, 'events.list')
+    eventslistname = os.path.join(stage.outdir, 'events.list')
     eventslist = safeopen(eventslistname)
 
-    missingname = os.path.join(dir, 'missing.txt')
-    missing = safeopen(missingname)
+    badfilename = os.path.join(stage.outdir, 'bad.list')
+    badfile = safeopen(badfilename)
 
-    filesanalistname = os.path.join(dir, 'filesana.list')
+    missingfilesname = os.path.join(stage.outdir, 'missing_files.list')
+    missingfiles = safeopen(missingfilesname)
+
+    filesanalistname = os.path.join(stage.outdir, 'filesana.list')
     filesanalist = safeopen(filesanalistname)
 
-    # See if there are any missing processes and generate file "missing.txt."
-    # Skip this step for sam input.
-
-    nmiss = 0
-    nerror = 0
-    if input_def == '':
-        for process in xrange(num_jobs):
-            if not procmap.has_key(process):
-                nmiss = nmiss + 1
-                nerror = nerror + 1
-                missing.write('%d %d\n' % (cluster, process))
-                print 'Missing process %d.' % process
+    urislistname = os.path.join(stage.outdir, 'transferred_uris.list')
+    urislist = safeopen(urislistname)
 
     # Generate "files.list" and "events.list."
 
     nproc = 0
-    for p in procmap.keys():
-        for c in procmap[p].keys():
-            nproc = nproc + 1
-            for root in procmap[p][c]:
-                filelist.write('%s\n' % root[0])
-                eventslist.write('%s %d\n' % root)
+    for s in procmap.keys():
+        nproc = nproc + 1
+        for root in procmap[s]:
+            filelist.write('%s\n' % root[0])
+            eventslist.write('%s %d\n' % root)
+
+    # Generate "bad.list"
+
+    nerror = 0
+    for bad_worker in bad_workers:
+        badfile.write('%s\n' % bad_worker)
+        nerror = nerror + 1
+
+    # Generate "missing_files.list."
+
+    nmiss = 0
+    if stage.inputdef == '':
+        input_files = get_input_files(stage)
+        if len(input_files) > 0:
+            missing_files = list(set(input_files) - set(uris))
+            for missing_file in missing_files:
+                missingfiles.write('%s\n' % missing_file)
+                nmiss = nmiss + 1
+        else:
+            nmiss = stage.num_jobs - len(procmap)
+            for n in range(nmiss):
+                missingfiles.write('/dev/null\n')
+                
 
     # Generate "filesana.list."
 
     for hist in filesana:
         filesanalist.write('%s\n' % hist)
+
+    # Generate "transferred_uris.list."
+
+    for uri in uris:
+        urislist.write('%s\n' % uri)
 
     # Print summary.
 
@@ -1431,16 +1444,18 @@ def docheck(dir, num_events, num_jobs, has_input_files, input_def, ana, has_meta
 
     filelist.close()
     eventslist.close()
-    missing.close()
+    badfile.close()
+    missingfiles.close()
     filesanalist.close()
+    urislist.close()
 
     # Make sam files.
 
-    if input_def != '':
+    if stage.inputdef != '':
 
         # List of successful sam projects.
         
-        sam_projects_filename = os.path.join(dir, 'sam_projects.list')
+        sam_projects_filename = os.path.join(stage.outdir, 'sam_projects.list')
         sam_projects_file = safeopen(sam_projects_filename)
         for sam_project in sam_projects:
             sam_projects_file.write('%s\n' % sam_project)
@@ -1448,7 +1463,7 @@ def docheck(dir, num_events, num_jobs, has_input_files, input_def, ana, has_meta
 
         # List of successfull consumer process ids.
 
-        cpids_filename = os.path.join(dir, 'cpids.list')
+        cpids_filename = os.path.join(stage.outdir, 'cpids.list')
         cpids_file = safeopen(cpids_filename)
         for cpid in cpids:
             cpids_file.write('%s\n' % cpid)
@@ -1471,9 +1486,9 @@ def docheck(dir, num_events, num_jobs, has_input_files, input_def, ana, has_meta
         # Get number of unconsumed files.
 
         if cpids_list != '':
-            udim = '(defname: %s) minus (%s)' % (input_def, dim)
+            udim = '(defname: %s) minus (%s)' % (stage.inputdef, dim)
         else:
-            udim = 'defname: %s' % input_def
+            udim = 'defname: %s' % stage.inputdef
         nunconsumed = samweb.countFiles(dimensions=udim)
         nerror = nerror + nunconsumed
         
@@ -1526,8 +1541,12 @@ def docheck(dir, num_events, num_jobs, has_input_files, input_def, ana, has_meta
 
     # Done
 
-    print '%d processes with errors.' % nerror
-    return nmiss
+    if stage.inputdef == '':
+        print '%d processes with errors.' % nerror
+        print '%d missing files.' % nmiss
+    else:
+        print '%d unconsumed files.' % nerror
+    return 0
 
 # Construct dimension string for project, stage.
 
@@ -2272,29 +2291,49 @@ def main(argv):
             if stage.end_script != work_end_script:
                 shutil.copy(stage.end_script, work_end_script)
 
-        # If this is a makeup action, find list of missing
-        # (cluster, process) pairs.
+        # If this is a makeup action, find list of missing files.
         # If sam information is present (cpids.list), create a makeup dataset.
 
         if makeup:
-            
-            missing_pairs = []
-            missing_filename = os.path.join(stage.outdir, 'missing.txt')
-            try:
-                missing_files = project_utilities.saferead(missing_filename)
-            except:
-                print 'Cound not open %s.' % missing_filename
-                return 1
-            for line in missing_files:
-                words = string.split(line)
-                missing_pair = (int(words[0]), int(words[1]))
-                missing_pairs.append(missing_pair)
 
-                # Also delete the bad directory.
+            makeup_count = 0
 
-                missing_dir = os.path.join(stage.outdir, '%d_%d' % missing_pair)
-                if os.path.exists(missing_dir):
-                    shutil.rmtree(missing_dir)
+            # First delete bad worker subdirectories.
+
+            bad_filename = os.path.join(stage.outdir, 'bad.list')
+            if project_utilities.safeexist(bad_filename):
+                lines = project_utilities.saferead(bad_filename)
+                for line in lines:
+                    bad_subdir = line.strip()
+                    bad_path = os.path.join(stage.outdir, bad_subdir)
+                    if os.path.exists(bad_path):
+                        print 'Deleting %s' % bad_path
+                        shutil.rmtree(bad_path)
+
+            # Get a list of missing files, if any, for file list input.
+            # Regenerate the input file list in the work directory, and 
+            # set the makeup job count.
+
+            missing_files = []
+            if stage.inputdef == '':
+                missing_filename = os.path.join(stage.outdir, 'missing_files.list')
+                if project_utilities.safeexist(missing_filename):
+                    lines = project_utilities.saferead(missing_filename)
+                    for line in lines:
+                        words = string.split(line)
+                        missing_files.append(words[0])
+                makeup_count = len(missing_files)
+                print 'Makeup list contains %d files.' % makeup_count
+
+            if input_list_name != '':
+                work_list_name = os.path.join(stage.workdir, input_list_name)
+                if os.path.exists(work_list_name):
+                    os.remove(work_list_name)
+                work_list = open(work_list_name, 'w')
+                for missing_file in missing_files:
+                    work_list.write('%s\n' % missing_file)
+                work_list.close()
+
 
             # Prepare sam-related makeup information.
 
@@ -2304,17 +2343,14 @@ def main(argv):
 
             cpids = []
             cpids_filename = os.path.join(stage.outdir, 'cpids.list')
-            try:
+            if project_utilities.safeexist(cpids_filename):
                 cpids_files = project_utilities.saferead(cpids_filename)
                 for line in cpids_files:
                     cpids.append(line.strip())
-            except:
-                pass
 
             # Create makeup dataset definition.
 
             makeup_defname = ''
-            makeup_count = 0
             if len(cpids) > 0:
                 makeup_defname = samweb.makeProjectName(stage.inputdef) + '_makeup'
 
@@ -2344,13 +2380,7 @@ def main(argv):
 
         # Check results from specified project stage.
         
-        xml_has_metadata = project.file_type != ''
-        #input_files = get_input_files(stage)
-        #print input_files
-        has_input_files = stage.inputfile != '' or stage.inputlist != ''
-        rc = docheck(stage.outdir, project.num_events, stage.num_jobs,
-                     has_input_files, stage.inputdef,
-                     checkana, xml_has_metadata)
+        rc = docheck(project, stage, checkana)
 		   
     # Make merged histogram or ntuple files using proper hadd option. 
     # Makes a merged root file called anahist.root in the project output directory
@@ -2618,13 +2648,8 @@ def main(argv):
             command_njobs = stage.num_jobs
             command.extend(['-N', '%d' % command_njobs])
         elif makeup:
-            if inputdef != '':
-                command_njobs = min(makeup_count, stage.num_jobs)
-                command.extend(['-N', '%d' % command_njobs])
-                
-            else:
-                command_njobs = len(missing_pairs)
-                command.extend(['-N', '%d' % command_njobs])
+            command_njobs = min(makeup_count, stage.num_jobs)
+            command.extend(['-N', '%d' % command_njobs])
 
         # Batch script.
 
@@ -2845,34 +2870,19 @@ def main(argv):
 
         if submit:
 
-            # For submit action, invoke the job submission command (jobsub or dagNabbit.py).
+            # For submit action, invoke the job submission command.
 
             subprocess.call(command)
 
         elif makeup:
 
-            if inputdef == '':
-                if len(missing_pairs) > 0:
+            # For makeup action, abort if makeup job count is zero for some reason.
 
-                    # Construct missing process map file in workdir.
-
-                    procmapname = 'procmap.txt'
-                    procmapfile = open(procmapname, 'w')
-                    for missing_pair in missing_pairs:
-                        procmapfile.write('%d\n' % missing_pair[1])
-                    procmapfile.close()
-
-                    # Update command.
-                
-                    new_command = command
-                    new_command.extend([' --procmap', procmapname])
-                    subprocess.call(new_command)
-
+            if makeup_count > 0:
+                subprocess.call(command)
             else:
-                if makeup_count > 0:
-                    subprocess.call(command)
-                    
-        
+                print 'Makeup action aborted because makeup job count is zero.'
+                                
     # Done.
 
     return rc
