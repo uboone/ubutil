@@ -17,7 +17,7 @@ import getpass
 import ROOT
 
 proxy_ok = False
-
+ticket_ok = False
 
 # Function to return the current experiment.
 # The following places for obtaining this information are
@@ -139,14 +139,27 @@ def safeexist(path):
     except:
         return False
 
+# Test whether user has a valid kerberos ticket.  Exit if no.
+
+def test_ticket():
+    global ticket_ok
+    if not ticket_ok:
+        ok = subprocess.call(['klist', '-s'])
+        if ok != 0:
+            print 'Please get a kerberos ticket.'
+            os._exit(1)
+        ticket_ok = True
+    return ticket_ok
+
 # Test whether user has a valid grid proxy.  Exit if no.
 
 def test_proxy():
     global proxy_ok
 
-    # Disable proxy check, as we currently don't use it.
+    # Disable proxy check if we have a valid kerberos ticket, 
+    # as we currently don't use it.
 
-    proxy_ok = True
+    proxy_ok = test_ticket()
 
     if not proxy_ok:
         try:

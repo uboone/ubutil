@@ -1541,6 +1541,9 @@ def docheck(project, stage, ana):
 
     # Done
 
+    checkfile = safeopen(os.path.join(stage.outdir, 'checked'))
+    checkfile.close()
+
     if stage.inputdef == '':
         print '%d processes with errors.' % nerror
         print '%d missing files.' % nmiss
@@ -2096,10 +2099,7 @@ def main(argv):
     # Make sure that we have a kerberos ticket if we might need one to submit jobs.
 
     if submit or makeup:
-        ok = subprocess.call(['klist', '-s'])
-        if ok != 0:
-            print 'Please get a kerberos ticket.'
-            return 1
+        project_utilities.test_ticket()
 
     # Do clean action now.  Cleaning can be combined with submission.
 
@@ -2296,6 +2296,10 @@ def main(argv):
 
         if makeup:
 
+            checked_file = os.path.join(stage.outdir, 'checked')
+            if not project_utilities.safeexist(checked_file):
+                print 'Wait for any running jobs to finish and run project.py --check'
+                return 1
             makeup_count = 0
 
             # First delete bad worker subdirectories.
@@ -2868,11 +2872,14 @@ def main(argv):
 
         os.chdir(stage.workdir)
 
+        checked_file = os.path.join(stage.outdir, 'checked')
         if submit:
 
             # For submit action, invoke the job submission command.
 
             subprocess.call(command)
+            if project_utilities.safeexist(checked_file):
+                os.remove(checked_file)
 
         elif makeup:
 
@@ -2880,6 +2887,8 @@ def main(argv):
 
             if makeup_count > 0:
                 subprocess.call(command)
+                if project_utilities.safeexist(checked_file):
+                    os.remove(checked_file)
             else:
                 print 'Makeup action aborted because makeup job count is zero.'
                                 
