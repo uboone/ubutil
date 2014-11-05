@@ -53,3 +53,15 @@ def get_dropbox(filename):
 
     path = '/uboone/data/uboonepro/dropbox/%s/%s/%s' % (file_type, group, data_tier)
     return path
+
+# Return fcl configuration for experiment-specific sam metadata.
+
+def get_sam_metadata(project, stage):
+    result = 'services.user.FileCatalogMetadataMicroBooNE: {\n'
+    result = result + '  FCLName: "%s"\n' % os.path.basename(stage.fclname)
+    result = result + '  FCLVersion: "%s"\n' % project.release_tag
+    result = result + '  ProjectName: "%s"\n' % project.name
+    result = result + '  ProjectStage: "%s"\n' % stage.name
+    result = result + '  ProjectVersion: "%s"\n' % project.release_tag
+    result = result + '}\n'
+    return result
