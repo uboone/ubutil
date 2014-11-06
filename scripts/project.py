@@ -1012,6 +1012,7 @@ def parsedir(dirname):
     return result
 
 # Check a single root file by reading precalculted metadata information.
+# This method may raise an exception if json file is not valid.
 
 def check_root_json(json_path):
 
@@ -1050,6 +1051,7 @@ def check_root_file(path):
 
     global proxy_ok
     nevroot = -1
+    json_ok = False
 
     # See if we have precalculated metadata for this root file.
 
@@ -1058,9 +1060,13 @@ def check_root_file(path):
 
         # Get number of events from precalculated metadata.
 
-        nevroot = check_root_json(json_path)
+        try:
+            nevroot = check_root_json(json_path)
+            json_ok = True
+        except:
+            nevroot = -1
 
-    else:
+    if not json_ok:
 
         # Make root metadata.
 
@@ -1089,6 +1095,8 @@ def check_root_file(path):
         # Save root metadata in .json file.
 
         mdtext = json.dumps(md, sys.stdout, indent=2, sort_keys=True)
+        if project_utilities.safeexist(json_path):
+            os.remove(json_path)
         json_file = safeopen(json_path)
         json_file.write(mdtext)
         json_file.close()
