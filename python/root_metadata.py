@@ -95,7 +95,7 @@ def fileEnstoreChecksum(path):
         except (IOError, OSError), ex:
             raise Error(str(ex))
 
-        return crc
+    return crc
 
 def get_external_metadata(inputfile):
 
