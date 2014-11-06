@@ -516,7 +516,7 @@ done
 
 # Done with arguments.
 
-echo "Nodename: `hostname`"
+echo "Nodename: `hostname -f`"
 id
 
 # Set defaults.
