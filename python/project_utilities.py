@@ -174,6 +174,8 @@ def test_proxy():
 
 def saferead(path):
     lines = []
+    if os.path.getsize(path) == 0:
+        return lines
     if path[0:6] == '/pnfs/':
         test_proxy()
         proc = subprocess.Popen(['ifdh', 'cp', path, '/dev/fd/1'], stdout=subprocess.PIPE)
