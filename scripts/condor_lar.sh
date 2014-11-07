@@ -1116,7 +1116,7 @@ if [ $USE_SAM -ne 0 ]; then
   # as the application name for starting the consumer process.
 
   export ART_DEBUG_CONFIG=1
-  APPNAME=`lar -c $FCL 2>&1 > /dev/null | grep process_name: | awk '{print $2}'`
+  APPNAME=`lar -c $FCL 2>&1 > /dev/null | grep process_name: | tr -d '"' | awk '{print $2}'`
   unset ART_DEBUG_CONFIG
   if [ x$APPNAME = x ]; then
     echo "Trouble determining application name."
