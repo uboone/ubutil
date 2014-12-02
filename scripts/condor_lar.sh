@@ -525,23 +525,57 @@ if [ x$QUAL = x ]; then
   QUAL="debug:e5"
 fi
 
-# Initialize microboone ups products and mrb.
+# Set GROUP environment variable.
 
-OASIS_DIR="/cvmfs/oasis.opensciencegrid.org/microboone/products/"
-FERMIAPP_DIR="/grid/fermiapp/products/uboone/"
+unset GROUP
+if [ x$GRP != x ]; then
+  GROUP=$GRP
+else
+  echo "GROUP not specified."
+  exit 1
+fi
+export GROUP
+echo "Group: $GROUP"
+
+# Initialize microboone/lbne ups products and mrb.
 
 echo "Initializing ups and mrb."
-  
-if [[ -d "${FERMIAPP_DIR}" ]]; then
-  echo "Sourcing ${FERMIAPP_DIR}setup_uboone.sh file"
-  source ${FERMIAPP_DIR}/setup_uboone.sh
 
-elif [[ -d "${OASIS_DIR}" ]]; then
-  echo "Sourcing the ${OASIS_DIR}setup_uboone.sh file"
-  source ${OASIS_DIR}/setup_uboone.sh
+if [ $GROUP = uboone ]; then
 
+  OASIS_DIR="/cvmfs/oasis.opensciencegrid.org/microboone/products/"
+  FERMIAPP_DIR="/grid/fermiapp/products/uboone/"
+
+  if [[ -d "${FERMIAPP_DIR}" ]]; then
+    echo "Sourcing ${FERMIAPP_DIR}setup_uboone.sh file"
+    source ${FERMIAPP_DIR}/setup_uboone.sh
+	
+  elif [[ -d "${OASIS_DIR}" ]]; then
+    echo "Sourcing the ${OASIS_DIR}setup_uboone.sh file"
+    source ${OASIS_DIR}/setup_uboone.sh
+	
+  else
+    echo "Could not find MRB initialization script setup_uboone.sh"
+    exit 1
+  fi
+elif [ $GROUP = lbne ]; then
+  OASIS_DIR="/cvmfs/oasis.opensciencegrid.org/lbne/products/"
+  FERMIAPP_DIR="/grid/fermiapp/lbne/software/"
+
+  if [[ -d "${FERMIAPP_DIR}" ]]; then
+    echo "Sourcing ${FERMIAPP_DIR}setup_lbne.sh file"
+    source ${FERMIAPP_DIR}/setup_lbne.sh
+	
+  elif [[ -d "${OASIS_DIR}" ]]; then
+    echo "Sourcing the ${OASIS_DIR}setup_lbne.sh file"
+    source ${OASIS_DIR}/setup_lbne.sh
+	
+  else
+    echo "Could not find MRB initialization script setup_lbne.sh"
+    exit 1
+  fi
 else
-  echo "Could not find MRB initialization script setup_uboone.sh"
+  echo "Unknow group ${GROUP}"
   exit 1
 fi
 echo PRODUCTS=$PRODUCTS
@@ -555,18 +589,6 @@ if [ x$IFDHC_DIR = x ]; then
   setup ifdhc
 fi
 echo "IFDHC_DIR=$IFDHC_DIR"
-
-# Set GROUP environment variable.
-
-unset GROUP
-if [ x$GRP != x ]; then
-  GROUP=$GRP
-else
-  echo "GROUP not specified."
-  exit 1  
-fi
-export GROUP
-echo "Group: $GROUP"
 
 # Set options for ifdh.
 
@@ -848,15 +870,28 @@ if [ x$LOCALTAR != x ]; then
   mrbslp
 fi
 
-# Setup specified version of uboonecode (if specified, and if local
+# Setup specified version of uboonecode/lbnecode (if specified, and if local
 # test release did not set it up).
 
-if [ x$UBOONECODE_DIR == x -a x$REL != x ]; then
-  echo "Setting up uboonecode $REL -q ${QUAL}."
-  if [ x$IFDHC_DIR != x ]; then
-    unsetup ifdhc
+if [ $GROUP = uboone ]; then
+  if [ x$UBOONECODE_DIR == x -a x$REL != x ]; then
+    echo "Setting up uboonecode $REL -q ${QUAL}."
+    if [ x$IFDHC_DIR != x ]; then
+      unsetup ifdhc
+    fi
+    setup uboonecode $REL -q $QUAL
   fi
-  setup uboonecode $REL -q $QUAL
+elif [ $GROUP = lbne ]; then
+  if [ x$LBNECODE_DIR == x -a x$REL != x ]; then
+    echo "Setting up lbnecode $REL -q ${QUAL}."
+    if [ x$IFDHC_DIR != x ]; then
+      unsetup ifdhc
+    fi
+    setup lbnecode $REL -q $QUAL
+  fi
+else
+  echo "Unknow group ${GROUP}"
+  exit 1
 fi
 
 cd $TMP/work
@@ -1144,7 +1179,7 @@ if [ $USE_SAM -ne 0 ]; then
 
 services.user.IFDH:
 {
-  IFDH_BASE_URI: "http://samweb.fnal.gov:8480/sam/uboone/api"
+  IFDH_BASE_URI: "http://samweb.fnal.gov:8480/sam/${GROUP}/api"
 }
 
 services.user.CatalogInterface:

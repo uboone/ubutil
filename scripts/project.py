@@ -2763,6 +2763,10 @@ def main(argv):
 
             start_command.extend([' --outdir', stage.outdir])
 
+            # Specify group.
+
+            start_command.extend([' --group', project.group])
+
             # Stop project jobsub command.
                 
             if project.server == '':
@@ -2809,6 +2813,10 @@ def main(argv):
             # Output directory.
 
             stop_command.extend([' --outdir', stage.outdir])
+
+            # Specify group.
+
+            stop_command.extend([' --group', project.group])
 
             # Create dagNabbit.py configuration script in the work directory.
 

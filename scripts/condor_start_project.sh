@@ -14,6 +14,7 @@
 # --sam_project <arg> - Sam project name (required).
 # --outdir <arg>      - Specify output directory (optional). 
 # -g, --grid          - Be grid-friendly.
+# --group <arg>       - Group or experiment (default "uboone").
 #
 # End options.
 #
@@ -30,6 +31,7 @@ SAM_DEFNAME=""
 SAM_PROJECT=""
 OUTDIR=""
 GRID=0
+GRP=""
 IFDH_OPT=""
 
 while [ $# -gt 0 ]; do
@@ -94,6 +96,14 @@ while [ $# -gt 0 ]; do
       GRID=1
       ;;
 
+    # Group.
+    --group )
+      if [ $# -gt 1 ]; then
+        GRP=$2
+        shift
+      fi
+      ;;
+
     # Other.
     * )
       echo "Unknown option $1"
@@ -113,6 +123,7 @@ echo "Sam group: $SAM_GROUP"
 echo "Sam station: $SAM_STATION"
 echo "Sam dataset definition: $SAM_DEFNAME"
 echo "Sam project name: $SAM_PROJECT"
+echo "GRP: $GRP"
 
 # Complain if SAM_DEFNAME is not defined.
 
@@ -128,23 +139,57 @@ if [ x$SAM_PROJECT = x ]; then
   exit 1
 fi
 
-# Initialize microboone ups products and mrb.
+# Set GROUP environment variable.
 
-OASIS_DIR="/cvmfs/oasis.opensciencegrid.org/microboone/products/"
-FERMIAPP_DIR="/grid/fermiapp/products/uboone/"
+unset GROUP
+if [ x$GRP != x ]; then
+  GROUP=$GRP
+else
+  echo "GROUP not specified."
+  exit 1
+fi
+export GROUP
+echo "Group: $GROUP"
+
+# Initialize microboone/lbne ups products and mrb.
 
 echo "Initializing ups and mrb."
-  
-if [[ -d "${FERMIAPP_DIR}" ]]; then
-  echo "Sourcing ${FERMIAPP_DIR}setup_uboone.sh file"
-  source ${FERMIAPP_DIR}/setup_uboone.sh
 
-elif [[ -d "${OASIS_DIR}" ]]; then
-  echo "Sourcing the ${OASIS_DIR}setup_uboone.sh file"
-  source ${OASIS_DIR}/setup_uboone.sh
+if [ $GROUP = uboone ]; then
 
+  OASIS_DIR="/cvmfs/oasis.opensciencegrid.org/microboone/products/"
+  FERMIAPP_DIR="/grid/fermiapp/products/uboone/"
+
+  if [[ -d "${FERMIAPP_DIR}" ]]; then
+    echo "Sourcing ${FERMIAPP_DIR}setup_uboone.sh file"
+    source ${FERMIAPP_DIR}/setup_uboone.sh
+	
+  elif [[ -d "${OASIS_DIR}" ]]; then
+    echo "Sourcing the ${OASIS_DIR}setup_uboone.sh file"
+    source ${OASIS_DIR}/setup_uboone.sh
+	
+  else
+    echo "Could not find MRB initialization script setup_uboone.sh"
+    exit 1
+  fi
+elif [ $GROUP = lbne ]; then
+  OASIS_DIR="/cvmfs/oasis.opensciencegrid.org/lbne/products/"
+  FERMIAPP_DIR="/grid/fermiapp/lbne/software/"
+
+  if [[ -d "${FERMIAPP_DIR}" ]]; then
+    echo "Sourcing ${FERMIAPP_DIR}setup_lbne.sh file"
+    source ${FERMIAPP_DIR}/setup_lbne.sh
+	
+  elif [[ -d "${OASIS_DIR}" ]]; then
+    echo "Sourcing the ${OASIS_DIR}setup_lbne.sh file"
+    source ${OASIS_DIR}/setup_lbne.sh
+	
+  else
+    echo "Could not find MRB initialization script setup_lbne.sh"
+    exit 1
+  fi
 else
-  echo "Could not find MRB initialization script setup_uboone.sh"
+  echo "Unknow group ${GROUP}"
   exit 1
 fi
 
