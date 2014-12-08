@@ -8,118 +8,113 @@ import samweb_cli
 #from samweb_client.utility import fileEnstoreChecksum
 import ast
 import project_utilities, root_metadata
+import json
 
 def getmetadata(inputfile):
-	# Set up the experiment name for samweb Python API	
+        # Set up the experiment name for samweb Python API
 	samweb = samweb_cli.SAMWebClient(experiment=project_utilities.get_experiment())
 
 	# Extract metadata into a pipe.
 	local = project_utilities.path_to_local(inputfile)
 	if local != '':
-		proc = subprocess.Popen(["sam_metadata_dumper", "-H", local], stdout=subprocess.PIPE)
+		proc = subprocess.Popen(["sam_metadata_dumper", local], stdout=subprocess.PIPE)
 	else:
 		url = project_utilities.path_to_url(inputfile)
-		proc = subprocess.Popen(["sam_metadata_dumper", "-H", url], stdout=subprocess.PIPE)
-	lines = proc.stdout.readlines()
+		proc = subprocess.Popen(["sam_metadata_dumper", url], stdout=subprocess.PIPE)
 	if local != '' and local != inputfile:
 		os.remove(local)
 
-	# Count the number of lines in the file (for later use!)
-	num_lines = len(lines)
+	mdtext = proc.stdout.read()
+	mdtop = json.JSONDecoder().decode(mdtext)
+	if len(mdtop.keys()) == 0:
+		print 'No top-level key in extracted metadata.'
+		sys.exit(1)
+	file_name = mdtop.keys()[0]
+	mdart = mdtop[file_name]
 
-	# define an empty python dictionary
-	md = {}	
+	# define an empty python dictionary which will hold sam metadata.
+	# Some fields can be copied directly from art metadata to sam metadata.
+	# Other fields require conversion.
+	md = {}
 
-	#Read tbe columns from the file and fill the dictionary
-	c = 0
-	p = 0
-	parents = []
-	PName = False
-	gen = False
-	for line in lines:
-		c = c+1
-		columns = line.split(" ")
-		columns = [col.strip() for col in columns]	
-		if c>=4 and c<=num_lines-2:
-			if columns[1] == 'dataTier':
-				md['data_tier'] = columns[-1]
-				if columns[-1] == 'generated':
-					gen = True
-		       	elif columns[1] == 'endTime':
-				E  = time.localtime(int(columns[-1]))		
-				md['end_time'] = str(E[0])+'-'+str(E[1])+'-'+str(E[2])+'T'+str(E[3])+':'+str(E[4])+':'+str(E[5])
-			elif columns[1] == 'startTime':
-				S  = time.localtime(int(columns[-1]))
-				md['start_time'] = str(S[0])+'-'+str(S[1])+'-'+str(S[2])+'T'+str(S[3])+':'+str(S[4])+':'+str(S[5])
-			elif columns[1] == 'group':
-				md['group']  = columns[-1]
-			elif columns[1] == 'eventCount':
-				md['event_count']  = columns[-1]
-			elif columns[1] == 'fclName':
-				md['fcl.name']  = columns[-1]
-			elif columns[1] == 'fclVersion':
-				md['fcl.version']  = columns[-1]
-			elif columns[1] == 'fileFormat':
-				md['file_format']  = columns[-1]
-			elif columns[1] == 'ubProjectStage':
-				md['ub_project.stage']  = columns[-1]
-			elif columns[1] == 'ubProjectVersion':
-				md['ub_project.version']  = columns[-1]
-			elif columns[1] == 'lastEvent':
-				md['last_event']  = columns[-1]
-			elif columns[1] == 'firstEvent':
-				md['first_event']  = columns[-1]
-			elif columns[1] == 'fileType':
-				md['file_type']  = columns[-1]
-			elif columns[1] == 'group':
-				md['group']  = columns[-1]
-			elif columns[1] == 'group':
-				md['group']  = columns[-1]
-			elif columns[1] == 'run':
-				run = columns[-1]
-			elif columns[1] == 'runType':
-				run_type = columns[-1]
-			elif columns[1] == 'applicationFamily':
-				app_family = columns[-1]
-			elif columns[1] == 'applicationVersion':
-				app_version = columns[-1]
-			elif columns[1] == 'process_name':
-				app_name = columns[-1]
-			elif columns[1] == 'ubProjectName':
-				PName = True
-				md['ub_project.name'] = columns[-1]
-			elif columns[1] == 'parent':
-				parents.append({'file_name': columns[-1]})
+	# Loop over art metadata.
+	for mdkey in mdart.keys():
+		mdval = mdart[mdkey]
+
+		# Skip some art-specific fields.
+
+		if mdkey == 'file_format_version':
+			pass
+		elif mdkey == 'file_format_era':
+			pass
+
+		# Ignore primary run_type field (if any).
+		# Instead, get run_type from runs field.
+
+		elif mdkey == 'run_type':
+			pass
+
+		# Ignore data_stream for now.
+
+		elif mdkey == 'data_stream':
+			pass
+
+		# Application family/name/version.
+
+		elif mdkey == 'applicationFamily':
+			if not md.has_key('application'):
+				md['application'] = {}
+			md['application']['family'] = mdkey
+		elif mdkey == 'process_name':
+			if not md.has_key('application'):
+				md['application'] = {}
+			md['application']['name'] = mdkey
+		elif mdkey == 'applicationVersion':
+			if not md.has_key('application'):
+				md['application'] = {}
+			md['application']['version'] = mdkey
+
+		# Parents.
+
+		elif mdkey == 'parents':
+			mdparents = []
+			for parent in mdval:
+				parent_dict = {'file_name': parent}
+				mdparents.append(parent_dict)
+			md['parents'] = mdparents
+
+		# Other fields where the key or value requires minor conversion.
+
+		elif mdkey == 'first_event':
+			md[mdkey] = mdval[2]
+		elif mdkey == 'last_event':
+			md[mdkey] = mdval[2]
+		elif mdkey == 'ubProjectName':
+			md['ub_project.name'] = mdval
+		elif mdkey == 'ubProjectStage':
+			md['ub_project.stage'] = mdval
+		elif mdkey == 'ubProjectVersion':
+			md['ub_project.version'] = mdval
+		elif mdkey == 'fclName':
+			md['fcl.name'] = mdval
+		elif mdkey == 'fclVersion':
+			md['fcl.version']  = mdkey
+
+		# For all other keys, copy art metadata directly to sam metadata.
+		# This works for run-tuple (run, subrun, runtype) and time stamps.
+
+		else:
+			md[mdkey] = mdart[mdkey]
 
 	# Get the other meta data field parameters						
 	md['file_name'] =  inputfile.split("/")[-1]
 	md['file_size'] =  os.path.getsize(inputfile)
-	# For now, skip the checksum for dCache files.
 	md['crc'] = root_metadata.fileEnstoreChecksum(inputfile)
-	md['runs']      =  [[run, run_type]]
-	md['application'] = {'family': app_family, 'name': app_name, 'version': app_version}
-	md['parents'] = parents
-
-	# If ub_project.name is not in the internal metadata,
-	# for generator files, get the ub_project.name from the fcl_filename (without the '.fcl' part) for gen files.
-	# for all other stages, get this from the parents
-	if gen == True:
-		md['parents'] = []
-		if PName == False:
-			md['ub_project.name'] = md['fcl.name'].split(".fcl")[0]
-	else:
-		if PName == False:
-			if md.has_key('parents'):
-				parent = md['parents'][0]['file_name']
-				mdparent = samweb.getMetadata(parent)
-				if mdparent.has_key('ub_project.name'):
-					md['ub_project.name'] = mdparent['ub_project.name']
-
 	return md
 
 if __name__ == "__main__":
 	md = getmetadata(str(sys.argv[1]))
 	#print md	
-	mdtext = samweb_cli.json.dumps(md, sys.stdout, indent=2, sort_keys=True)
+	mdtext = json.dumps(md, indent=2, sort_keys=True)
 	print mdtext
 	sys.exit(0)	
