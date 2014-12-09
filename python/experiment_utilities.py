@@ -75,3 +75,19 @@ def get_public_samweb_url():
 
 def get_secure_samweb_url():
     return 'https://samweb.fnal.gov:8483/sam/uboone/api/'
+
+# Function to return path to the setup_uboone.sh script
+
+def get_setup_script_path():
+
+    OASIS_DIR="/cvmfs/oasis.opensciencegrid.org/microboone/products/"
+    FERMIAPP_DIR="/grid/fermiapp/products/uboone/"
+
+    if os.path.isfile(FERMIAPP_DIR+"setup_uboone.sh"):
+        setup_script = FERMIAPP_DIR+"setup_uboone.sh"
+    elif os.path.isfile(OASIS_DIR+"setup_uboone.sh"):
+        setup_script = OASIS_DIR+"setup_uboone.sh"
+    else:
+        raise RuntimeError, "Could not find setup script at "+FERMIAPP_DIR+" or "+OASIS_DIR
+
+    return setup_script
