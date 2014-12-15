@@ -27,7 +27,7 @@ def getmetadata(inputfile):
 	mdtext=''
 	for line in proc.stdout.readlines():
 		if line[-3:-1] != ' ,':
-			mdtext = mdtext + line
+			mdtext = mdtext + line.replace(", ,",",")
 	mdtop = json.JSONDecoder().decode(mdtext)
 	if len(mdtop.keys()) == 0:
 		print 'No top-level key in extracted metadata.'
