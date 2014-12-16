@@ -67,15 +67,15 @@ def getmetadata(inputfile):
 		elif mdkey == 'applicationFamily':
 			if not md.has_key('application'):
 				md['application'] = {}
-			md['application']['family'] = mdkey
+			md['application']['family'] = mdval
 		elif mdkey == 'process_name':
 			if not md.has_key('application'):
 				md['application'] = {}
-			md['application']['name'] = mdkey
+			md['application']['name'] = mdval
 		elif mdkey == 'applicationVersion':
 			if not md.has_key('application'):
 				md['application'] = {}
-			md['application']['version'] = mdkey
+			md['application']['version'] = mdval
 
 		# Parents.
 
