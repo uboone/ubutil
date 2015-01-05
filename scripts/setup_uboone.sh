@@ -64,6 +64,12 @@ setup mrb
 
 export MRB_PROJECT=larsoft
 
+# Define environment variables that store the standard experiment name.
+
+export JOBSUB_GROUP=uboone
+export EXPERIMENT=uboone
+export SAM_EXPERIMENT=uboone
+
 # For Art workbook
 
 export ART_WORKBOOK_OUTPUT_BASE=/uboone/data/users

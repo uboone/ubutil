@@ -58,3 +58,9 @@ setup mrb
 # We need to set this to 'larsoft' for now.
 #
 setenv MRB_PROJECT larsoft
+
+# Define environment variables that store the standard experiment name.
+
+setenv JOBSUB_GROUP uboone
+setenv EXPERIMENT uboone
+setenv SAM_EXPERIMENT uboone
