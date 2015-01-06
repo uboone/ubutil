@@ -14,24 +14,19 @@ set FERMIAPP_UBOONE_DIR = /grid/fermiapp/products/uboone/
 set FERMIAPP_COMMON_DIR = /grid/fermiapp/products/
 set UBOONE_BLUEARC_DATA = /uboone/data
 
-if ( -d "${FERMIAPP_COMMON_DIR}" ) then
-    echo "Setting up the Grid Fermiapp common UPS area...${FERMIAPP_COMMON_DIR}"
-    source ${FERMIAPP_COMMON_DIR}/setups.csh
-endif
-
 if ( -d "${FERMIAPP_LARSOFT_DIR}" ) then
     echo "Setting up the Grid Fermiapp larsoft UPS area...${FERMIAPP_LARSOFT_DIR}"
-    source ${FERMIAPP_LARSOFT_DIR}/setup
-
+    source ${FERMIAPP_LARSOFT_DIR}/setups
+    setenv PRODUCTS ${PRODUCTS}:/grid/fermiapp/products/common/db
 else if ( -d "${OASIS_LARSOFT_DIR}" ) then
     echo "Setting up the OASIS Fermilab UPS area...${OASIS_LARSOFT_DIR}"
-    source ${OASIS_LARSOFT_DIR}/setup
+    source ${OASIS_LARSOFT_DIR}/setups
+    setenv PRODUCTS ${PRODUCTS}:/grid/fermiapp/products/common/db
 endif
 
 if ( -d "${FERMIAPP_UBOONE_DIR}" ) then
     echo "Setting up the Grid Fermiapp uboone UPS area...${FERMIAPP_UBOONE_DIR}"
     source ${FERMIAPP_UBOONE_DIR}/setups
-
 else if ( -d "${OASIS_UBOONE_DIR}" ) then
     echo "Setting up the OASIS uboone UPS area...${OASIS_UBOONE_DIR}"
     source ${OASIS_UBOONE_DIR}/setups
