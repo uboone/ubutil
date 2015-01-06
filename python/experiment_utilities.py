@@ -65,3 +65,31 @@ def get_sam_metadata(project, stage):
     result = result + '  ProjectVersion: "%s"\n' % project.release_tag
     result = result + '}\n'
     return result
+
+# Function to return path to the setup_uboone.sh script
+
+def get_setup_script_path():
+
+    OASIS_DIR="/cvmfs/oasis.opensciencegrid.org/microboone/products/"
+    FERMIAPP_DIR="/grid/fermiapp/products/uboone/"
+
+    if os.path.isfile(FERMIAPP_DIR+"setup_uboone.sh"):
+        setup_script = FERMIAPP_DIR+"setup_uboone.sh"
+    elif os.path.isfile(OASIS_DIR+"setup_uboone.sh"):
+        setup_script = OASIS_DIR+"setup_uboone.sh"
+    else:
+        raise RuntimeError, "Could not find setup script at "+FERMIAPP_DIR+" or "+OASIS_DIR
+
+    return setup_script
+
+# Construct dimension string for project, stage.
+
+def dimensions(project, stage):
+
+    dim = 'file_type %s' % project.file_type
+    dim = dim + ' and data_tier %s' % stage.data_tier
+    dim = dim + ' and ub_project.name %s' % project.name
+    dim = dim + ' and ub_project.stage %s' % stage.name
+    dim = dim + ' and ub_project.version %s' % project.release_tag
+    dim = dim + ' and availability: anylocation'
+    return dim
