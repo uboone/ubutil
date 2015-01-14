@@ -161,7 +161,7 @@ do
 
     # Merge/Analysis
 
-    mergefcl=copy.fcl
+    mergefcl=standard_ana_uboone.fcl
 
     # Set number of gen/g4 events per job.
 
@@ -221,9 +221,6 @@ do
 
 <project name="&name;">
 
-  <!-- Group -->
-  <group>uboone</group>
-
   <!-- Project size -->
   <numevents>$nev</numevents>
 
@@ -238,8 +235,8 @@ do
     <tag>&release;</tag>
     <qual>${qual}:prof</qual>
 EOF
-  echo "local=$local"
   if [ x$local != x ]; then
+    echo "local=$local"
     echo "    <local>${local}</local>" >> $newxml
   fi
   cat <<EOF >> $newxml
