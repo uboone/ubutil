@@ -30,7 +30,7 @@
 
 # Parse arguments.
 
-rel=v03_05_01
+rel=v03_07_00
 userdir=uboonepro
 userbase=$userdir
 nevarg=0
@@ -145,7 +145,7 @@ do
     if echo $newprj | grep -q dirt; then
       detsimfcl=standard_detsim_uboone_tpcfilt.fcl
       if echo $newprj | grep -q bnb; then
-        filt=5
+        filt=25
       else
         filt=20
       fi
