@@ -248,6 +248,7 @@ EOF
     <fcl>$genfcl</fcl>
     <outdir>/pnfs/uboone/scratch/${userdir}/&release;/gen/&name;</outdir>
     <workdir>/uboone/app/users/${userbase}/&release;/gen/&name;</workdir>
+    <output>${newprj}_\${PROCESS}_%tc_gen.root</output>
     <numjobs>$njob1</numjobs>
     <datatier>generated</datatier>
     <defname>&name;_&tag;_gen</defname>
