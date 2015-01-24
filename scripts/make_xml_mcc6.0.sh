@@ -247,6 +247,7 @@ EOF
   <stage name="gen">
     <fcl>$genfcl</fcl>
     <outdir>/pnfs/uboone/scratch/${userdir}/&release;/gen/&name;</outdir>
+    <logdir>/uboone/data/users/${userbase}/&release;/gen/&name;</logdir>
     <workdir>/uboone/app/users/${userbase}/&release;/gen/&name;</workdir>
     <output>${newprj}_\${PROCESS}_%tc_gen.root</output>
     <numjobs>$njob1</numjobs>
@@ -257,6 +258,7 @@ EOF
   <stage name="g4">
     <fcl>$g4fcl</fcl>
     <outdir>/pnfs/uboone/scratch/${userdir}/&release;/g4/&name;</outdir>
+    <logdir>/uboone/data/users/${userbase}/&release;/g4/&name;</logdir>
     <workdir>/uboone/app/users/${userbase}/&release;/g4/&name;</workdir>
     <numjobs>$njob1</numjobs>
     <datatier>simulated</datatier>
@@ -269,6 +271,7 @@ EOF
   <stage name="detsim">
     <fcl>$detsimfcl</fcl>
     <outdir>/pnfs/uboone/scratch/${userdir}/&release;/detsim/&name;</outdir>
+    <logdir>/uboone/data/users/${userbase}/&release;/detsim/&name;</logdir>
     <workdir>/uboone/app/users/${userbase}/&release;/detsim/&name;</workdir>
     <numjobs>$njob2</numjobs>
     <datatier>detector-simulated</datatier>
@@ -283,6 +286,7 @@ EOF
     <fcl>$optsimfcl</fcl>
     <outdir>/pnfs/uboone/scratch/${userdir}/&release;/optsim/&name;</outdir>
     <workdir>/uboone/app/users/${userbase}/&release;/optsim/&name;</workdir>
+    <logdir>/uboone/data/users/${userbase}/&release;/optsim/&name;</logdir>
     <numjobs>$njob2</numjobs>
     <datatier>optical-simulated</datatier>
     <defname>&name;_&tag;_optsim</defname>
@@ -295,6 +299,7 @@ EOF
   <stage name="tpcsim">
     <fcl>$tpcsimfcl</fcl>
     <outdir>/pnfs/uboone/scratch/${userdir}/&release;/tpcsim/&name;</outdir>
+    <logdir>/uboone/data/users/${userbase}/&release;/tpcsim/&name;</logdir>
     <workdir>/uboone/app/users/${userbase}/&release;/tpcsim/&name;</workdir>
     <numjobs>$njob2</numjobs>
     <datatier>tpc-simulated</datatier>
@@ -307,6 +312,7 @@ EOF
   <stage name="reco2D">
     <fcl>$reco2dfcl</fcl>
     <outdir>/pnfs/uboone/scratch/${userdir}/&release;/reco2D/&name;</outdir>
+    <logdir>/uboone/data/users/${userbase}/&release;/reco2D/&name;</logdir>
     <workdir>/uboone/app/users/${userbase}/&release;/reco2D/&name;</workdir>
     <numjobs>$njob2</numjobs>
     <datatier>reconstructed-2d</datatier>
@@ -316,6 +322,7 @@ EOF
   <stage name="reco3D">
     <fcl>$reco3dfcl</fcl>
     <outdir>/pnfs/uboone/scratch/${userdir}/&release;/reco3D/&name;</outdir>
+    <logdir>/uboone/data/users/${userbase}/&release;/reco3D/&name;</logdir>
     <workdir>/uboone/app/users/${userbase}/&release;/reco3D/&name;</workdir>
     <numjobs>$njob2</numjobs>
     <datatier>reconstructed-3d</datatier>
@@ -325,6 +332,7 @@ EOF
   <stage name="mergeana">
     <fcl>$mergefcl</fcl>
     <outdir>/pnfs/uboone/scratch/${userdir}/&release;/mergeana/&name;</outdir>
+    <logdir>/uboone/data/users/${userbase}/&release;/mergeana/&name;</logdir>
     <workdir>/uboone/app/users/${userbase}/&release;/mergeana/&name;</workdir>
     <numjobs>$njob2</numjobs>
     <targetsize>8000000000</targetsize>
