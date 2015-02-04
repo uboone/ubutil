@@ -17,10 +17,11 @@
 #
 # -h|--help     - Print help.
 # -r <release>  - Use the specified larsoft/uboonecode release.
+# -t|--tag <tag> - Specify sample tag (default "mcc6.0").
 # -u|--user <user> - Use users/<user> as working and output directories
 #                    (default is to use uboonepro).
 # --local <dir|tar> - Specify larsoft local directory or tarball (xml 
-#                     tag <local>...</local>).
+#                     <local>...</local>).
 # --nev <n>     - Specify number of events for all samples.  Otherwise
 #                 use hardwired defaults.
 # --nevjob <n>  - Specify the default number of events per job.
@@ -37,6 +38,7 @@ nevarg=0
 nevjob=100
 nevgjobarg=0
 local=''
+tag=mcc6.0
 
 while [ $# -gt 0 ]; do
   case "$1" in
@@ -44,7 +46,7 @@ while [ $# -gt 0 ]; do
     # User directory.
 
     -h|--help )
-      echo "Usage: make_xml_mcc6.0.sh [-h|--help] [-r <release>] [-u|--user <user>] [--local <dir|tar>] [--nev <n>] [--nevjob <n>] [--nevgjob <n>]"
+      echo "Usage: make_xml_mcc6.0.sh [-h|--help] [-r <release>] [-t|--tag <tag>] [-u|--user <user>] [--local <dir|tar>] [--nev <n>] [--nevjob <n>] [--nevgjob <n>]"
       exit
     ;;
 
@@ -99,6 +101,15 @@ while [ $# -gt 0 ]; do
     --nevgjob )
     if [ $# -gt 1 ]; then
       nevgjobarg=$2
+      shift
+    fi
+    ;;
+
+    # Sample tag.
+
+    -t|--tag )
+    if [ $# -gt 1 ]; then
+      tag=$2
       shift
     fi
     ;;
@@ -216,7 +227,7 @@ do
 <!ENTITY file_type "mc">
 <!ENTITY run_type "physics">
 <!ENTITY name "$newprj">
-<!ENTITY tag "mcc6.0">
+<!ENTITY tag "$tag">
 ]>
 
 <project name="&name;">
@@ -246,9 +257,9 @@ EOF
 
   <stage name="gen">
     <fcl>$genfcl</fcl>
-    <outdir>/pnfs/uboone/scratch/${userdir}/&release;/gen/&name;</outdir>
-    <logdir>/uboone/data/users/${userbase}/&release;/gen/&name;</logdir>
-    <workdir>/uboone/app/users/${userbase}/&release;/gen/&name;</workdir>
+    <outdir>/pnfs/uboone/scratch/${userdir}/&tag;/&release;/gen/&name;</outdir>
+    <logdir>/uboone/data/users/${userbase}/&tag;/&release;/gen/&name;</logdir>
+    <workdir>/uboone/data/users/${userbase}/work/&tag;/&release;/gen/&name;</workdir>
     <output>${newprj}_\${PROCESS}_%tc_gen.root</output>
     <numjobs>$njob1</numjobs>
     <datatier>generated</datatier>
@@ -257,9 +268,9 @@ EOF
 
   <stage name="g4">
     <fcl>$g4fcl</fcl>
-    <outdir>/pnfs/uboone/scratch/${userdir}/&release;/g4/&name;</outdir>
-    <logdir>/uboone/data/users/${userbase}/&release;/g4/&name;</logdir>
-    <workdir>/uboone/app/users/${userbase}/&release;/g4/&name;</workdir>
+    <outdir>/pnfs/uboone/scratch/${userdir}/&tag;/&release;/g4/&name;</outdir>
+    <logdir>/uboone/data/users/${userbase}/&tag;/&release;/g4/&name;</logdir>
+    <workdir>/uboone/data/users/${userbase}/work/&tag;/&release;/g4/&name;</workdir>
     <numjobs>$njob1</numjobs>
     <datatier>simulated</datatier>
     <defname>&name;_&tag;_g4</defname>
@@ -270,9 +281,9 @@ EOF
     cat <<EOF >> $newxml
   <stage name="detsim">
     <fcl>$detsimfcl</fcl>
-    <outdir>/pnfs/uboone/scratch/${userdir}/&release;/detsim/&name;</outdir>
-    <logdir>/uboone/data/users/${userbase}/&release;/detsim/&name;</logdir>
-    <workdir>/uboone/app/users/${userbase}/&release;/detsim/&name;</workdir>
+    <outdir>/pnfs/uboone/scratch/${userdir}/&tag;/&release;/detsim/&name;</outdir>
+    <logdir>/uboone/data/users/${userbase}/&tag;/&release;/detsim/&name;</logdir>
+    <workdir>/uboone/data/users/${userbase}/work/&tag;/&release;/detsim/&name;</workdir>
     <numjobs>$njob2</numjobs>
     <datatier>detector-simulated</datatier>
     <defname>&name;_&tag;_detsim</defname>
@@ -284,9 +295,9 @@ EOF
     cat <<EOF >> $newxml
   <stage name="optsim">
     <fcl>$optsimfcl</fcl>
-    <outdir>/pnfs/uboone/scratch/${userdir}/&release;/optsim/&name;</outdir>
-    <workdir>/uboone/app/users/${userbase}/&release;/optsim/&name;</workdir>
-    <logdir>/uboone/data/users/${userbase}/&release;/optsim/&name;</logdir>
+    <outdir>/pnfs/uboone/scratch/${userdir}/&tag;/&release;/optsim/&name;</outdir>
+    <logdir>/uboone/data/users/${userbase}/&tag;/&release;/optsim/&name;</logdir>
+    <workdir>/uboone/data/users/${userbase}/work/&tag;/&release;/optsim/&name;</workdir>
     <numjobs>$njob2</numjobs>
     <datatier>optical-simulated</datatier>
     <defname>&name;_&tag;_optsim</defname>
@@ -298,9 +309,9 @@ EOF
     cat <<EOF >> $newxml
   <stage name="tpcsim">
     <fcl>$tpcsimfcl</fcl>
-    <outdir>/pnfs/uboone/scratch/${userdir}/&release;/tpcsim/&name;</outdir>
-    <logdir>/uboone/data/users/${userbase}/&release;/tpcsim/&name;</logdir>
-    <workdir>/uboone/app/users/${userbase}/&release;/tpcsim/&name;</workdir>
+    <outdir>/pnfs/uboone/scratch/${userdir}/&tag;/&release;/tpcsim/&name;</outdir>
+    <logdir>/uboone/data/users/${userbase}/&tag;/&release;/tpcsim/&name;</logdir>
+    <workdir>/uboone/data/users/${userbase}/work/&tag;/&release;/tpcsim/&name;</workdir>
     <numjobs>$njob2</numjobs>
     <datatier>tpc-simulated</datatier>
     <defname>&name;_&tag;_tpcsim</defname>
@@ -311,9 +322,9 @@ EOF
   cat <<EOF >> $newxml
   <stage name="reco2D">
     <fcl>$reco2dfcl</fcl>
-    <outdir>/pnfs/uboone/scratch/${userdir}/&release;/reco2D/&name;</outdir>
-    <logdir>/uboone/data/users/${userbase}/&release;/reco2D/&name;</logdir>
-    <workdir>/uboone/app/users/${userbase}/&release;/reco2D/&name;</workdir>
+    <outdir>/pnfs/uboone/scratch/${userdir}/&tag;/&release;/reco2D/&name;</outdir>
+    <logdir>/uboone/data/users/${userbase}/&tag;/&release;/reco2D/&name;</logdir>
+    <workdir>/uboone/data/users/${userbase}/work/&tag;/&release;/reco2D/&name;</workdir>
     <numjobs>$njob2</numjobs>
     <datatier>reconstructed-2d</datatier>
     <defname>&name;_&tag;_reco2D</defname>
@@ -321,9 +332,9 @@ EOF
 
   <stage name="reco3D">
     <fcl>$reco3dfcl</fcl>
-    <outdir>/pnfs/uboone/scratch/${userdir}/&release;/reco3D/&name;</outdir>
-    <logdir>/uboone/data/users/${userbase}/&release;/reco3D/&name;</logdir>
-    <workdir>/uboone/app/users/${userbase}/&release;/reco3D/&name;</workdir>
+    <outdir>/pnfs/uboone/scratch/${userdir}/&tag;/&release;/reco3D/&name;</outdir>
+    <logdir>/uboone/data/users/${userbase}/&tag;/&release;/reco3D/&name;</logdir>
+    <workdir>/uboone/data/users/${userbase}/work/&tag;/&release;/reco3D/&name;</workdir>
     <numjobs>$njob2</numjobs>
     <datatier>reconstructed-3d</datatier>
     <defname>&name;_&tag;_reco3D</defname>
@@ -331,9 +342,9 @@ EOF
 
   <stage name="mergeana">
     <fcl>$mergefcl</fcl>
-    <outdir>/pnfs/uboone/scratch/${userdir}/&release;/mergeana/&name;</outdir>
-    <logdir>/uboone/data/users/${userbase}/&release;/mergeana/&name;</logdir>
-    <workdir>/uboone/app/users/${userbase}/&release;/mergeana/&name;</workdir>
+    <outdir>/pnfs/uboone/scratch/${userdir}/&tag;/&release;/mergeana/&name;</outdir>
+    <logdir>/uboone/data/users/${userbase}/&tag;/&release;/mergeana/&name;</logdir>
+    <workdir>/uboone/data/users/${userbase}/work/&tag;/&release;/mergeana/&name;</workdir>
     <numjobs>$njob2</numjobs>
     <targetsize>8000000000</targetsize>
     <datatier>reconstructed-3d</datatier>
