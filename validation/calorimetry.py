@@ -1,5 +1,5 @@
 #! /usr/bin/env python
-#######################################################################################
+###############################################################################
 #
 # Name: calorimetry.py
 # 
@@ -23,11 +23,39 @@
 # --dataset <dataset name>  - Specify a dataset name, singlemu or BNB etc.
 #                             All histograms will be saved in output:calorimetry/dataset
 #
-########################################################################################
-import sys
+###############################################################################
+import sys,os
+# Prevent root from printing garbage on initialization.
+if os.environ.has_key('TERM'):
+    del os.environ['TERM']
+
+# Hide command line arguments from ROOT module.
+myargv = sys.argv
+sys.argv = myargv[0:1]
+
 from ROOT import TFile, TCanvas, TH1F, TH2F, TProfile
 from ROOT import gDirectory, gROOT
+#ROOT.gErrorIgnoreLevel = ROOT.kError
+sys.argv = myargv
 from validation_utilities import *
+
+def help():
+
+    filename = sys.argv[0]
+    file = open(filename, 'r')
+
+    doprint=0
+    
+    for line in file.readlines():
+        if line[2:16] == 'calorimetry.py':
+            doprint = 1
+        elif line[0:6] == '######' and doprint:
+            doprint = 0
+        if doprint:
+            if len(line) > 2:
+                print line[2:],
+            else:
+                print
 
 def main(argv):
     infile = '/pnfs/uboone/scratch/users/tjyang/output/v03_08_01/ana/prod_muminus_0.1-2.0GeV_isotropic_uboone/anahist.root'
@@ -36,7 +64,10 @@ def main(argv):
     dataset = 'histdir'
     args = argv[1:]
     while len(args) > 0:
-        if args[0] == '--input' and len(args) > 1:
+        if args[0] == '-h' or args[0] == '--help':
+            help()
+            return 0
+        elif args[0] == '--input' and len(args) > 1:
             infile = args[1]
             del args[0:2]
         elif args[0] == '--output' and len(args) > 1:

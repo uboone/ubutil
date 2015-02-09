@@ -1,5 +1,5 @@
 #! /usr/bin/env python
-#######################################################################################
+###############################################################################
 #
 # Name: makeplots.py
 # 
@@ -13,15 +13,27 @@
 #
 # Options:
 #
-# --input <inputfile> - Inputfile(s) that contain histograms, can be seperated by commas
+# --input <inputfile> - Inputfile(s) that contain histograms, 
+#                       can be seperated by commas
 #
 # --calorimetry       - Make calorimetry validation plots
 #
-########################################################################################
+###############################################################################
 import sys, os
 sys.argv.append( '-b' )
+# Prevent root from printing garbage on initialization.
+if os.environ.has_key('TERM'):
+    del os.environ['TERM']
+
+# Hide command line arguments from ROOT module.
+myargv = sys.argv
+sys.argv = myargv[0:1]
+
 from ROOT import TFile, TCanvas, TH1F, TH2F, TProfile, TLegend
 from ROOT import gDirectory, gROOT, gPad
+#ROOT.gErrorIgnoreLevel = ROOT.kError
+sys.argv = myargv
+
 from validation_utilities import *
 
 # Get the object with a given name from a list of objects in the directory
@@ -71,8 +83,7 @@ def help():
     doprint=0
     
     for line in file.readlines():
-        print line
-        if line[2:13] == 'makeplots.py':
+        if line[2:14] == 'makeplots.py':
             doprint = 1
         elif line[0:6] == '######' and doprint:
             doprint = 0
