@@ -34,6 +34,7 @@ table_fragment_begin
     envSet(JOBSUB_GROUP, uboone)
     envSet(EXPERIMENT, uboone)
     envSet(SAM_EXPERIMENT, uboone)
+    pathPrepend(PYTHONPATH, ${UPS_PROD_DIR}/bin)
     pathPrepend(PYTHONPATH, ${UPS_PROD_DIR}/python)
 table_fragment_end
 

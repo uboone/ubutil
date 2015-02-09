@@ -69,8 +69,9 @@ add_subdirectory(scripts)
 # Python modules.
 add_subdirectory(python)
 
+# Validation scripts
+add_subdirectory(validation)
+
 # packaging utility
 include(UseCPack)
 
-# Validation scripts
-include(validation)
