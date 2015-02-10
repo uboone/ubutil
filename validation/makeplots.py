@@ -20,7 +20,6 @@
 #
 ###############################################################################
 import sys, os
-sys.argv.append( '-b' )
 # Prevent root from printing garbage on initialization.
 if os.environ.has_key('TERM'):
     del os.environ['TERM']
@@ -28,6 +27,7 @@ if os.environ.has_key('TERM'):
 # Hide command line arguments from ROOT module.
 myargv = sys.argv
 sys.argv = myargv[0:1]
+sys.argv.append( '-b' )
 
 from ROOT import TFile, TCanvas, TH1F, TH2F, TProfile, TLegend
 from ROOT import gDirectory, gROOT, gPad
