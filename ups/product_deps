@@ -2,7 +2,7 @@
 
 # The *parent* line must the first non-commented line and defines this product and version
 # The version should be of the form vxx_yy_zz (e.g. v01_02_03)
-parent ubutil v01_13_00
+parent ubutil v01_13_01
 defaultqual e6
 
 # These optional lines define the installed directories where headers,
@@ -34,6 +34,7 @@ table_fragment_begin
     envSet(JOBSUB_GROUP, uboone)
     envSet(EXPERIMENT, uboone)
     envSet(SAM_EXPERIMENT, uboone)
+    pathPrepend(PYTHONPATH, ${UPS_PROD_DIR}/bin)
     pathPrepend(PYTHONPATH, ${UPS_PROD_DIR}/python)
 table_fragment_end
 
@@ -42,7 +43,7 @@ table_fragment_end
 
 product          version
 art             v1_12_05
-larbatch        v01_04_00
+larbatch        v01_04_01
 
 cetbuildtools	v4_05_00	-	only_for_build
 end_product_list

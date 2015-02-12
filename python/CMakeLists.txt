@@ -14,6 +14,5 @@ LIST(APPEND nonexes experiment_utilities.py )
 message(STATUS "Executable python modules ${exes}")
 message(STATUS "Non-executable python modules ${nonexes}")
 
-install(PROGRAMS ${exes} DESTINATION ${product}/${version}/python)
 install(FILES ${nonexes} DESTINATION ${product}/${version}/python)
 install_scripts(LIST ${exes})
