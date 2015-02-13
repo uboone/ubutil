@@ -31,7 +31,7 @@
 
 # Parse arguments.
 
-rel=v03_08_01
+rel=v04_00_00
 userdir=uboonepro
 userbase=$userdir
 nevarg=0
