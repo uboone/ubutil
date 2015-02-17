@@ -92,20 +92,24 @@ def main(argv):
     dir1 = hfile.mkdir('hit')
     dir1.cd()
 
+    if dataset!='':
+        dir2 = dir1.mkdir(dataset)
+        dir2.cd()
+
     hno_hits = TH1F('hno_hits'+dataset,dataset+';Number of hits;Number of events',100,0,5000)
     fillhno_hits = hno_hits.Fill
-    hhit_plane = TH1F('hhit_plane'+dataset,dataset+';Hit plane number;Number of hits',4,0,4)
+    hhit_plane = TH1F('hhit_plane'+dataset,dataset+';Hit plane number;Number of hits',6,0,6)
     fillhhit_plane = hhit_plane.Fill
-    hhit_wire = TH1F('hhit_wire'+dataset,dataset+';Hit wire number;Number of hits',100,0,3500)
+    hhit_wire = TH1F('hhit_wire'+dataset,dataset+';Hit wire number;Number of hits',100,0,6000)
     fillhhit_wire = hhit_wire.Fill
-    hhit_channel = TH1F('hhit_channel'+dataset,dataset+';Hit channel number;Number of hits',100,0,8500)
+    hhit_channel = TH1F('hhit_channel'+dataset,dataset+';Hit channel number;Number of hits',100,0,12000)
     fillhhit_channel = hhit_channel.Fill
-    hhit_peakT = TH1F('hhit_peakT'+dataset,dataset+';Hit peak time (tick);Number of hits',100,3000,7000)
+    hhit_peakT = TH1F('hhit_peakT'+dataset,dataset+';Hit peak time (tick);Number of hits',100,3000,10000)
     fillhhit_peakT = hhit_peakT.Fill
-    hhit_charge = TH1F('hhit_charge'+dataset,dataset+';Hit area (ADC);Number of hits',100,0,1500)
-    fillhhit_charge = hhit_charge.Fill
-    hhit_ph = TH1F('hhit_ph'+dataset,dataset+';Hit pulseheight (ADC);Number of hits',100,0,200)
-    fillhhit_ph = hhit_ph.Fill
+    hhit_charge = {}
+    fillhhit_charge = {}
+    hhit_ph = {}
+    fillhhit_ph = {}
     hhit_charge_nelec = {}
     fillhhit_charge_nelec = {}
     hhit_ph_nelec = {}
@@ -115,13 +119,17 @@ def main(argv):
     hphperelec = {}
     fillhphperelec = {}
     for i in range(3):
-        hhit_charge_nelec[str(i)] = TH2F('hhit_charge_nelec'+str(i),dataset+', Plane = %d; Number of electrons;Hit area (ADC)'%i,1000,0,1e5,1000,0,1000)
+        hhit_charge[str(i)] = TH1F('hhit_charge'+str(i)+dataset,dataset+', Plane = %d;Hit area (ADC);Number of hits'%i,100,0,1500)
+        fillhhit_charge[str(i)] = hhit_charge[str(i)].Fill
+        hhit_ph[str(i)] = TH1F('hhit_ph'+str(i)+dataset,dataset+', Plane = %d;Hit pulseheight (ADC);Number of hits'%i,100,0,200)
+        fillhhit_ph[str(i)] = hhit_ph[str(i)].Fill
+        hhit_charge_nelec[str(i)] = TH2F('hhit_charge_nelec'+str(i)+dataset,dataset+', Plane = %d; Number of electrons;Hit area (ADC)'%i,1000,0,1e5,1000,0,1000)
         fillhhit_charge_nelec[str(i)] = hhit_charge_nelec[str(i)].Fill
-        hhit_ph_nelec[str(i)] = TH2F('hhit_ph_nelec'+str(i),dataset+', Plane = %d; Number of electrons;Hit pulseheight (ADC)'%i,1000,0,1e5,1000,0,100)
+        hhit_ph_nelec[str(i)] = TH2F('hhit_ph_nelec'+str(i)+dataset,dataset+', Plane = %d; Number of electrons;Hit pulseheight (ADC)'%i,1000,0,1e5,1000,0,100)
         fillhhit_ph_nelec[str(i)] = hhit_ph_nelec[str(i)].Fill
-        hchargeperelec[str(i)] = TH1F('hchargeperelec'+str(i),dataset+', Plane = %d;ADC (area) per electron'%i,1000,0,0.02)
+        hchargeperelec[str(i)] = TH1F('hchargeperelec'+str(i)+dataset,dataset+', Plane = %d;ADC (area) per electron'%i,1000,0,0.02)
         fillhchargeperelec[str(i)] = hchargeperelec[str(i)].Fill
-        hphperelec[str(i)] = TH1F('hphperelec'+str(i),dataset+', Plane = %d;ADC (pulse height) per electron'%i,1000,0,0.003)
+        hphperelec[str(i)] = TH1F('hphperelec'+str(i)+dataset,dataset+', Plane = %d;ADC (pulse height) per electron'%i,1000,0,0.003)
         fillhphperelec[str(i)] = hphperelec[str(i)].Fill
 
 
@@ -168,11 +176,12 @@ def main(argv):
             fillhhit_wire(vhit_wire[i])
             fillhhit_channel(vhit_channel[i])
             fillhhit_peakT(vhit_peakT[i])
-            fillhhit_charge(vhit_charge[i])
-            fillhhit_ph(vhit_ph[i])
             if (vhit_plane[i]>=0 and vhit_plane[i]<3):
                 fillhhit_ph_nelec[str(vhit_plane[i])](vhit_nelec[i],vhit_ph[i])
                 fillhhit_charge_nelec[str(vhit_plane[i])](vhit_nelec[i],vhit_charge[i])
+                fillhhit_charge[str(vhit_plane[i])](vhit_charge[i])
+                fillhhit_ph[str(vhit_plane[i])](vhit_ph[i])
+                
                 if vhit_nelec[i]>0:
                     fillhphperelec[str(vhit_plane[i])](vhit_ph[i]/vhit_nelec[i])
                     fillhchargeperelec[str(vhit_plane[i])](vhit_charge[i]/vhit_nelec[i])
@@ -181,9 +190,9 @@ def main(argv):
     del fillhhit_wire
     del fillhhit_channel
     del fillhhit_peakT
-    del fillhhit_charge
-    del fillhhit_ph
     for i in range(3):
+        del fillhhit_charge[str(i)]
+        del fillhhit_ph[str(i)]
         del fillhhit_ph_nelec[str(i)]
         del fillhhit_charge_nelec[str(i)]
         del fillhphperelec[str(i)]

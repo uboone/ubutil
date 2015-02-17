@@ -18,6 +18,8 @@
 #
 # --calorimetry       - Make calorimetry validation plots
 #
+# --hit               - Make hitfinder validation plots
+#
 ###############################################################################
 import sys, os
 # Prevent root from printing garbage on initialization.
@@ -72,6 +74,70 @@ def SortOutStats(pad, fracPadx, fracPady, startx, starty):
                 stat.SetY1NDC(y1-cnt*(ywidth+ygap))
                 stat.SetY2NDC(y2-cnt*(ywidth+ygap))
                 cnt+=1
+
+# Plot 1d histograms and make legends.
+def plot1d(dataset,hname,inname,can,leg,nplots,list):
+    if dataset not in can:
+        nplots[dataset] = 0
+        can[dataset] = TCanvas('can'+hname+dataset,'can'+hname+dataset,800,600)
+        leg[dataset] = TLegend(0.7,0.2,0.9,0.35)
+        leg[dataset].SetFillStyle(0)
+    can[dataset].cd()
+    nplots[dataset] += 1
+    hist = GetObject(hname+dataset,list)
+    if hist:
+        if nplots[dataset] == 1:
+            hist.Draw()
+        else:
+            hist.SetLineColor(nplots[dataset])
+            hist.Draw("sames")
+            if hist.GetMaximum()*1.1>gPad.GetUymax():
+                hist1 = gPad.GetListOfPrimitives()[0]
+                hist1.GetYaxis().SetRangeUser(0,hist.GetMaximum()*1.1)
+        leg[dataset].AddEntry(hist,inname,'l')
+
+# Plot 1d histograms and make legends.
+def plot1d3plane(dataset,hname,inname,can,leg,nplots,list):
+    if dataset not in can:
+        nplots[dataset] = 0
+        can[dataset] = TCanvas('can'+hname+dataset,'can'+hname+dataset,1000,800)
+        can[dataset].Divide(2,2)
+        leg[dataset] = TLegend(0.7,0.2,0.9,0.35)
+        leg[dataset].SetFillStyle(0)
+    can[dataset].cd()
+    nplots[dataset] += 1
+    for i in range(3):
+        can[dataset].cd(i+1)
+        hist = GetObject(hname+str(i)+dataset,list)
+        if hist:
+            if nplots[dataset] == 1:
+                hist.Draw()
+            else:
+                hist.SetLineColor(nplots[dataset])
+                hist.Draw("sames")
+                hist1 = gPad.GetListOfPrimitives()[0]
+                if hist.GetMaximum()>hist1.GetMaximum():
+                    hist1.GetYaxis().SetRangeUser(0,hist.GetMaximum()*1.2)
+            if i==0:
+                leg[dataset].AddEntry(hist,inname,'l')
+
+
+def savecanvas1d(datasets,can,leg,hname):
+    for i in datasets:
+        can[i].cd()
+        leg[i].Draw()
+        SortOutStats(gPad,0.2,0.25,0.9,0.9)
+        can[i].Print(hname+'_%s.gif'%i)
+        can[i].Print(hname+'_%s.pdf'%i)
+    
+def savecanvas1d3plane(datasets,can,leg,hname):
+    for i in datasets:
+        for j in range(3):
+            can[i].cd(j+1)
+            leg[i].Draw()
+            SortOutStats(gPad,0.2,0.25,0.9,0.9)
+        can[i].Print(hname+'_%s.gif'%i)
+        can[i].Print(hname+'_%s.pdf'%i)
 
 # Print help.
 
@@ -199,11 +265,84 @@ def plotcalorimetry(infile):
                 candedx[i+j].Print('dedx_%s_%s.gif'%(i,j))
                 candedx[i+j].Print('dedx_%s_%s.pdf'%(i,j))
 
-                            
+def plothit(infile):
+    infiles = infile.split(",")
+    myfile = {}
+    innames = []
+    datasets = []
+    canno_hits = {}
+    nplotsno_hits = {}
+    legno_hits = {}
+    canhit_plane = {}
+    nplotshit_plane = {}
+    leghit_plane = {}
+    canhit_wire = {}
+    nplotshit_wire = {}
+    leghit_wire = {}
+    canhit_channel = {}
+    nplotshit_channel = {}
+    leghit_channel = {}
+    canhit_peakT = {}
+    nplotshit_peakT = {}
+    leghit_peakT = {}
+    canhit_charge = {}
+    nplotshit_charge = {}
+    leghit_charge = {}
+    canhit_ph = {}
+    nplotshit_ph = {}
+    leghit_ph = {}
+    canphperelec = {}
+    nplotsphperelec = {}
+    legphperelec = {}
+    canchargeperelec = {}
+    nplotschargeperelec = {}
+    legchargeperelec = {}
+
+    # Open all the input root files.
+    for file in infiles:
+        inname = os.path.splitext(file)[0]
+        if inname not in innames:
+            innames.append(inname)
+        myfile[inname] = TFile(file)
+        list1 = myfile[inname].GetListOfKeys()
+        # Go to directory calorimetry
+        for i in list1:
+            if i.GetClassName() == 'TDirectoryFile':
+                myfile[inname].cd(i.GetName())
+                list2 = gDirectory.GetListOfKeys()
+                # Go to dataset directory
+                for j in list2:
+                    if j.GetClassName() == 'TDirectoryFile':
+                        dataset = '%s'%j.GetName()
+                        if dataset not in datasets:
+                            datasets.append(dataset)
+                        gDirectory.cd(dataset)
+                        list3 = gDirectory.GetListOfKeys()
+                        plot1d(dataset,'hno_hits',inname,canno_hits,legno_hits,nplotsno_hits,list3)
+                        plot1d(dataset,'hhit_plane',inname,canhit_plane,leghit_plane,nplotshit_plane,list3)
+                        plot1d(dataset,'hhit_wire',inname,canhit_wire,leghit_wire,nplotshit_wire,list3)
+                        plot1d(dataset,'hhit_channel',inname,canhit_channel,leghit_channel,nplotshit_channel,list3)
+                        plot1d(dataset,'hhit_peakT',inname,canhit_peakT,leghit_peakT,nplotshit_peakT,list3)
+                        plot1d3plane(dataset,'hhit_charge',inname,canhit_charge,leghit_charge,nplotshit_charge,list3)
+                        plot1d3plane(dataset,'hhit_ph',inname,canhit_ph,leghit_ph,nplotshit_ph,list3)
+                        plot1d3plane(dataset,'hphperelec',inname,canphperelec,legphperelec,nplotsphperelec,list3)
+                        plot1d3plane(dataset,'hchargeperelec',inname,canchargeperelec,legchargeperelec,nplotschargeperelec,list3)
+
+    savecanvas1d(datasets,canno_hits,legno_hits,'no_hits')
+    savecanvas1d(datasets,canhit_plane,leghit_plane,'hit_plane')
+    savecanvas1d(datasets,canhit_wire,leghit_wire,'hit_wire')
+    savecanvas1d(datasets,canhit_channel,leghit_channel,'hit_channel')
+    savecanvas1d(datasets,canhit_peakT,leghit_peakT,'hit_peakT')
+    savecanvas1d3plane(datasets,canhit_charge,leghit_charge,'hit_charge')
+    savecanvas1d3plane(datasets,canhit_ph,leghit_ph,'hit_ph')
+    savecanvas1d3plane(datasets,canphperelec,legphperelec,'phperelec')
+    savecanvas1d3plane(datasets,canchargeperelec,legchargeperelec,'chargeperelec')
+
 def main(argv):
 
     infile=''
     calorimetry = 0
+    hit = 0
     args = argv[1:]
     while len(args) > 0:
         if args[0] == '-h' or args[0] == '--help':
@@ -214,6 +353,9 @@ def main(argv):
             del args[0:2]
         elif args[0] == '--calorimetry':
             calorimetry = 1
+            del args[0]
+        elif args[0] == '--hit':
+            hit = 1
             del args[0]
         elif args[0] == '-b':
             del args[0]
@@ -227,6 +369,13 @@ def main(argv):
             return 1
         else:
             plotcalorimetry(infile)
+
+    if hit:
+        if infile == '':
+            print 'Please specify input file using --input.'
+            return 1
+        else:
+            plothit(infile)
 
 if __name__ == '__main__':
     rc = main(sys.argv)
