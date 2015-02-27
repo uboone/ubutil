@@ -3,7 +3,9 @@
 #
 # Name: trackingeff.py
 # 
-# Purpose: Make and save calorimetry validation histograms to a root file.
+# Purpose: Make and save tracking validation histograms to a root file. Within 
+#          the root file, for each tracker, separate directories are created
+#          and plots are stored in their respective directories.
 #
 # Authors: Sowjanya Gollapinni
 #
@@ -16,12 +18,15 @@
 # --input <inputfile>       - Input AnalysisTree root file.
 #
 # --output <outputfile>     - Output root file that contain histograms.
+#			      by default, output root file name is "tracking.root" 
 #
 # --tracker <tracker name>  - Optional. Can be separated by commas. 
 #                             If not specified, all trackers will be used.
 #
 # --dataset <dataset name>  - Specify a dataset name, singlemu or BNB etc.
-#                             All histograms will be saved in output:calorimetry/dataset
+#                             All histograms will be saved in output:
+#			      tracking/dataset/<trackername>
+#			      (for each tracker separate directories are created)
 #
 ###############################################################################
 import sys,os

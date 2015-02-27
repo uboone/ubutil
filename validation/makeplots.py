@@ -3,7 +3,11 @@
 #
 # Name: makeplots.py
 # 
-# Purpose: Make plots from root files and save them in gif and pdf formats
+# Purpose: Make plots from root files and save them in gif and pdf or ps formats.
+# 	   In the case of hit data, all gif/pdf files are written to a directory 
+#	   called "hits". In the case of tracking (calorimetry), a postscript
+#   	   file is created calorimetry.ps (tracking.ps) and all plots are 
+#	   written to the postscript file.
 #
 # Authors: Tingjun Yang, Sowjanya Gollapinni
 #
