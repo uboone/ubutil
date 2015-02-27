@@ -18,6 +18,8 @@
 #
 # --calorimetry       - Make calorimetry validation plots
 #
+# --tracking	      - Make tracking validation plots
+#
 # --hit               - Make hitfinder validation plots
 #
 ###############################################################################
@@ -249,11 +251,13 @@ def plotcalorimetry(infile):
         for j in datasets:
             for k in trackers:
                 if i+j+k in candedxrr:
-                    candedxrr[i+j+k].cd()
-                    candedxrr[i+j+k].Update()
-                    candedxrr[i+j+k].Print('dedxrr_%s_%s_%s.gif'%(i,j,k))
-                    candedxrr[i+j+k].Print('dedxrr_%s_%s_%s.pdf'%(i,j,k))
+                    #candedxrr[i+j+k].cd()
+                    #candedxrr[i+j+k].Update()
+                    #candedxrr[i+j+k].Print('dedxrr_%s_%s_%s.gif'%(i,j,k))
+                    #candedxrr[i+j+k].Print('dedxrr_%s_%s_%s.pdf'%(i,j,k))
+		    candedxrr[i+j+k].Print("calorimetry.ps(")
 
+    count = 0	
     #Save dE/dx plots.
     for i in datasets:
         for j in trackers:
@@ -262,8 +266,86 @@ def plotcalorimetry(infile):
                     candedx[i+j].cd(k+1)
                     legdedx[i+j].Draw()
                     SortOutStats(gPad,0.3,0.25,0.9,0.9)
-                candedx[i+j].Print('dedx_%s_%s.gif'%(i,j))
-                candedx[i+j].Print('dedx_%s_%s.pdf'%(i,j))
+		count = count+1
+                if (count == len(trackers)*len(datasets)):
+		        candedx[i+j].Print("calorimetry.ps)")
+		else:			
+		        candedx[i+j].Print("calorimetry.ps(")	
+			#candedx[i+j].Print('dedx_%s_%s.gif'%(i,j))
+                	#candedx[i+j].Print('dedx_%s_%s.pdf'%(i,j))    
+
+
+def plottracking(infile):
+    infiles = infile.split(",")
+    myfile = {}
+    innames = []
+    trackers = []
+    datasets = []
+    can = {}
+    # Open all the input root files.
+    for file in infiles:
+        inname = os.path.splitext(file)[0]
+        if inname not in innames:
+            innames.append(inname)
+        myfile[inname] = TFile(file)
+        list1 = myfile[inname].GetListOfKeys()
+	# Go to directory tracking
+	for i in list1:
+            if i.GetClassName() == 'TDirectoryFile':
+                myfile[inname].cd(i.GetName())
+                list2 = gDirectory.GetListOfKeys()
+                # Go to dataset directory 
+		for j in list2:
+			if j.GetClassName() == 'TDirectoryFile':
+                            dataset = '%s'%j.GetName()
+                            if dataset not in datasets:
+                                datasets.append(dataset)
+                            gDirectory.cd(dataset)
+                            list3 = gDirectory.GetListOfKeys()
+			    # Get all the tracker (directory) names
+			    for k in list3:
+				if k.GetClassName() == 'TDirectoryFile':
+				    t = '%s'%k.GetName()
+				if t not in trackers:
+                                    trackers.append(t)    			     
+			        topdir = inname+".root:/tracking/"+dataset    
+			        gDirectory.cd(topdir)	
+	   		        gDirectory.cd(t)			   
+			        list4 = gDirectory.GetListOfKeys()
+			        can[inname+dataset+t]=TCanvas("can_"+inname+"_"+dataset+"_"+t,"can_"+inname+dataset+t,1000,800)
+			        can[inname+dataset+t].Divide(3,2)
+			        mclen = GetObject('mclen_e_%s_%s'%(dataset,t),list4)
+			        #mcpdg = GetObject('mcpdg_e_%s_%s'%(dataset,t),list4)
+			        mctheta = GetObject('mctheta_e_%s_%s'%(dataset,t),list4)
+			        mcphi = GetObject('mcphi_e_%s_%s'%(dataset,t),list4)
+			        mcthetaxz = GetObject('mcthetaxz_e_%s_%s'%(dataset,t),list4)
+			        mcthetayz = GetObject('mcthetayz_e_%s_%s'%(dataset,t),list4)
+			        mcmom = GetObject('mcmom_e_%s_%s'%(dataset,t),list4)
+			        can[inname+dataset+t].cd(1)
+			        mclen.Draw()
+			        can[inname+dataset+t].cd(2)
+			        mctheta.Draw()
+			        can[inname+dataset+t].cd(3)
+			        mcphi.Draw()
+			        can[inname+dataset+t].cd(4)
+			        mcthetaxz.Draw()
+			        can[inname+dataset+t].cd(5)
+			        mcthetayz.Draw()
+			        can[inname+dataset+t].cd(6)
+			        mcmom.Draw()	
+    
+    count = 0
+    print count
+    for i in innames:
+        for j in datasets:
+            for k in trackers:
+                if i+j+k in can:
+		    count = count+1
+		    if (count == len(trackers)*len(innames)*len(datasets)):
+		        can[i+j+k].Print("tracking.ps)")
+		    else:			
+		        can[i+j+k].Print("tracking.ps(")	
+			
 
 def plothit(infile):
     infiles = infile.split(",")
@@ -328,6 +410,10 @@ def plothit(infile):
                         plot1d3plane(dataset,'hphperelec',inname,canphperelec,legphperelec,nplotsphperelec,list3)
                         plot1d3plane(dataset,'hchargeperelec',inname,canchargeperelec,legchargeperelec,nplotschargeperelec,list3)
 
+    # Write all the plots into a separate directory
+    if not os.path.exists('hits'):
+    	os.makedirs('hits')
+    os.chdir('hits')	
     savecanvas1d(datasets,canno_hits,legno_hits,'no_hits')
     savecanvas1d(datasets,canhit_plane,leghit_plane,'hit_plane')
     savecanvas1d(datasets,canhit_wire,leghit_wire,'hit_wire')
@@ -337,12 +423,14 @@ def plothit(infile):
     savecanvas1d3plane(datasets,canhit_ph,leghit_ph,'hit_ph')
     savecanvas1d3plane(datasets,canphperelec,legphperelec,'phperelec')
     savecanvas1d3plane(datasets,canchargeperelec,legchargeperelec,'chargeperelec')
+    os.chdir('../')
 
 def main(argv):
 
     infile=''
     calorimetry = 0
     hit = 0
+    tracking = 0
     args = argv[1:]
     while len(args) > 0:
         if args[0] == '-h' or args[0] == '--help':
@@ -357,6 +445,9 @@ def main(argv):
         elif args[0] == '--hit':
             hit = 1
             del args[0]
+	elif args[0] == '--tracking':
+            tracking = 1
+            del args[0]        
         elif args[0] == '-b':
             del args[0]
         else:
@@ -376,6 +467,13 @@ def main(argv):
             return 1
         else:
             plothit(infile)
+	    
+    if tracking:
+        if infile == '':
+            print 'Please specify input file using --input.'
+            return 1
+        else:
+            plottracking(infile)	    
 
 if __name__ == '__main__':
     rc = main(sys.argv)
