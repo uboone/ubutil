@@ -136,8 +136,8 @@ def main(argv):
     
     mychain.SetBranchStatus("*",0)
     mychain.SetBranchStatus("geant_list_size",1)    
-    mychain.SetBranchStatus("geant_list_size_in_tpcFV",1)
-    mychain.SetBranchStatus("inTPCfiducial",1)
+    mychain.SetBranchStatus("geant_list_size_in_tpcAV",1)
+    mychain.SetBranchStatus("inTPCActive",1)
     mychain.SetBranchStatus("Eng",1)
     mychain.SetBranchStatus("StartPoint*",1)
     mychain.SetBranchStatus("EndPoint*",1)
@@ -238,9 +238,9 @@ def main(argv):
         if nb <= 0:
             continue
 	    
-	for i in xrange( mychain.geant_list_size_in_tpcFV ):
+	for i in xrange( mychain.geant_list_size_in_tpcAV ):
 		apdg = abs(mychain.pdg[i])
-		if (mychain.inTPCfiducial[i] == 1):
+		if (mychain.inTPCActive[i] == 1):
 			if ( (apdg == 13  and mychain.Eng[i]>=0.001*mychain.Mass[i]+minKE) or (apdg == 211 and mychain.Eng[i]>=0.001*mychain.Mass[i]+minKE) or (apdg == 321 and
 	    	        mychain.Eng[i]>=0.001*mychain.Mass[i]+minKE) or (apdg == 2212 and mychain.Eng[i]>=0.001*mychain.Mass[i]+minKE) ):
 				mclen_all.Fill(mychain.pathlen[i])
@@ -268,21 +268,21 @@ def main(argv):
 		trklen = mychain.GetLeaf("trklen_"+t).GetValue(i)
 		trkstart3D = math.sqrt((trkstartx*trkstartx)+(trkstarty*trkstarty)+(trkstartz*trkstartz));	       
 	 	trkend3D   = math.sqrt((trkendx*trkendx)+(trkendy*trkendy)+(trkendz*trkendz));			
-		for j in xrange(mychain.geant_list_size_in_tpcFV):
+		for j in xrange(mychain.geant_list_size_in_tpcAV):
 			apdg = abs(mychain.pdg[j])
-			mcstartx = mychain.StartPointx_tpcFV[j]
-			mcstarty = mychain.StartPointy_tpcFV[j]
-			mcstartz = mychain.StartPointz_tpcFV[j]
-			mcendx = mychain.EndPointx_tpcFV[j]
-			mcendy = mychain.EndPointy_tpcFV[j]
-			mcendz = mychain.EndPointz_tpcFV[j]
+			mcstartx = mychain.StartPointx_tpcAV[j]
+			mcstarty = mychain.StartPointy_tpcAV[j]
+			mcstartz = mychain.StartPointz_tpcAV[j]
+			mcendx = mychain.EndPointx_tpcAV[j]
+			mcendy = mychain.EndPointy_tpcAV[j]
+			mcendz = mychain.EndPointz_tpcAV[j]
 			theta = mychain.theta[j]*180/3.142
 			phi = mychain.phi[j]*180/3.142	
 			px = mychain.Px[j]		
 			py = mychain.Py[j]		
 			pz = mychain.Pz[j]	
 			p = mychain.P[j]
-			if (mychain.inTPCfiducial[j] == 1):
+			if (mychain.inTPCActive[j] == 1):
 			 	if ( (apdg == 13  and mychain.Eng[j]>=0.001*mychain.Mass[j]+minKE) or (apdg == 211 and mychain.Eng[j]>=0.001*mychain.Mass[j]+minKE) or (apdg == 321 and
 	    	        	mychain.Eng[j]>=0.001*mychain.Mass[j]+minKE) or (apdg == 2212 and mychain.Eng[j]>=0.001*mychain.Mass[j]+minKE) ):
 					mcstart3D = math.sqrt((mcstartx*mcstartx)+(mcstarty*mcstarty)+(mcstartz*mcstartz));	       
