@@ -127,11 +127,6 @@ def main(argv):
     mychain.SetBranchStatus("Py",1)
     mychain.SetBranchStatus("Pz",1)
     
-    truelen_all = TH1F('TrueLengthAll','',200,0,2000)
-    truemom_all = TH1F('TrueMomAll','',100,0,2 )
-    truelen_cont = TH1F('TrueLenCont','',200,0,1000)
-    truemom_cont = TH1F('TrueMomCont','',100,0,2)
-    
     recolen_all = {}
     recolen_cont = {}
     recolen_match = {}
@@ -172,52 +167,62 @@ def main(argv):
     fillresol_800to900MeV = {}
     fillresol_900to1000MeV = {}
     fillresol_1000to2000MeV = {}    
+        
+    truelen_all = TH1F('TrueLengthAll',"%s; True length of all tracks (cm)"%(dataset),200,0,2000)
+    truemom_all = TH1F('TrueMomAll',"%s; True momentum of all tracks (GeV)"%(dataset),100,0,2 )
+    truelen_cont = TH1F('TrueLenCont',"%s; True length of contained tracks (cm)"%(dataset),200,0,1000)
+    truemom_cont = TH1F('TrueMomCont',"%s; True Momentum of contained tracks (GeV)"%(dataset),100,0,2)
+     	    
+    # tags to identify momentum algorithms and track containment
+    tag = ["mcsall","mcscont","rangecont","calocont"] 
+    tagname = ["MCS, all tracks", "MCS, cont. tracks", "Range, cont. tracks", "Calorimetry, cont. tracks"]
     
-    tag = ["mcsall","mcscont","rangecont","calocont"]  	    
+    k = -1
     for t in trackers:
         # Reco length histograms
-        recolen_all[t] = TH1F("recolen_all_%s_%s"%(dataset,t),'',200,0,2000);
+        recolen_all[t] = TH1F("recolen_all_%s_%s"%(dataset,t),"%s, %s; Reco. length of all tracks (cm)"%(dataset,t),200,0,2000);
 	fillrecolen_all[t] = recolen_all[t].Fill
-	recolen_cont[t] = TH1F("recolen_cont_%s_%s"%(dataset,t),'',200,0,2000);
+	recolen_cont[t] = TH1F("recolen_cont_%s_%s"%(dataset,t),"%s, %s; Reco. length of contained tracks (cm)"%(dataset,t),200,0,2000);
 	fillrecolen_cont[t] = recolen_cont[t].Fill	
-	recolen_match[t] = TH1F("recolen_match_%s_%s"%(dataset,t),'',200,0,2000);
+	recolen_match[t] = TH1F("recolen_match_%s_%s"%(dataset,t),"%s, %s; Reco. length of matched tracks (cm)"%(dataset,t),200,0,2000);
 	fillrecolen_match[t] = recolen_match[t].Fill		
 	# All tracks (MCS method)
 	for j in tag:
-		recomom[t+j] = TH1F("recomom_%s_%s_%s"%(j,dataset,t),'',100,0,2);
+		k = k+1
+		recomom[t+j] = TH1F("recomom_%s_%s_%s"%(dataset,t,j),"%s, %s, %s; Reco. momentum of all tracks (GeV)"%(dataset,t,tagname[k]),100,0,2);
 		fillrecomom[t+j] = recomom[t+j].Fill
-		recomom_match[t+j] = TH1F("recomom_match_%s_%s_%s"%(j,dataset,t),'',100,0,2);
+		recomom_match[t+j] = TH1F("recomom_match_%s_%s_%s"%(dataset,t,j),"%s, %s, %s; Reco. momentum of matched tracks (GeV)"%(dataset,t,tagname[k]),100,0,2);
 		fillrecomom_match[t+j] = recomom_match[t+j].Fill
-		resol[t+j] = TH1F("resol_%s_%s_%s"%(j, dataset,t),'',100,-2,2);
+		resol[t+j] = TH1F("resol_%s_%s_%s"%(dataset,t,j),"%s, %s, %s; Momentum resolution (P_{true}-P_{reco})/P_{true}"%(dataset,t,tagname[k]),100,-2,2);
 		fillresol[t+j] = resol[t+j].Fill
-		recoVstruth[t+j] = TH2F("recoVstruth_%s_%s_%s"%(j,dataset,t),'',100,0,2,100,0,2);
+		recoVstruth[t+j] = TH2F("recoVstruth_%s_%s_%s"%(dataset,t,j),"%s, %s, %s; P_{true} (GeV); P_{reco} (GeV)"%(dataset,t,tagname[k]),100,0,2,100,0,2);
 		fillrecoVstruth[t+j] = recoVstruth[t+j].Fill	
-		resolVstruth[t+j] = TH2F("resolVstruth_%s_%s_%s"%(j,dataset,t),'',100,0,2,100,-2,2);
+		resolVstruth[t+j] = TH2F("resolVstruth_%s_%s_%s"%(dataset,t,j),"%s, %s, %s; P_{true} (GeV); Momentum resolution"%(dataset,t,tagname[k]),100,0,2,100,-2,2);
 		fillresolVstruth[t+j] = resolVstruth[t+j].Fill	
-		resolVsreco[t+j] = TH2F("resolVsreco_%s_%s_%s"%(j,dataset,t),'',100,0,2,100,-2,2);
+		resolVsreco[t+j] = TH2F("resolVsreco_%s_%s_%s"%(dataset,t,j),"%s, %s, %s; P_{reco} (GeV); Momentum resolution"%(dataset,t,tagname[k]),100,0,2,100,-2,2);
 		fillresolVsreco[t+j] = resolVsreco[t+j].Fill
 		# resolution histograms in energy bins for all trackers
-		resol_0to100MeV[t+j] =   TH1F("resol_0to100MeV_%s_%s_%s"%(j, dataset,t),'',100,-2,2);
+		resol_0to100MeV[t+j] =   TH1F("resol_0to100MeV_%s_%s_%s"%(dataset,t,j),"%s, %s, %s; P resolution in (0,0.1) GeV bin"%(dataset,t,tagname[k]),100,-2,2);
 		fillresol_0to100MeV[t+j] = resol_0to100MeV[t+j].Fill
-		resol_100to200MeV[t+j] = TH1F("resol_100to200MeV_%s_%s_%s"%(j, dataset,t),'',100,-2,2);
+		resol_100to200MeV[t+j] = TH1F("resol_100to200MeV_%s_%s_%s"%(dataset,t,j),"%s, %s, %s; P resolution in (0.1,0.2) GeV bin"%(dataset,t,tagname[k]),100,-2,2);
 		fillresol_100to200MeV[t+j] = resol_100to200MeV[t+j].Fill
-		resol_200to300MeV[t+j] = TH1F("resol_200to300MeV_%s_%s_%s"%(j, dataset,t),'',100,-2,2);
+		resol_200to300MeV[t+j] = TH1F("resol_200to300MeV_%s_%s_%s"%(dataset,t,j),"%s, %s, %s; P resolution in (0.2,0.3) GeV bin"%(dataset,t,tagname[k]),100,-2,2);
 		fillresol_200to300MeV[t+j] = resol_200to300MeV[t+j].Fill
-		resol_300to400MeV[t+j] = TH1F("resol_300to400MeV_%s_%s_%s"%(j, dataset,t),'',100,-2,2);
+		resol_300to400MeV[t+j] = TH1F("resol_300to400MeV_%s_%s_%s"%(dataset,t,j),"%s, %s, %s; P resolution in (0.3,0.4) GeV bin"%(dataset,t,tagname[k]),100,-2,2);
 		fillresol_300to400MeV[t+j] = resol_300to400MeV[t+j].Fill
-		resol_400to500MeV[t+j] = TH1F("resol_400to500MeV_%s_%s_%s"%(j, dataset,t),'',100,-2,2);
+		resol_400to500MeV[t+j] = TH1F("resol_400to500MeV_%s_%s_%s"%(dataset,t,j),"%s, %s, %s; P resolution in (0.4,0.5) GeV bin"%(dataset,t,tagname[k]),100,-2,2);
 		fillresol_400to500MeV[t+j] = resol_400to500MeV[t+j].Fill
-		resol_500to600MeV[t+j] = TH1F("resol_500to600MeV_%s_%s_%s"%(j, dataset,t),'',100,-2,2);
+		resol_500to600MeV[t+j] = TH1F("resol_500to600MeV_%s_%s_%s"%(dataset,t,j),"%s, %s, %s; P resolution in (0.5,0.6) GeV bin"%(dataset,t,tagname[k]),100,-2,2);
 		fillresol_500to600MeV[t+j] = resol_500to600MeV[t+j].Fill
-		resol_600to700MeV[t+j] = TH1F("resol_600to700MeV_%s_%s_%s"%(j, dataset,t),'',100,-2,2);
+		resol_600to700MeV[t+j] = TH1F("resol_600to700MeV_%s_%s_%s"%(dataset,t,j),"%s, %s, %s; P resolution in (0.6,0.7) GeV bin"%(dataset,t,tagname[k]),100,-2,2);
 		fillresol_600to700MeV[t+j] = resol_600to700MeV[t+j].Fill
-		resol_700to800MeV[t+j] = TH1F("resol_700to800MeV_%s_%s_%s"%(j, dataset,t),'',100,-2,2);
+		resol_700to800MeV[t+j] = TH1F("resol_700to800MeV_%s_%s_%s"%(dataset,t,j),"%s, %s, %s; P resolution in (0.7,0.8) GeV bin"%(dataset,t,tagname[k]),100,-2,2);
 		fillresol_700to800MeV[t+j] = resol_700to800MeV[t+j].Fill
-		resol_800to900MeV[t+j] = TH1F("resol_800to900MeV_%s_%s_%s"%(j, dataset,t),'',100,-2,2);
+		resol_800to900MeV[t+j] = TH1F("resol_800to900MeV_%s_%s_%s"%(dataset,t,j),"%s, %s, %s; P resolution in (0.8,0.9) GeV bin"%(dataset,t,tagname[k]),100,-2,2);
 		fillresol_800to900MeV[t+j] = resol_800to900MeV[t+j].Fill
-		resol_900to1000MeV[t+j] = TH1F("resol_900to1000MeV_%s_%s_%s"%(j, dataset,t),'',100,-2,2);
+		resol_900to1000MeV[t+j] = TH1F("resol_900to1000MeV_%s_%s_%s"%(dataset,t,j),"%s, %s, %s; P resolution in (0.9,1.0) GeV bin"%(dataset,t,tagname[k]),100,-2,2);
 		fillresol_900to1000MeV[t+j] = resol_900to1000MeV[t+j].Fill
-		resol_1000to2000MeV[t+j] = TH1F("resol_1000to2000MeV_%s_%s_%s"%(j, dataset,t),'',100,-2,2);
+		resol_1000to2000MeV[t+j] = TH1F("resol_1000to2000MeV_%s_%s_%s"%(dataset,t,j),"%s, %s, %s; P resolution in (1.0,2.0) GeV bin"%(dataset,t,tagname[k]),100,-2,2);
 		fillresol_1000to2000MeV[t+j] = resol_1000to2000MeV[t+j].Fill		
 		resol_0to100MeV[t+j].Sumw2()
 		resol_100to200MeV[t+j].Sumw2()
@@ -251,7 +256,7 @@ def main(argv):
     tagcont = {"mcscont","rangecont","calocont"}
     
     entries = mychain.GetEntriesFast()    
-    entries = 5000
+    #entries = 500
     	
     for jentry in xrange( entries ): 
     	if jentry%1000==0:
