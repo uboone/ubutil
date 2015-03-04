@@ -112,8 +112,8 @@ def main(argv):
     
     mychain.SetBranchStatus("*",0)
     mychain.SetBranchStatus("geant_list_size",1)    
-    mychain.SetBranchStatus("geant_list_size_in_tpcFV",1)
-    mychain.SetBranchStatus("inTPCfiducial",1)
+    mychain.SetBranchStatus("geant_list_size_in_tpcAV",1)
+    mychain.SetBranchStatus("inTPCActive",1)
     mychain.SetBranchStatus("Eng",1)
     mychain.SetBranchStatus("StartPoint*",1)
     mychain.SetBranchStatus("EndPoint*",1)
@@ -267,9 +267,9 @@ def main(argv):
         if nb <= 0:
             continue
 	    
-	for i in xrange( mychain.geant_list_size_in_tpcFV ):
+	for i in xrange( mychain.geant_list_size_in_tpcAV ):
 		apdg = abs(mychain.pdg[i])
-		if (mychain.inTPCfiducial[i] == 1):		       
+		if (mychain.inTPCActive[i] == 1):		       
 			if ( (apdg == 13  and mychain.Eng[i]>=0.001*mychain.Mass[i]+minKE) or (apdg == 211 and mychain.Eng[i]>=0.001*mychain.Mass[i]+minKE) or (apdg == 321 and
 	    	        mychain.Eng[i]>=0.001*mychain.Mass[i]+minKE) or (apdg == 2212 and mychain.Eng[i]>=0.001*mychain.Mass[i]+minKE) ):
 			        truelen_all.Fill(mychain.pathlen[i])
@@ -297,38 +297,25 @@ def main(argv):
 		trkmomcalo = mychain.GetLeaf("trkmom_"+t).GetValue(i)
 		trkmomrange = mychain.GetLeaf("trkmomrange_"+t).GetValue(i)
 		trkmommcs = mychain.GetLeaf("trkmommschi2_"+t).GetValue(i)
-		trkstart3D = math.sqrt((trkstartx*trkstartx)+(trkstarty*trkstarty)+(trkstartz*trkstartz));	       
-	 	trkend3D   = math.sqrt((trkendx*trkendx)+(trkendy*trkendy)+(trkendz*trkendz));
 		fillrecolen_all[t](trklen)
 		fillrecomom[t+"mcsall"](trkmommcs)	
 		if ( Contained(trkstartx,trkstarty,trkstartz) and Contained(trkendx,trkendy,trkendz) ):
-		        trkstartx_cont = trkstartx
-			trkstarty_cont = trkstarty
-			trkstartz_cont = trkstartz
-			trkendx_cont = trkendx
-			trkendy_cont = trkendy
-			trkendz_cont = trkendz
-			trkstartdcosx_cont = trkstartdcosx
-			trkstartdcosy_cont = trkstartdcosy
-			trkstartdcosz_cont = trkstartdcosz
 			trklen_cont = trklen
 			trkmom_calocont = trkmomcalo
 			trkmom_rangecont = trkmomrange/1000
 			trkmom_mcscont = trkmommcs
-			trkstart3D_cont = trkstart3D	 
-			trkend3D_cont   = trkend3D
 			fillrecolen_cont[t](trklen_cont)
 			fillrecomom[t+"calocont"](trkmom_calocont)
 			fillrecomom[t+"mcscont"](trkmom_mcscont)
 			fillrecomom[t+"rangecont"](trkmom_rangecont)	
-		for j in xrange(mychain.geant_list_size_in_tpcFV):
+		for j in xrange(mychain.geant_list_size_in_tpcAV):
 			apdg = abs(mychain.pdg[j])
-			mcstartx = mychain.StartPointx_tpcFV[j]
-			mcstarty = mychain.StartPointy_tpcFV[j]
-			mcstartz = mychain.StartPointz_tpcFV[j]
-			mcendx = mychain.EndPointx_tpcFV[j]
-			mcendy = mychain.EndPointy_tpcFV[j]
-			mcendz = mychain.EndPointz_tpcFV[j]
+			mcstartx = mychain.StartPointx_tpcAV[j]
+			mcstarty = mychain.StartPointy_tpcAV[j]
+			mcstartz = mychain.StartPointz_tpcAV[j]
+			mcendx = mychain.EndPointx_tpcAV[j]
+			mcendy = mychain.EndPointy_tpcAV[j]
+			mcendz = mychain.EndPointz_tpcAV[j]
 			theta = mychain.theta[j]*180/3.142
 			phi = mychain.phi[j]*180/3.142	
 			px = mychain.Px[j]		
@@ -337,7 +324,7 @@ def main(argv):
 			p = mychain.P[j]
 			mass = mychain.Mass[j]
 			e = mychain.Eng[j]	
-			if ( (mychain.inTPCfiducial[j] == 1) and ( (apdg == 13  and e>=0.001*mass+minKE) or (apdg == 211 and e>=0.001*mass+minKE) 
+			if ( (mychain.inTPCActive[j] == 1) and ( (apdg == 13  and e>=0.001*mass+minKE) or (apdg == 211 and e>=0.001*mass+minKE) 
 			or (apdg == 321 and e>=0.001*mass+minKE) or (apdg == 2212 and e>=0.001*mass+minKE) ) ):
 				# do start point matching
 				pmatch1 = math.sqrt(pow(mcstartx-trkstartx,2)+pow(mcstarty-trkstarty,2)+pow(mcstartz-trkstartz,2))

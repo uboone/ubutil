@@ -222,7 +222,7 @@ def main(argv):
     minKE = 0.05
     
     #entries = mychain.GetEntriesFast()
-    entries = 100
+    #entries = 100
     	
     for jentry in xrange( entries ): 
     	if jentry%1000==0:
@@ -266,8 +266,6 @@ def main(argv):
 		trkstartdcosy = mychain.GetLeaf("trkstartdcosy_"+t).GetValue(i)
 		trkstartdcosz = mychain.GetLeaf("trkstartdcosz_"+t).GetValue(i)
 		trklen = mychain.GetLeaf("trklen_"+t).GetValue(i)
-		trkstart3D = math.sqrt((trkstartx*trkstartx)+(trkstarty*trkstarty)+(trkstartz*trkstartz));	       
-	 	trkend3D   = math.sqrt((trkendx*trkendx)+(trkendy*trkendy)+(trkendz*trkendz));			
 		for j in xrange(mychain.geant_list_size_in_tpcAV):
 			apdg = abs(mychain.pdg[j])
 			mcstartx = mychain.StartPointx_tpcAV[j]
@@ -285,16 +283,19 @@ def main(argv):
 			if (mychain.inTPCActive[j] == 1):
 			 	if ( (apdg == 13  and mychain.Eng[j]>=0.001*mychain.Mass[j]+minKE) or (apdg == 211 and mychain.Eng[j]>=0.001*mychain.Mass[j]+minKE) or (apdg == 321 and
 	    	        	mychain.Eng[j]>=0.001*mychain.Mass[j]+minKE) or (apdg == 2212 and mychain.Eng[j]>=0.001*mychain.Mass[j]+minKE) ):
-					mcstart3D = math.sqrt((mcstartx*mcstartx)+(mcstarty*mcstarty)+(mcstartz*mcstartz));	       
-				 	mcend3D   = math.sqrt((mcendx*mcendx)+(mcendy*mcendy)+(mcendz*mcendz));
 					num = ((trkstartdcosx*px)+(trkstartdcosy*py)+(trkstartdcosz*pz))
 					angle=num/p
 					if (angle>1): 
-						angle=1					
+						angle=1	
+					if (angle<-1):
+						angle=-1					
 				        ang = math.degrees(math.acos(angle))
 					if ( (abs(ang)<=10) or (abs(180-(ang))<=10)):
-						mind = min(abs(mcstart3D-trkstart3D),abs(mcstart3D-trkend3D))
-						if (mind<=5):
+						# do start point matching
+						pmatch1 = math.sqrt(pow(mcstartx-trkstartx,2)+pow(mcstarty-trkstarty,2)+pow(mcstartz-trkstartz,2))
+						pmatch2 = math.sqrt(pow(mcstartx-trkendx,2)+pow(mcstarty-trkendy,2)+pow(mcstartz-trkendz,2))
+						minstart = min(pmatch1, pmatch2)
+						if (minstart<=5):
 							if (trklen >= 0.5*mychain.pathlen[j]):
 								fillmclen_g[t](mychain.pathlen[j])
 								fillmcpdg_g[t](mychain.pdg[j])
