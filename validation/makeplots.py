@@ -5,9 +5,9 @@
 # 
 # Purpose: Make plots from root files and save them in gif and pdf or ps formats.
 # 	   In the case of hit data, all gif/pdf files are written to a directory 
-#	   called "hits". In the case of tracking (calorimetry), a postscript
-#   	   file is created calorimetry.ps (tracking.ps) and all plots are 
-#	   written to the postscript file.
+#	   called "hits". In the case of tracking, calorimetry, momentum resolution, 
+#	   a postscript file is created tracking.ps, calorimetry.ps and 
+#   	   momresolu.ps and all plots are written to the postscript file.
 #
 # Authors: Tingjun Yang, Sowjanya Gollapinni
 #
@@ -23,6 +23,8 @@
 # --calorimetry       - Make calorimetry validation plots
 #
 # --tracking	      - Make tracking validation plots
+#
+# --momresol	      - Make momentum resolution plots 
 #
 # --hit               - Make hitfinder validation plots
 #
@@ -101,6 +103,7 @@ def plot1d(dataset,hname,inname,can,leg,nplots,list):
                 hist1 = gPad.GetListOfPrimitives()[0]
                 hist1.GetYaxis().SetRangeUser(0,hist.GetMaximum()*1.1)
         leg[dataset].AddEntry(hist,inname,'l')
+
 
 # Plot 1d histograms and make legends.
 def plot1d3plane(dataset,hname,inname,can,leg,nplots,list,drawopt=''):
@@ -363,7 +366,200 @@ def plottracking(infile):
 		        can[i+j+k].Print("tracking.ps)")
 		    else:			
 		        can[i+j+k].Print("tracking.ps(")	
-			
+
+def plotmomresolution(infile):
+    infiles = infile.split(",")
+    myfile = {}
+    innames = []
+    trackers = []
+    momalgs = []
+    datasets = []
+    cantrue = {}
+    legtruelen = {}
+    legtruemom = {}
+    canrecolen = {}
+    legrecolen = {}
+    canrecomom = {}
+    legrecomom = {}    
+    can1 = {}
+    can2 = {}
+    momtags = ["mcsall", "mcscont", "rangecont", "calocont"]
+    # Open all the input root files.
+    for file in infiles:
+        inname = os.path.splitext(file)[0]
+        if inname not in innames:
+            innames.append(inname)
+        myfile[inname] = TFile(file)
+        list1 = myfile[inname].GetListOfKeys()
+	# Go to directory momresolution
+	for i in list1:
+            if i.GetClassName() == 'TDirectoryFile':
+                myfile[inname].cd(i.GetName())
+                list2 = gDirectory.GetListOfKeys()
+                # Go to dataset directory 
+		for j in list2:
+			if j.GetClassName() == 'TDirectoryFile':
+                            dataset = '%s'%j.GetName()
+                            if dataset not in datasets:
+                                datasets.append(dataset)
+                            gDirectory.cd(dataset)
+                            list3 = gDirectory.GetListOfKeys()
+			    cantrue[inname+dataset] = TCanvas("cantrue_"+inname+"_"+dataset,"cantrue"+inname+dataset,1200,500)
+			    legtruelen[inname+dataset] = TLegend(0.7,0.2,0.9,0.35)
+    			    legtruelen[inname+dataset].SetFillStyle(0)
+			    legtruemom[inname+dataset] = TLegend(0.1,0.7,0.4,0.85)
+    			    legtruemom[inname+dataset].SetFillStyle(0)
+			    cantrue[inname+dataset].Divide(2,1)
+			    cantrue[inname+dataset].cd(1)
+    			    truelenall = GetObject('truelen_all_%s'%(dataset),list3)
+			    truelencont = GetObject('truelen_cont_%s'%(dataset),list3)
+			    truemomall  = GetObject('truemom_all_%s'%(dataset),list3)
+			    truemomcont = GetObject('truemom_cont_%s'%(dataset),list3)
+			    if truelenall:	
+			    	truelenall.Draw()
+			    if truelencont:
+			    	truelencont.SetLineColor(2)
+			    	truelencont.Draw("sames")
+			    legtruelen[inname+dataset].AddEntry(truelenall,'all tracks','l')
+			    legtruelen[inname+dataset].AddEntry(truelencont,'cont tracks','l')
+			    legtruelen[inname+dataset].Draw("same")
+			    SortOutStats(gPad,0.2,0.25,0.9,0.9)
+			    cantrue[inname+dataset].cd(2)
+			    if truemomall:	
+			    	truemomall.Draw()
+			    if truemomcont:
+			    	truemomcont.SetLineColor(2)
+			    	truemomcont.Draw("sames")
+			    legtruemom[inname+dataset].AddEntry(truemomall,'all tracks','l')
+			    legtruemom[inname+dataset].AddEntry(truemomcont,'cont tracks','l')
+			    legtruemom[inname+dataset].Draw("same")
+			    SortOutStats(gPad,0.2,0.25,0.9,0.9)
+			    for k in list3:
+				if k.GetClassName() == 'TDirectoryFile':
+				    t = '%s'%k.GetName()
+				    if t not in trackers:
+                                       trackers.append(t)    			     
+			            topdir = inname+".root:/momresolution/"+dataset    
+			            gDirectory.cd(topdir)	
+	   		            gDirectory.cd(t)			   
+			            list4 = gDirectory.GetListOfKeys()
+				    canrecolen[inname+dataset+t] = TCanvas("canrecolen_"+inname+"_"+dataset+"_"+t,"canrecolen"+inname+dataset+t,,40)
+				    legrecolen[inname+dataset+t] = TLegend(0.1,0.7,0.4,0.85)
+				    legrecolen[inname+dataset+t].SetFillStyle(0)
+				    canrecolen[inname+dataset+t].cd()
+				    recolenall = GetObject('recolen_all_%s_%s'%(dataset,t),list4)
+				    recolencont = GetObject('recolen_cont_%s_%s'%(dataset,t),list4)
+				    recolenmatch  = GetObject('recolen_match_%s_%s'%(dataset,t),list4)
+				    if recolenall:	
+				    	recolenall.Draw()
+				    if recolencont:
+				    	recolencont.SetLineColor(2)
+				    	recolencont.Draw("sames")
+				    if recolenmatch:
+				    	recolenmatch.SetLineColor(3)
+					recolenmatch.Draw("sames")	
+				    legrecolen[inname+dataset+t].AddEntry(recolenall,'all tracks','l')
+				    legrecolen[inname+dataset+t].AddEntry(recolencont,'cont tracks','l')
+				    legrecolen[inname+dataset+t].AddEntry(recolenmatch,'matched tracks','l')	
+				    legrecolen[inname+dataset+t].Draw("same")
+			    	    SortOutStats(gPad,0.2,0.25,0.9,0.9)			    
+				    c = -1
+				    for k1 in list4:
+					if k1.GetClassName() == 'TDirectoryFile':
+				   		m = '%s'%k1.GetName()
+						c += 1
+						if m not in momalgs:    
+		 		     	  		 momalgs.append(m)
+						subtopdir = inname+".root:/momresolution/"+dataset+"/"+t
+						gDirectory.cd(subtopdir)
+						gDirectory.cd(m)
+						list5 = gDirectory.GetListOfKeys()
+						canrecomom[inname+dataset+t+momtags[c]] = TCanvas("canrecomom_"+inname+"_"+dataset+"_"+t+"_"+momtags[c],"canrecomom"+inname+dataset+t+momtags[c],40,40)
+						legrecomom[inname+dataset+t+momtags[c]] = TLegend(0.1,0.7,0.4,0.85)
+						legrecomom[inname+dataset+t+momtags[c]].SetFillStyle(0)
+						canrecomom[inname+dataset+t+momtags[c]].cd()
+						recomomall = GetObject('recomom_%s_%s_%s'%(dataset,t,momtags[c]),list5)
+						recomommatch = GetObject('recomom_match_%s_%s_%s'%(dataset,t,momtags[c]),list5)
+						if recomomall:    
+						    recomomall.Draw()
+						if recomommatch:
+						    recomommatch.SetLineColor(2)
+						    recomommatch.Draw("sames")
+						legrecomom[inname+dataset+t+momtags[c]].AddEntry(recomomall,'all tracks','l')
+				   		legrecomom[inname+dataset+t+momtags[c]].AddEntry(recomommatch,'matched tracks','l')
+						legrecomom[inname+dataset+t+momtags[c]].Draw("same")
+			    			SortOutStats(gPad,0.2,0.25,0.9,0.9)
+						can1[inname+dataset+t+momtags[c]]=TCanvas("can1_"+inname+"_"+dataset+"_"+t+"_"+momtags[c],"can1_"+inname+dataset+t+momtags[c])
+						can1[inname+dataset+t+momtags[c]].Divide(2,4)
+						can2[inname+dataset+t+momtags[c]]=TCanvas("can2_"+inname+"_"+dataset+"_"+t+"_"+momtags[c],"can2_"+inname+dataset+t+momtags[c])
+						can2[inname+dataset+t+momtags[c]].Divide(2,4)
+						recovstruth = GetObject('recoVstruth_%s_%s_%s'%(dataset,t,momtags[c]),list5)
+						resolvstruth = GetObject('resolVstruth_%s_%s_%s'%(dataset,t,momtags[c]),list5)
+						resolvsreco = GetObject('resolVsreco_%s_%s_%s'%(dataset,t,momtags[c]),list5)
+						resol = GetObject('resol_%s_%s_%s'%(dataset,t,momtags[c]),list5)
+						resol1 = GetObject('resol_0to100MeV_%s_%s_%s'%(dataset,t,momtags[c]),list5)
+						resol2 = GetObject('resol_100to200MeV_%s_%s_%s'%(dataset,t,momtags[c]),list5)
+						resol3 = GetObject('resol_200to300MeV_%s_%s_%s'%(dataset,t,momtags[c]),list5)
+						resol4 = GetObject('resol_300to400MeV_%s_%s_%s'%(dataset,t,momtags[c]),list5)
+						resol5 = GetObject('resol_400to500MeV_%s_%s_%s'%(dataset,t,momtags[c]),list5)
+						resol6 = GetObject('resol_500to600MeV_%s_%s_%s'%(dataset,t,momtags[c]),list5)
+						resol7 = GetObject('resol_600to700MeV_%s_%s_%s'%(dataset,t,momtags[c]),list5)
+						resol8 = GetObject('resol_700to800MeV_%s_%s_%s'%(dataset,t,momtags[c]),list5)
+						resol9 = GetObject('resol_800to900MeV_%s_%s_%s'%(dataset,t,momtags[c]),list5)
+						resol10 = GetObject('resol_900to1000MeV_%s_%s_%s'%(dataset,t,momtags[c]),list5)
+						resol11 = GetObject('resol_1000to2000MeV_%s_%s_%s'%(dataset,t,momtags[c]),list5)
+						can1[inname+dataset+t+momtags[c]].cd(1)
+						recovstruth.Draw("colz")
+						can1[inname+dataset+t+momtags[c]].cd(2)
+				     	        resolvstruth.Draw("colz")
+				    	        can1[inname+dataset+t+momtags[c]].cd(3)
+				                resolvsreco.Draw("colz")
+				                can1[inname+dataset+t+momtags[c]].cd(4)
+				                resol.Draw()
+				                can1[inname+dataset+t+momtags[c]].cd(5)
+				                resol1.Draw()
+				                can1[inname+dataset+t+momtags[c]].cd(6)
+				                resol2.Draw()
+				        	can1[inname+dataset+t+momtags[c]].cd(7)
+				        	resol3.Draw()
+				       	        can1[inname+dataset+t+momtags[c]].cd(8)
+				       	        resol4.Draw()
+				        	#
+				        	can2[inname+dataset+t+momtags[c]].cd(1)
+				        	resol5.Draw()
+				        	can2[inname+dataset+t+momtags[c]].cd(2)
+				        	resol6.Draw()
+				        	can2[inname+dataset+t+momtags[c]].cd(3)
+				        	resol7.Draw()
+				        	can2[inname+dataset+t+momtags[c]].cd(4)
+				        	resol8.Draw()
+				        	can2[inname+dataset+t+momtags[c]].cd(5)
+				        	resol9.Draw()
+				        	can2[inname+dataset+t+momtags[c]].cd(6)
+				        	resol10.Draw()
+				        	can2[inname+dataset+t+momtags[c]].cd(7)
+				        	resol11.Draw()
+					
+					    
+    
+    count = 0
+    for i in innames:
+        for j in datasets:
+	    cantrue[i+j].Print("momresolu.ps(")
+            for k in trackers:
+	    	canrecolen[i+j+k].Print("momresolu.ps")
+	    	for l in momtags:
+		       count = count+1
+	    	       canrecomom[i+j+k+l].Print("momresolu.ps")
+ 	               if i+j+k+l in can1:
+		    	      can1[i+j+k+l].Print("momresolu.ps")
+		       if i+j+k+l in can2:
+		       	      if (count==len(momtags)):	
+		    		   can2[i+j+k+l].Print("momresolu.ps)")
+		    	      else:			
+		        	   can2[i+j+k+l].Print("momresolu.ps")
+   			    
+    		
 
 def plothit(infile):
     infiles = infile.split(",")
@@ -450,6 +646,7 @@ def main(argv):
     calorimetry = 0
     hit = 0
     tracking = 0
+    momresol = 0
     args = argv[1:]
     while len(args) > 0:
         if args[0] == '-h' or args[0] == '--help':
@@ -467,7 +664,10 @@ def main(argv):
 	elif args[0] == '--tracking':
             tracking = 1
             del args[0]        
-        elif args[0] == '-b':
+        elif args[0] == '--momresol':
+            momresol = 1
+            del args[0]
+	elif args[0] == '-b':
             del args[0]
         else:
             print 'Unknown option %s' % args[0]
@@ -492,7 +692,14 @@ def main(argv):
             print 'Please specify input file using --input.'
             return 1
         else:
-            plottracking(infile)	    
+            plottracking(infile)
+	    
+    if momresol:
+        if infile == '':
+            print 'Please specify input file using --input.'
+            return 1
+        else:
+            plotmomresolution(infile)	    	    
 
 if __name__ == '__main__':
     rc = main(sys.argv)
