@@ -103,7 +103,7 @@ def plot1d(dataset,hname,inname,can,leg,nplots,list):
         leg[dataset].AddEntry(hist,inname,'l')
 
 # Plot 1d histograms and make legends.
-def plot1d3plane(dataset,hname,inname,can,leg,nplots,list):
+def plot1d3plane(dataset,hname,inname,can,leg,nplots,list,drawopt=''):
     if dataset not in can:
         nplots[dataset] = 0
         can[dataset] = TCanvas('can'+hname+dataset,'can'+hname+dataset,1000,800)
@@ -116,11 +116,13 @@ def plot1d3plane(dataset,hname,inname,can,leg,nplots,list):
         can[dataset].cd(i+1)
         hist = GetObject(hname+str(i)+dataset,list)
         if hist:
+            if drawopt=='colz':
+                hist.SetStats(0)
             if nplots[dataset] == 1:
-                hist.Draw()
+                hist.Draw(drawopt)
             else:
                 hist.SetLineColor(nplots[dataset])
-                hist.Draw("sames")
+                hist.Draw('sames'+drawopt)
                 hist1 = gPad.GetListOfPrimitives()[0]
                 if hist.GetMaximum()>hist1.GetMaximum():
                     hist1.GetYaxis().SetRangeUser(0,hist.GetMaximum()*1.2)
@@ -173,10 +175,31 @@ def plotcalorimetry(infile):
     trackers = []
     datasets = []
     muondEdxR = GetMuondEdxR()
+    muondEdxR.SetMarkerStyle(20)
+    muondEdxR.SetMarkerSize(0.3)
+    muondEdxR.SetMarkerColor(800)
+    muondEdxR.SetLineColor(800)
+    muondEdxR.SetLineWidth(2)
+    muonKeLen = GetMuonKELen()
+    muonKeLen.SetMarkerStyle(20)
+    muonKeLen.SetMarkerSize(0.3)
+    muonKeLen.SetMarkerColor(800)
+    muonKeLen.SetLineColor(800)
+    muonKeLen.SetLineWidth(2)
+    protonKeLen = GetProtonKELen()
+    protonKeLen.SetMarkerStyle(20)
+    protonKeLen.SetMarkerSize(0.3)
+    protonKeLen.SetMarkerColor(1)
+    protonKeLen.SetLineColor(1)
+    protonKeLen.SetLineWidth(2)
+
     candedxrr = {}
     candedx = {}
     nplotsdedx = {}
     legdedx = {}
+    cankelen = {}
+    legkelen = {}
+    nplotskelen = {}
     # Open all the input root files.
     for file in infiles:
         inname = os.path.splitext(file)[0]
@@ -201,7 +224,7 @@ def plotcalorimetry(infile):
                         if len(trackers) == 0:
                             for k in list3:
                                 name = k.GetName()
-                                tracker = name[name.rfind("_")+1:]
+                                tracker = name[name.rfind(dataset)+len(dataset):]
                                 if tracker not in trackers:
                                     trackers.append(tracker)
                         # Loop over all trackers and make dE/dx vs Residual Range and dE/dx plots.
@@ -212,44 +235,18 @@ def plotcalorimetry(infile):
                                 candedxrr[inname+dataset+t].Divide(2,2)
                                 for i in range(3):
                                     candedxrr[inname+dataset+t].cd(i+1)
-                                    dedxrr = GetObject('dedxrr%s_%d_%s'%(dataset,i,t), list3)
+                                    dedxrr = GetObject('dedxrr%d%s%s'%(i,dataset,t), list3)
                                     if dedxrr:
                                         dedxrr.Draw("colz")
-                                    pdedxrr = GetObject('pdedxrr%s_%d_%s'%(dataset,i,t), list3)
+                                    pdedxrr = GetObject('pdedxrr%d%s%s'%(i,dataset,t), list3)
                                     if pdedxrr:
                                         pdedxrr.SetMarkerStyle(20)
                                         pdedxrr.SetMarkerSize(0.03)
                                         pdedxrr.Draw("same")
-                                    muondEdxR.SetMarkerStyle(20)
-                                    muondEdxR.SetMarkerSize(0.3)
-                                    muondEdxR.SetMarkerColor(800)
-                                    muondEdxR.SetLineColor(800)
-                                    muondEdxR.SetLineWidth(2)
                                     muondEdxR.Draw("pc")
                             # dE/dx plots.
-                            if dataset+t not in candedx:
-                                nplotsdedx[dataset+t] = 0
-                                candedx[dataset+t] = TCanvas("candedx_"+dataset+t,"candedx_"+dataset+t,1000,800)
-                                candedx[dataset+t].Divide(2,2)
-                                legdedx[dataset+t] = TLegend(0.35,0.6,0.6,0.9)
-                            nplotsdedx[dataset+t] += 1
-                            # plot all 3 planes
-                            for i in range(3):
-                                candedx[dataset+t].cd(i+1)
-                                dedx = GetObject('dedx%s_%d_%s'%(dataset,i,t), list3)
-                                if dedx:
-                                    if nplotsdedx[dataset+t] == 1:
-                                        dedx.Draw()
-                                    else:
-                                        dedx.SetLineColor(nplotsdedx[dataset+t])
-                                        dedx.Draw("sames")
-                                        # if new histogram is too high, adjust y range
-                                        if dedx.GetMaximum()*1.1>gPad.GetUymax():
-                                            hist = gPad.GetListOfPrimitives()[0]
-                                            hist.GetYaxis().SetRangeUser(0,dedx.GetMaximum()*1.1)
-                                    if i==0:
-                                        legdedx[dataset+t].AddEntry(dedx,inname,'l')
-
+                            plot1d3plane(dataset+t,'dedx',inname,candedx,legdedx,nplotsdedx,list3)
+                            plot1d3plane(dataset+t,'kelen',inname,cankelen,legkelen,nplotskelen,list3,'colz')
     #Save dE/dx vs Residula Range plots.
     for i in innames:
         for j in datasets:
@@ -261,7 +258,6 @@ def plotcalorimetry(infile):
                     #candedxrr[i+j+k].Print('dedxrr_%s_%s_%s.pdf'%(i,j,k))
 		    candedxrr[i+j+k].Print("calorimetry.ps(")
 
-    count = 0	
     #Save dE/dx plots.
     for i in datasets:
         for j in trackers:
@@ -270,13 +266,31 @@ def plotcalorimetry(infile):
                     candedx[i+j].cd(k+1)
                     legdedx[i+j].Draw()
                     SortOutStats(gPad,0.3,0.25,0.9,0.9)
-		count = count+1
-                if (count == len(trackers)*len(datasets)):
-		        candedx[i+j].Print("calorimetry.ps)")
-		else:			
-		        candedx[i+j].Print("calorimetry.ps(")	
+                #if (count == len(trackers)*len(datasets)):
+                candedx[i+j].Print("calorimetry.ps")
+            #else:			
+                #candedx[i+j].Print("calorimetry.ps(")	
 			#candedx[i+j].Print('dedx_%s_%s.gif'%(i,j))
                 	#candedx[i+j].Print('dedx_%s_%s.pdf'%(i,j))    
+                        
+    count = 0	
+    #Save KE vs length plot.
+    for i in datasets:
+        for j in trackers:
+            if i+j in cankelen:
+                for k in range(3):
+                    cankelen[i+j].cd(k+1)
+                    #legkelen[i+j].Draw()
+                    muonKeLen.Draw("pc")
+                    protonKeLen.Draw("pc")
+                    #SortOutStats(gPad,0.3,0.25,0.9,0.9)
+		count = count+1
+                if (count == len(trackers)*len(datasets)):
+		        cankelen[i+j].Print("calorimetry.ps)")
+		else:			
+		        cankelen[i+j].Print("calorimetry.ps(")	
+			#cankelen[i+j].Print('kelen_%s_%s.gif'%(i,j))
+                	#cankelen[i+j].Print('kelen_%s_%s.pdf'%(i,j))    
 
 
 def plottracking(infile):
@@ -413,6 +427,7 @@ def plothit(infile):
                         plot1d3plane(dataset,'hhit_ph',inname,canhit_ph,leghit_ph,nplotshit_ph,list3)
                         plot1d3plane(dataset,'hphperelec',inname,canphperelec,legphperelec,nplotsphperelec,list3)
                         plot1d3plane(dataset,'hchargeperelec',inname,canchargeperelec,legchargeperelec,nplotschargeperelec,list3)
+                        gDirectory.cd("..")
 
     # Write all the plots into a separate directory
     if not os.path.exists('hits'):

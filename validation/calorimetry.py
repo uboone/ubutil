@@ -98,6 +98,8 @@ def main(argv):
     mychain.SetBranchStatus("*",0);
     mychain.SetBranchStatus("StartPoint*",1);
     mychain.SetBranchStatus("EndPoint*",1);
+    mychain.SetBranchStatus("pdg",1);
+    mychain.SetBranchStatus("NumberDaughters",1);
     #mychain.SetBranchStatus("event",1);
 
     hfile = gROOT.FindObject(outfile)
@@ -118,6 +120,10 @@ def main(argv):
     fillpdedxrr = {}
     dedx = {}
     filldedx = {}
+    kelen = {}
+    fillkelen = {}
+    ke2d = {}
+    fillke2d = {}
 
     dntracks = {}
     dntrkhits = {}
@@ -126,12 +132,14 @@ def main(argv):
 
     for t in trackers:
         for ipl in range(3):
-            dedxrr[t+str(ipl)] = TH2F("dedxrr%s_%d_%s"%(dataset,ipl,t),"%s, %s, Plane = %d;Residual Range (cm);dE/dx (MeV/cm)"%(dataset,t,ipl),1000,0,1000,1000,0,20);
+            dedxrr[t+str(ipl)] = TH2F("dedxrr%d%s%s"%(ipl,dataset,t),"%s, %s, Plane = %d;Residual Range (cm);dE/dx (MeV/cm)"%(dataset,t,ipl),1000,0,1000,1000,0,20);
             filldedxrr[t+str(ipl)] = dedxrr[t+str(ipl)].Fill
-            pdedxrr[t+str(ipl)] = TProfile("pdedxrr%s_%d_%s"%(dataset,ipl,t),"%s, %s, Plane = %d;Residual Range (cm);dE/dx (MeV/cm)"%(dataset,t,ipl),1000,0,1000)
+            pdedxrr[t+str(ipl)] = TProfile("pdedxrr%d%s%s"%(ipl,dataset,t),"%s, %s, Plane = %d;Residual Range (cm);dE/dx (MeV/cm)"%(dataset,t,ipl),1000,0,1000)
             fillpdedxrr[t+str(ipl)] = pdedxrr[t+str(ipl)].Fill
-            dedx[t+str(ipl)] = TH1F("dedx%s_%d_%s"%(dataset,ipl,t),"%s, %s, Plane = %d;dE/dx (MeV/cm); Nhits"%(dataset,t,ipl),100,0,10);
+            dedx[t+str(ipl)] = TH1F("dedx%d%s%s"%(ipl,dataset,t),"%s, %s, Plane = %d;dE/dx (MeV/cm); Nhits"%(dataset,t,ipl),100,0,10)
             filldedx[t+str(ipl)] = dedx[t+str(ipl)].Fill
+            kelen[t+str(ipl)] = TH2F("kelen%d%s%s"%(ipl,dataset,t),"%s, %s, Plane = %d;Track Length (cm); KE (MeV)"%(dataset,t,ipl),100,0,500,100,0,1000)
+            fillkelen[t+str(ipl)] = kelen[t+str(ipl)].Fill
         mychain.SetBranchStatus("ntracks_"+t,1)
         mychain.SetBranchStatus("trkstartx_"+t,1)
         mychain.SetBranchStatus("trkstarty_"+t,1)
@@ -142,6 +150,8 @@ def main(argv):
         mychain.SetBranchStatus("ntrkhits_"+t,1)
         mychain.SetBranchStatus("trkdedx_"+t,1)
         mychain.SetBranchStatus("trkresrg_"+t,1)
+        mychain.SetBranchStatus("trkke_"+t,1)
+        mychain.SetBranchStatus("trklen_"+t,1)
         dntracks[t] = array("h",[0])
         mychain.SetBranchAddress("ntracks_"+t,dntracks[t])
         dntrkhits[t] = array("h",[0]*1000*3)
@@ -167,7 +177,9 @@ def main(argv):
         nb = mychain.GetEntry( jentry )
         if nb <= 0:
             continue
-        
+#        if mychain.pdg[0]==2212 and mychain.NumberDaughters[0]!=0:
+#            continue
+        #print mychain.pdg[0],mychain.NumberDaughters[0]
         StartPointx = mychain.StartPointx[0]
         StartPointy = mychain.StartPointy[0]
         StartPointz = mychain.StartPointz[0]
@@ -186,7 +198,7 @@ def main(argv):
                 trkendx = mychain.GetLeaf("trkendx_"+t).GetValue(i)
                 trkendy = mychain.GetLeaf("trkendy_"+t).GetValue(i)
                 trkendz = mychain.GetLeaf("trkendz_"+t).GetValue(i)
-
+                trklen  = mychain.GetLeaf("trklen_"+t).GetValue(i)
 
                 if (PointMatch(trkstartx, trkstarty, trkstartz,
                                StartPointx, StartPointy, StartPointz)
@@ -200,6 +212,8 @@ def main(argv):
                         and Contained(trkendx, trkendy, trkendz)):
                         for j in range(3):
                             #ntrkhits = int(mychain.GetLeaf("ntrkhits_"+t).GetValue(i*3+j)+0.1)
+                            trkke = mychain.GetLeaf("trkke_"+t).GetValue(i*3+j)
+                            fillkelen[t+str(j)](trklen,trkke)
                             ntrkhits = dntrkhits[t][i*3+j]
                             if ntrkhits > 2000:
                                 ntrkhits = 2000
@@ -219,6 +233,7 @@ def main(argv):
             del filldedxrr[t+str(ipl)]
             del fillpdedxrr[t+str(ipl)]
             del filldedx[t+str(ipl)]
+            del fillkelen[t+str(ipl)]
 
     hfile.Write()
 

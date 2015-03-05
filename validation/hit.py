@@ -18,7 +18,7 @@
 # --output <outputfile>     - Output root file that contain histograms.
 #
 # --dataset <dataset name>  - Specify a dataset name, singlemu or BNB etc.
-#                             All histograms will be saved in output:calorimetry/dataset
+#                             All histograms will be saved in output:hit/dataset
 #
 ###############################################################################
 import sys,os
