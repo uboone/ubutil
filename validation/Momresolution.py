@@ -168,10 +168,10 @@ def main(argv):
     fillresol_900to1000MeV = {}
     fillresol_1000to2000MeV = {}    
         
-    truelen_all = TH1F('TrueLengthAll',"%s; True length of all tracks (cm)"%(dataset),200,0,2000)
-    truemom_all = TH1F('TrueMomAll',"%s; True momentum of all tracks (GeV)"%(dataset),100,0,2 )
-    truelen_cont = TH1F('TrueLenCont',"%s; True length of contained tracks (cm)"%(dataset),200,0,1000)
-    truemom_cont = TH1F('TrueMomCont',"%s; True Momentum of contained tracks (GeV)"%(dataset),100,0,2)
+    truelen_all = TH1F("truelen_all_%s"%(dataset),"%s; True length of all tracks (cm)"%(dataset),200,0,2000)
+    truemom_all = TH1F("truemom_all_%s"%(dataset),"%s; True momentum of all tracks (GeV)"%(dataset),100,0,2 )
+    truelen_cont = TH1F("truelen_cont_%s"%(dataset),"%s; True length of contained tracks (cm)"%(dataset),200,0,1000)
+    truemom_cont = TH1F("truemom_cont_%s"%(dataset),"%s; True Momentum of contained tracks (GeV)"%(dataset),100,0,2)
      	    
     # tags to identify momentum algorithms and track containment
     tag = ["mcsall","mcscont","rangecont","calocont"] 
@@ -256,7 +256,7 @@ def main(argv):
     tagcont = {"mcscont","rangecont","calocont"}
     
     entries = mychain.GetEntriesFast()    
-    #entries = 500
+    entries = 500
     	
     for jentry in xrange( entries ): 
     	if jentry%1000==0:
@@ -343,7 +343,7 @@ def main(argv):
 					# resolution plots for all tracks (contained+uncontained) MCS method
 					fillrecolen_match[t](trklen)
 					fillrecomom_match[t+"mcsall"](trkmommcs)
-					fillrecoVstruth[t+"mcsall"](p, trkmommcs)					
+					fillrecoVstruth[t+"mcsall"](p, trkmommcs)
 					resolmcs = (p-trkmommcs)/p
 					fillresol[t+"mcsall"](resolmcs)
 					fillresolVstruth[t+"mcsall"](p, resolmcs)
