@@ -194,15 +194,17 @@ do
     nev=$nevarg
     if [ $nev -eq 0 ]; then
       if [ $newprj = prodgenie_bnb_nu_cosmic_uboone ]; then
-        nev=50000
+        nev=200000
       elif [ $newprj = prodgenie_bnb_nu_uboone ]; then
-        nev=20000
+        nev=200000
       elif [ $newprj = prodgenie_bnb_nue_cosmic_uboone ]; then
         nev=20000
       elif [ $newprj = prodgenie_bnb_nue_uboone ]; then
         nev=20000
-      elif [ $newprj = prodcosmics_uboone ]; then
+      elif [ $newprj = prodgenie_bnb_intrinsic_nue_uboone ]; then
         nev=20000
+      elif [ $newprj = prodcosmics_uboone ]; then
+        nev=200000
       else
         nev=10000
       fi
