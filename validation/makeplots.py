@@ -250,6 +250,7 @@ def plotcalorimetry(infile):
                             # dE/dx plots.
                             plot1d3plane(dataset+t,'dedx',inname,candedx,legdedx,nplotsdedx,list3)
                             plot1d3plane(dataset+t,'kelen',inname,cankelen,legkelen,nplotskelen,list3,'colz')
+                        gDirectory.cd("..")
     #Save dE/dx vs Residula Range plots.
     for i in innames:
         for j in datasets:
