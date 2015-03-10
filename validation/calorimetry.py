@@ -95,11 +95,14 @@ def main(argv):
         trackers = tracker.split(",")
     print trackers
     
-    mychain.SetBranchStatus("*",0);
-    mychain.SetBranchStatus("StartPoint*",1);
-    mychain.SetBranchStatus("EndPoint*",1);
-    mychain.SetBranchStatus("pdg",1);
-    mychain.SetBranchStatus("NumberDaughters",1);
+    mychain.SetBranchStatus("*",0)
+    mychain.SetBranchStatus("StartPoint*",1)
+    mychain.SetBranchStatus("EndPoint*",1)
+    mychain.SetBranchStatus("pdg",1)
+    mychain.SetBranchStatus("geant_list_size",1)
+    mychain.SetBranchStatus("MergedId",1)
+    mychain.SetBranchStatus("NumberDaughters",1)
+    mychain.SetBranchStatus("processname",1)
     #mychain.SetBranchStatus("event",1);
 
     hfile = gROOT.FindObject(outfile)
@@ -186,6 +189,35 @@ def main(argv):
         EndPointx = mychain.EndPointx[0]
         EndPointy = mychain.EndPointy[0]
         EndPointz = mychain.EndPointz[0]
+        #numDaughters = mychain.NumberDaughters[0]
+        if mychain.pdg[0]==2212:
+            numDaughters = 0
+            #print mychain.geant_list_size
+            for j in xrange(mychain.geant_list_size):
+                if j == 0:
+                    continue
+                if ('conv' not in mychain.processname[j] and
+                    'LowEnConversion' not in mychain.processname[j] and
+                    'Pair' not in mychain.processname[j] and
+                    'compt' not in mychain.processname[j] and
+                    'Compt' not in mychain.processname[j] and
+                    'Brem' not in mychain.processname[j] and
+                    'phot' not in mychain.processname[j] and
+                    'Photo' not in mychain.processname[j] and
+                    'Ion' not in mychain.processname[j] and
+                    'annihil' not in mychain.processname[j]):
+                    numDaughters += 1
+            if numDaughters > 0:
+                continue
+            #print j, mychain.MergedId[j]
+#            if mychain.MergedId[j] == mychain.MergedId[0]:
+#                #print j, mychain.MergedId[j]
+#                EndPointx = mychain.EndPointx[j]
+#                EndPointy = mychain.EndPointy[j]
+#                EndPointz = mychain.EndPointz[j]
+#                numDaughters = mychain.NumberDaughters[j]
+#        if numDaughters!=0:
+#            continue
         for t in trackers:
             #ntracks = int(mychain.GetLeaf("ntracks_"+t).GetValue()+0.1)
             ntracks = dntracks[t][0]
