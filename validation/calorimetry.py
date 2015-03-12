@@ -135,13 +135,16 @@ def main(argv):
 
     for t in trackers:
         for ipl in range(3):
-            dedxrr[t+str(ipl)] = TH2F("dedxrr%d%s%s"%(ipl,dataset,t),"%s, %s, Plane = %d;Residual Range (cm);dE/dx (MeV/cm)"%(dataset,t,ipl),1000,0,1000,1000,0,20);
+            if 'pro' in dataset:
+                dedxrr[t+str(ipl)] = TH2F("dedxrr%d%s%s"%(ipl,dataset,t),"%s, %s, Plane = %d;Residual Range (cm);dE/dx (MeV/cm)"%(dataset,t,ipl),100,0,300,1000,0,20)
+            else:
+                dedxrr[t+str(ipl)] = TH2F("dedxrr%d%s%s"%(ipl,dataset,t),"%s, %s, Plane = %d;Residual Range (cm);dE/dx (MeV/cm)"%(dataset,t,ipl),1000,0,1000,1000,0,20)
             filldedxrr[t+str(ipl)] = dedxrr[t+str(ipl)].Fill
             pdedxrr[t+str(ipl)] = TProfile("pdedxrr%d%s%s"%(ipl,dataset,t),"%s, %s, Plane = %d;Residual Range (cm);dE/dx (MeV/cm)"%(dataset,t,ipl),1000,0,1000)
             fillpdedxrr[t+str(ipl)] = pdedxrr[t+str(ipl)].Fill
             dedx[t+str(ipl)] = TH1F("dedx%d%s%s"%(ipl,dataset,t),"%s, %s, Plane = %d;dE/dx (MeV/cm); Nhits"%(dataset,t,ipl),100,0,10)
             filldedx[t+str(ipl)] = dedx[t+str(ipl)].Fill
-            kelen[t+str(ipl)] = TH2F("kelen%d%s%s"%(ipl,dataset,t),"%s, %s, Plane = %d;Track Length (cm); KE (MeV)"%(dataset,t,ipl),100,0,500,100,0,1000)
+            kelen[t+str(ipl)] = TH2F("kelen%d%s%s"%(ipl,dataset,t),"%s, %s, Plane = %d;Track Length (cm); KE (MeV)"%(dataset,t,ipl),100,0,300,100,0,500)
             fillkelen[t+str(ipl)] = kelen[t+str(ipl)].Fill
         mychain.SetBranchStatus("ntracks_"+t,1)
         mychain.SetBranchStatus("trkstartx_"+t,1)
@@ -254,7 +257,7 @@ def main(argv):
                                 #trkresrg = mychain.GetLeaf("trkresrg_"+t).GetValue(i*3*2000+j*2000+k)
                                 trkdedx = dtrkdedx[t][i*3*2000+j*2000+k]
                                 trkresrg = dtrkresrg[t][i*3*2000+j*2000+k]
-                                if trkdedx>0:
+                                if trkdedx>0 and trkdedx<20:
                                     filldedxrr[t+str(j)](trkresrg,trkdedx)
                                     fillpdedxrr[t+str(j)](trkresrg,trkdedx)
                                     if trkresrg>90 and trkresrg<110:

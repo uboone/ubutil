@@ -39,7 +39,7 @@ myargv = sys.argv
 sys.argv = myargv[0:1]
 sys.argv.append( '-b' )
 
-from ROOT import TFile, TCanvas, TH1F, TH2F, TProfile, TLegend
+from ROOT import TFile, TCanvas, TH1F, TH2F, TProfile, TLegend, TF1
 from ROOT import gDirectory, gROOT, gPad
 #ROOT.gErrorIgnoreLevel = ROOT.kError
 sys.argv = myargv
@@ -183,6 +183,10 @@ def plotcalorimetry(infile):
     muondEdxR.SetMarkerColor(800)
     muondEdxR.SetLineColor(800)
     muondEdxR.SetLineWidth(2)
+    protondEdxR = TF1('protondEdxR','17*pow(x,-0.42)',0,30)
+    protondEdxR.SetMarkerColor(2)
+    protondEdxR.SetLineColor(2)
+    protondEdxR.SetLineWidth(2)
     muonKeLen = GetMuonKELen()
     muonKeLen.SetMarkerStyle(20)
     muonKeLen.SetMarkerSize(0.3)
@@ -193,8 +197,16 @@ def plotcalorimetry(infile):
     protonKeLen.SetMarkerStyle(20)
     protonKeLen.SetMarkerSize(0.3)
     protonKeLen.SetMarkerColor(1)
-    protonKeLen.SetLineColor(1)
+    protonKeLen.SetLineColor(2)
     protonKeLen.SetLineWidth(2)
+
+    legdedxrr1 = TLegend(0.5,0.7,0.7,0.9)
+    legdedxrr1.AddEntry(protondEdxR,"Proton","l")
+    legdedxrr1.AddEntry(muondEdxR,"Muon","l")
+
+    legkelen1 = TLegend(0.65,0.2,0.85,0.4)
+    legkelen1.AddEntry(protonKeLen,"Proton","l")
+    legkelen1.AddEntry(muonKeLen,"Muon","l")
 
     candedxrr = {}
     candedx = {}
@@ -241,12 +253,16 @@ def plotcalorimetry(infile):
                                     dedxrr = GetObject('dedxrr%d%s%s'%(i,dataset,t), list3)
                                     if dedxrr:
                                         dedxrr.Draw("colz")
+#                                        if 'pro' in dataset:
+#                                            dedxrr.GetXaxis().SetRangeUser(0,300)
                                     pdedxrr = GetObject('pdedxrr%d%s%s'%(i,dataset,t), list3)
                                     if pdedxrr:
                                         pdedxrr.SetMarkerStyle(20)
                                         pdedxrr.SetMarkerSize(0.03)
                                         pdedxrr.Draw("same")
                                     muondEdxR.Draw("pc")
+                                    protondEdxR.Draw("same")
+                                    legdedxrr1.Draw()
                             # dE/dx plots.
                             plot1d3plane(dataset+t,'dedx',inname,candedx,legdedx,nplotsdedx,list3)
                             plot1d3plane(dataset+t,'kelen',inname,cankelen,legkelen,nplotskelen,list3,'colz')
@@ -284,15 +300,20 @@ def plotcalorimetry(infile):
             if i+j in cankelen:
                 for k in range(3):
                     cankelen[i+j].cd(k+1)
-                    #legkelen[i+j].Draw()
+#                    legkelen[i+j].Draw()
                     muonKeLen.Draw("pc")
                     protonKeLen.Draw("pc")
+                    legkelen1.Draw()
+#                    legkelen = TLegend(0.5,0.5,0.7,0.9)
+#                    legkelen.AddEntry(muonKeLen,"Muon","l")
+#                    legkelen.AddEntry(protonKeLen,"Proton","l")
+#                    legkelen.Draw()
                     #SortOutStats(gPad,0.3,0.25,0.9,0.9)
 		count = count+1
                 if (count == len(trackers)*len(datasets)):
-		        cankelen[i+j].Print("calorimetry.ps)")
+                    cankelen[i+j].Print("calorimetry.ps)")
 		else:			
-		        cankelen[i+j].Print("calorimetry.ps(")	
+                    cankelen[i+j].Print("calorimetry.ps(")	
 			#cankelen[i+j].Print('kelen_%s_%s.gif'%(i,j))
                 	#cankelen[i+j].Print('kelen_%s_%s.pdf'%(i,j))    
 
@@ -444,7 +465,7 @@ def plotmomresolution(infile):
 			            gDirectory.cd(topdir)	
 	   		            gDirectory.cd(t)			   
 			            list4 = gDirectory.GetListOfKeys()
-				    canrecolen[inname+dataset+t] = TCanvas("canrecolen_"+inname+"_"+dataset+"_"+t,"canrecolen"+inname+dataset+t,,40)
+				    canrecolen[inname+dataset+t] = TCanvas("canrecolen_"+inname+"_"+dataset+"_"+t,"canrecolen"+inname+dataset+t,40,40)
 				    legrecolen[inname+dataset+t] = TLegend(0.1,0.7,0.4,0.85)
 				    legrecolen[inname+dataset+t].SetFillStyle(0)
 				    canrecolen[inname+dataset+t].cd()

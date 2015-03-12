@@ -45,6 +45,8 @@ def GetMuondEdxR():
     rr.append(616.3)
     rr.append(855.2)
     rr.append(1202)
+    rr.append(1758)
+    rr.append(2297)
 
     dedx.append(5.687)
     dedx.append(4.461)
@@ -62,6 +64,7 @@ def GetMuondEdxR():
     dedx.append(1.700)
     dedx.append(1.761)
     dedx.append(1.829)
+    dedx.append(1.877)
 #    rr = [0.9833,1.786,3.321,6.598,10.58,30.84,42.50,67.32,106.3,172.5,238.5]
 #    print len(rr)
 #    dedx = [5.687,4.461,3.502,2.731,2.340,1.771,1.670,1.570,1.519,1.510,1.526]
