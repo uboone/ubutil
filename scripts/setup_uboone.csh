@@ -44,7 +44,9 @@ endif
 
 # Set up the basic tools that will be needed
 #
-setup git
+if ( `uname` != Darwin ) then
+  setup git
+endif
 setup gitflow
 setup mrb
 
