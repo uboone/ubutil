@@ -28,6 +28,8 @@
 #
 # --hit               - Make hitfinder validation plots
 #
+# --flash             - Make flash validation plots
+#
 ###############################################################################
 import sys, os
 # Prevent root from printing garbage on initialization.
@@ -662,6 +664,61 @@ def plothit(infile):
     savecanvas1d3plane(datasets,canchargeperelec,legchargeperelec,'chargeperelec')
     os.chdir('../')
 
+def plotflash(infile):
+    infiles = infile.split(",")
+    myfile = {}
+    innames = []
+    datasets = []
+    canno_flashes = {}
+    nplotsno_flashes = {}
+    legno_flashes = {}
+    canflash_time = {}
+    nplotsflash_time = {}
+    legflash_time = {}
+    canflash_pe = {}
+    nplotsflash_pe = {}
+    legflash_pe = {}
+    canflash_ycenter = {}
+    nplotsflash_ycenter = {}
+    legflash_ycenter = {}
+    canflash_zcenter = {}
+    nplotsflash_zcenter = {}
+    legflash_zcenter = {}
+    # Open all the input root files.
+    for file in infiles:
+        inname = os.path.splitext(file)[0]
+        if inname not in innames:
+            innames.append(inname)
+        myfile[inname] = TFile(file)
+        list1 = myfile[inname].GetListOfKeys()
+        # Go to directory calorimetry
+        for i in list1:
+            if i.GetClassName() == 'TDirectoryFile':
+                myfile[inname].cd(i.GetName())
+                list2 = gDirectory.GetListOfKeys()
+                # Go to dataset directory
+                for j in list2:
+                    if j.GetClassName() == 'TDirectoryFile':
+                        dataset = '%s'%j.GetName()
+                        if dataset not in datasets:
+                            datasets.append(dataset)
+                        gDirectory.cd(dataset)
+                        list3 = gDirectory.GetListOfKeys()
+                        plot1d(dataset,'hno_flashes',inname,canno_flashes,legno_flashes,nplotsno_flashes,list3)
+                        plot1d(dataset,'hflash_time',inname,canflash_time,legflash_time,nplotsflash_time,list3)
+                        plot1d(dataset,'hflash_pe',inname,canflash_pe,legflash_pe,nplotsflash_pe,list3)
+                        plot1d(dataset,'hflash_ycenter',inname,canflash_ycenter,legflash_ycenter,nplotsflash_ycenter,list3)
+                        plot1d(dataset,'hflash_zcenter',inname,canflash_zcenter,legflash_zcenter,nplotsflash_zcenter,list3)
+
+    if not os.path.exists('flash'):
+    	os.makedirs('flash')
+    os.chdir('flash')	
+    savecanvas1d(datasets,canno_flashes,legno_flashes,'no_flashes')
+    savecanvas1d(datasets,canflash_time,legflash_time,'flash_time')
+    savecanvas1d(datasets,canflash_pe,legflash_pe,'flash_pe')
+    savecanvas1d(datasets,canflash_ycenter,legflash_ycenter,'flash_ycenter')
+    savecanvas1d(datasets,canflash_zcenter,legflash_zcenter,'flash_zcenter')
+
 def main(argv):
 
     infile=''
@@ -669,6 +726,7 @@ def main(argv):
     hit = 0
     tracking = 0
     momresol = 0
+    flash = 0
     args = argv[1:]
     while len(args) > 0:
         if args[0] == '-h' or args[0] == '--help':
@@ -689,6 +747,9 @@ def main(argv):
         elif args[0] == '--momresol':
             momresol = 1
             del args[0]
+        elif args[0] == '--flash':
+            flash = 1
+            del args[0]
 	elif args[0] == '-b':
             del args[0]
         else:
@@ -708,6 +769,13 @@ def main(argv):
             return 1
         else:
             plothit(infile)
+
+    if flash:
+        if infile == '':
+            print 'Please specify input file using --input.'
+            return 1
+        else:
+            plotflash(infile)
 	    
     if tracking:
         if infile == '':
