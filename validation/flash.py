@@ -98,7 +98,7 @@ def main(argv):
 
     hno_flashes = TH1F('hno_flashes'+dataset,dataset+';Number of flashes;Number of events',100,0,200)
     fillhno_flashes = hno_flashes.Fill
-    hflash_time = TH1F('hflash_time'+dataset,dataset+';Flash time (#ms);Number of flashes',100,-2000,4000)
+    hflash_time = TH1F('hflash_time'+dataset,dataset+';Flash time (#mus);Number of flashes',100,-2000,4000)
     fillhflash_time = hflash_time.Fill
     hflash_pe = TH1F('hflash_pe'+dataset,dataset+';Flash PE;Number of flashes',100,0,10)
     fillhflash_pe = hflash_pe.Fill
