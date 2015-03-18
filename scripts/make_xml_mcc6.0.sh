@@ -31,7 +31,7 @@
 
 # Parse arguments.
 
-rel=v04_02_00
+rel=v04_03_00
 userdir=uboonepro
 userbase=$userdir
 nevarg=0
@@ -120,7 +120,7 @@ done
 
 # Get qualifier.
 
-qual=e6
+qual=e7
 
 # Delete existing xml files.
 

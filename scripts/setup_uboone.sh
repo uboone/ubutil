@@ -54,7 +54,9 @@ fi
 
 # Set up the basic tools that will be needed
 #
-setup git
+if [ `uname` != Darwin ]; then
+  setup git
+fi
 setup gitflow
 setup mrb
 
