@@ -30,6 +30,8 @@
 #
 # --flash             - Make flash validation plots
 #
+# --pid	              - Make PID plots
+#
 ###############################################################################
 import sys, os
 # Prevent root from printing garbage on initialization.
@@ -390,6 +392,65 @@ def plottracking(infile):
 		        can[i+j+k].Print("tracking.ps)")
 		    else:			
 		        can[i+j+k].Print("tracking.ps(")	
+			
+def plotpid(infile):
+    infiles = infile.split(",")
+    myfile = {}
+    innames = []
+    trackers = []
+    datasets = []
+    can = {}
+    # Open all the input root files.
+    for file in infiles:
+        inname = os.path.splitext(file)[0]
+        if inname not in innames:
+            innames.append(inname)
+        myfile[inname] = TFile(file)
+        list1 = myfile[inname].GetListOfKeys()
+	# Go to directory pid
+	for i in list1:
+            if i.GetClassName() == 'TDirectoryFile':
+                myfile[inname].cd(i.GetName())
+                list2 = gDirectory.GetListOfKeys()
+                # Go to dataset directory 
+		for j in list2:
+			if j.GetClassName() == 'TDirectoryFile':
+                            dataset = '%s'%j.GetName()
+                            if dataset not in datasets:
+                                datasets.append(dataset)
+                            gDirectory.cd(dataset)
+                            list3 = gDirectory.GetListOfKeys()
+			    # Get all the tracker (directory) names
+			    for k in list3:
+				if k.GetClassName() == 'TDirectoryFile':
+				    t = '%s'%k.GetName()
+				if t not in trackers:
+                                    trackers.append(t)    			     
+			        topdir = inname+".root:/pid/"+dataset    
+			        gDirectory.cd(topdir)	
+	   		        gDirectory.cd(t)			   
+			        list4 = gDirectory.GetListOfKeys()
+			        can[inname+dataset+t]=TCanvas("can_"+inname+"_"+dataset+"_"+t,"can_"+inname+dataset+t,1000,800)
+			        can[inname+dataset+t].Divide(1,2)
+			        pida = GetObject('pida_%s_%s'%(dataset,t),list4)
+			        pdgchi2 = GetObject('pdgchi2_%s_%s'%(dataset,t),list4)
+			        can[inname+dataset+t].cd(1)
+			        pida.Draw()
+			        can[inname+dataset+t].cd(2)
+			        pdgchi2.Draw()
+			        
+    
+    count = 0
+    print count
+    for i in innames:
+        for j in datasets:
+            for k in trackers:
+                if i+j+k in can:
+		    count = count+1
+		    if (count == len(trackers)*len(innames)*len(datasets)):
+		        can[i+j+k].Print("pid.ps)")
+		    else:			
+		        can[i+j+k].Print("pid.ps(")				
 
 def plotmomresolution(infile):
     infiles = infile.split(",")
@@ -727,6 +788,7 @@ def main(argv):
     tracking = 0
     momresol = 0
     flash = 0
+    pid = 0
     args = argv[1:]
     while len(args) > 0:
         if args[0] == '-h' or args[0] == '--help':
@@ -749,6 +811,9 @@ def main(argv):
             del args[0]
         elif args[0] == '--flash':
             flash = 1
+            del args[0]
+	elif args[0] == '--pid':
+            pid = 1
             del args[0]
 	elif args[0] == '-b':
             del args[0]
@@ -790,7 +855,13 @@ def main(argv):
             return 1
         else:
             plotmomresolution(infile)	    	    
-
+    if pid:
+        if infile == '':
+            print 'Please specify input file using --input.'
+            return 1
+        else:
+            plotpid(infile)
+	    	  
 if __name__ == '__main__':
     rc = main(sys.argv)
     sys.exit(rc)

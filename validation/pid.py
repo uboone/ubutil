@@ -121,7 +121,7 @@ def main(argv):
     dtrkpidpdg = {}
       	    
     for t in trackers:
-    	pida[t] = TH1F("pida_%s_%s"%(dataset,t),"%s, %s, Plane with most hits; PIDA (MeV/cm^{1.42})"%(dataset,t),100,0,50);
+    	pida[t] = TH1F("pida_%s_%s"%(dataset,t),"%s, %s, using plane with most hits; PIDA (MeV/cm^{1.42})"%(dataset,t),100,0,50);
 	fillpida[t] = pida[t].Fill
     	pdgchi2[t] = TH1F("pdgchi2_%s_%s"%(dataset,t),"%s, %s; PDG from PDGChi2 method"%(dataset,t),100,0,500);
 	fillpdgchi2[t] = pdgchi2[t].Fill
