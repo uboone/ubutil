@@ -147,7 +147,7 @@ def savecanvas1d(datasets,can,leg,hname):
         leg[i].Draw()
         SortOutStats(gPad,0.2,0.25,0.9,0.9)
         can[i].Print(hname+'_%s.gif'%i)
-        #can[i].Print(hname+'_%s.pdf'%i)
+        can[i].Print(hname+'_%s.pdf'%i)
     
 def savecanvas1d3plane(datasets,can,leg,hname):
     for i in datasets:
@@ -156,7 +156,7 @@ def savecanvas1d3plane(datasets,can,leg,hname):
             leg[i].Draw()
             SortOutStats(gPad,0.2,0.25,0.9,0.9)
         can[i].Print(hname+'_%s.gif'%i)
-        #can[i].Print(hname+'_%s.pdf'%i)
+        can[i].Print(hname+'_%s.pdf'%i)
 
 # Print help.
 
@@ -288,6 +288,7 @@ def plotcalorimetry(infile):
                     candedxrr[i+j+k].cd()
                     candedxrr[i+j+k].Update()
                     candedxrr[i+j+k].Print('dedxrr_%s_%s.gif'%(j,k))
+                    candedxrr[i+j+k].Print('dedxrr_%s_%s.pdf'%(j,k))
                     #candedxrr[i+j+k].Print('dedxrr_%s_%s_%s.pdf'%(i,j,k))
 		    candedxrr[i+j+k].Print("calorimetry.ps(")
 
@@ -301,6 +302,7 @@ def plotcalorimetry(infile):
                     SortOutStats(gPad,0.3,0.25,0.9,0.9)
                 #if (count == len(trackers)*len(datasets)):
 		candedx[i+j].Print('dedx_%s_%s.gif'%(i,j))
+		candedx[i+j].Print('dedx_%s_%s.pdf'%(i,j))
                 candedx[i+j].Print("calorimetry.ps")
             #else:			
                 #candedx[i+j].Print("calorimetry.ps(")	
@@ -325,6 +327,7 @@ def plotcalorimetry(infile):
                     #SortOutStats(gPad,0.3,0.25,0.9,0.9)
 		count = count+1
 		cankelen[i+j].Print('kelen_%s_%s.gif'%(i,j))
+		cankelen[i+j].Print('kelen_%s_%s.pdf'%(i,j))
                 if (count == len(trackers)*len(datasets)):
                     cankelen[i+j].Print("calorimetry.ps)")
 		else:			
@@ -402,6 +405,7 @@ def plottracking(infile):
                 if i+j+k in can:
 		    count = count+1
 		    can[i+j+k].Print('eff_%s_%s.gif'%(j,k))
+		    can[i+j+k].Print('eff_%s_%s.pdf'%(j,k))
 		    if (count == len(trackers)*len(innames)*len(datasets)):
 		        can[i+j+k].Print("tracking.ps)")
 		    else:		
@@ -464,6 +468,7 @@ def plotpid(infile):
                 if i+j+k in can:
 		    count = count+1
 		    can[i+j+k].Print('pid_%s_%s.gif'%(j,k))
+		    can[i+j+k].Print('pid_%s_%s.pdf'%(j,k))		    
 		    if (count == len(trackers)*len(innames)*len(datasets)):
 		        can[i+j+k].Print("pid.ps)")
 		    else:			
@@ -545,7 +550,7 @@ def plotmomresolution(infile):
 			            gDirectory.cd(topdir)	
 	   		            gDirectory.cd(t)			   
 			            list4 = gDirectory.GetListOfKeys()
-				    canrecolen[inname+dataset+t] = TCanvas("canrecolen_"+inname+"_"+dataset+"_"+t,"canrecolen"+inname+dataset+t,40,40)
+				    canrecolen[inname+dataset+t] = TCanvas("canrecolen_"+inname+"_"+dataset+"_"+t,"canrecolen"+inname+dataset+t)
 				    legrecolen[inname+dataset+t] = TLegend(0.1,0.7,0.4,0.85)
 				    legrecolen[inname+dataset+t].SetFillStyle(0)
 				    canrecolen[inname+dataset+t].cd()
@@ -576,7 +581,7 @@ def plotmomresolution(infile):
 						gDirectory.cd(subtopdir)
 						gDirectory.cd(m)
 						list5 = gDirectory.GetListOfKeys()
-						canrecomom[inname+dataset+t+momtags[c]] = TCanvas("canrecomom_"+inname+"_"+dataset+"_"+t+"_"+momtags[c],"canrecomom"+inname+dataset+t+momtags[c],40,40)
+						canrecomom[inname+dataset+t+momtags[c]] = TCanvas("canrecomom_"+inname+"_"+dataset+"_"+t+"_"+momtags[c],"canrecomom"+inname+dataset+t+momtags[c])
 						legrecomom[inname+dataset+t+momtags[c]] = TLegend(0.1,0.7,0.4,0.85)
 						legrecomom[inname+dataset+t+momtags[c]].SetFillStyle(0)
 						canrecomom[inname+dataset+t+momtags[c]].cd()
@@ -650,20 +655,27 @@ def plotmomresolution(infile):
     count = 0
     for i in innames:
         for j in datasets:
-	    cantrue[i+j].Print('cantrue_%s.gif'%(j)) 
+	    cantrue[i+j].Print('cantrue_%s.png'%(j)) 
+	    cantrue[i+j].Print('cantrue_%s.pdf'%(j)) 
 	    cantrue[i+j].Print("momresolu.ps(")
             for k in trackers:
-	        canrecolen[i+j+k].Print('canrecolen_%s_%s.gif'%(j,k))
+	        canrecolen[i+j+k].Print('canrecolen_%s_%s.png'%(j,k))
+	        canrecolen[i+j+k].Print('canrecolen_%s_%s.pdf'%(j,k))
 	    	canrecolen[i+j+k].Print("momresolu.ps")
 	    	for l in momtags:
 		       count = count+1
-		       canrecomom[i+j+k+l].Print('canrecomom_%s_%s_%s.gif'%(j,k,l))
+		       canrecomom[i+j+k+l].Print('canrecomom_%s_%s_%s.png'%(j,k,l))
+		       canrecomom[i+j+k+l].Print('canrecomom_%s_%s_%s.pdf'%(j,k,l))
 	    	       canrecomom[i+j+k+l].Print("momresolu.ps")
  	               if i+j+k+l in can1:
-		              can1[i+j+k+l].Print('can1_%s_%s_%s.gif'%(j,k,l))
+		              can1[i+j+k+l].Print('can1_%s_%s_%s.pdf'%(j,k,l))
+			      can1[i+j+k+l].Print('can1_%s_%s_%s.gif'%(j,k,l))
+			      can1[i+j+k+l].Print('can1_%s_%s_%s.png'%(j,k,l))
 		    	      can1[i+j+k+l].Print("momresolu.ps")
 		       if i+j+k+l in can2:
-		              can2[i+j+k+l].Print('can2_%s_%s_%s.gif'%(j,k,l))
+		              can2[i+j+k+l].Print('can2_%s_%s_%s.pdf'%(j,k,l))
+			      can2[i+j+k+l].Print('can2_%s_%s_%s.png'%(j,k,l))
+			      can2[i+j+k+l].Print('can2_%s_%s_%s.gif'%(j,k,l))
 		       	      if (count==len(momtags)):	
 		    		   can2[i+j+k+l].Print("momresolu.ps)")
 		    	      else:			
