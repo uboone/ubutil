@@ -35,6 +35,10 @@
 #			      momresolution/dataset/<trackername>/momentum_algorithm
 #			      (for each tracker and algorithm separate directories are created)
 #
+# --dir <directory name>    - Specify a directory to dump .root file
+#			      (if no directory is specified, the root file will be 
+# 			      stored in the current directory)	
+#
 ###############################################################################
 import sys,os
 # Prevent root from printing garbage on initialization.
@@ -75,6 +79,7 @@ def main(argv):
     outfile = 'momresol.root'
     tracker = ''
     dataset = 'histdir'
+    outdir = ''
     args = argv[1:]
     while len(args) > 0:
         if args[0] == '-h' or args[0] == '--help':
@@ -92,6 +97,9 @@ def main(argv):
         elif args[0] == '--dataset' and len(args) > 1:
             dataset = args[1]
             del args[0:2]
+	elif args[0] == '--dir' and len(args) > 1:
+	    outdir = args[1]
+	    del args[0:2]     
         else:
             print 'Unkonw option %s' % args[0]
             return 1
@@ -177,7 +185,6 @@ def main(argv):
     tag = ["mcsall","mcscont","rangecont","calocont"] 
     tagname = ["MCS, all tracks", "MCS, cont. tracks", "Range, cont. tracks", "Calorimetry, cont. tracks"]
     
-    k = -1
     for t in trackers:
         # Reco length histograms
         recolen_all[t] = TH1F("recolen_all_%s_%s"%(dataset,t),"%s, %s; Reco. length of all tracks (cm)"%(dataset,t),200,0,2000);
@@ -187,6 +194,7 @@ def main(argv):
 	recolen_match[t] = TH1F("recolen_match_%s_%s"%(dataset,t),"%s, %s; Reco. length of matched tracks (cm)"%(dataset,t),200,0,2000);
 	fillrecolen_match[t] = recolen_match[t].Fill		
 	# All tracks (MCS method)
+	k=-1
 	for j in tag:
 		k = k+1
 		recomom[t+j] = TH1F("recomom_%s_%s_%s"%(dataset,t,j),"%s, %s, %s; Reco. momentum of all tracks (GeV)"%(dataset,t,tagname[k]),100,0,2);
@@ -256,7 +264,7 @@ def main(argv):
     tagcont = {"mcscont","rangecont","calocont"}
     
     entries = mychain.GetEntriesFast()    
-    entries = 500
+    #entries = 100
     	
     for jentry in xrange( entries ): 
     	if jentry%1000==0:
@@ -307,7 +315,7 @@ def main(argv):
 		if ( Contained(trkstartx,trkstarty,trkstartz) and Contained(trkendx,trkendy,trkendz) ):
 			trklen_cont = trklen
 			trkmom_calocont = trkmomcalo
-			trkmom_rangecont = trkmomrange/1000
+			trkmom_rangecont = trkmomrange
 			trkmom_mcscont = trkmommcs
 			fillrecolen_cont[t](trklen_cont)
 			fillrecomom[t+"calocont"](trkmom_calocont)
@@ -413,6 +421,14 @@ def main(argv):
   	
 
     tagdesc = ["MCSmethod_alltracks", "MCSmethod_contained", "RangeMethod_contained","Calorimetry_contained"]
+    
+    if outdir == '':
+    	 outdir = os.getcwd()
+    
+    if not os.path.exists(outdir):
+    	os.makedirs(outdir)
+    os.chdir(outdir)
+    
     hfile = gROOT.FindObject(outfile)
     if hfile:
         hfile.Close()
@@ -458,7 +474,11 @@ def main(argv):
 		    resol_700to800MeV[t+j].Write()
 		    resol_800to900MeV[t+j].Write()
 		    resol_900to1000MeV[t+j].Write()
-		    resol_1000to2000MeV[t+j].Write()	    
+		    resol_1000to2000MeV[t+j].Write()	
+		 
+    currdir = os.getcwd()
+    if outdir != currdir:
+    	os.chdir(currdir)		        
             
 
 

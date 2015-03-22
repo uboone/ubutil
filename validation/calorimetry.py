@@ -23,6 +23,10 @@
 # --dataset <dataset name>  - Specify a dataset name, singlemu or BNB etc.
 #                             All histograms will be saved in output:calorimetry/dataset
 #
+# --dir <directory name>    - Specify a directory to dump .root file
+#			      (if no directory is specified, the root file will be 
+# 			      stored in the current directory)	
+#
 ###############################################################################
 import sys,os
 # Prevent root from printing garbage on initialization.
@@ -62,6 +66,7 @@ def main(argv):
     outfile = 'calorimetry.root'
     tracker = ''
     dataset = 'histdir'
+    outdir = ''
     args = argv[1:]
     while len(args) > 0:
         if args[0] == '-h' or args[0] == '--help':
@@ -76,6 +81,9 @@ def main(argv):
         elif args[0] == '--tracker' and len(args) > 1:
             tracker = args[1]
             del args[0:2]
+	elif args[0] == '--dir' and len(args) > 1:
+	    outdir = args[1]
+	    del args[0:2]     
         elif args[0] == '--dataset' and len(args) > 1:
             dataset = args[1]
             del args[0:2]
@@ -104,6 +112,13 @@ def main(argv):
     mychain.SetBranchStatus("NumberDaughters",1)
     mychain.SetBranchStatus("processname",1)
     #mychain.SetBranchStatus("event",1);
+
+    if outdir == '':
+    	 outdir = os.getcwd()
+    
+    if not os.path.exists(outdir):
+    	os.makedirs(outdir)
+    os.chdir(outdir)
 
     hfile = gROOT.FindObject(outfile)
     if hfile:
@@ -168,6 +183,8 @@ def main(argv):
         mychain.SetBranchAddress("trkresrg_"+t,dtrkresrg[t])
 
     entries = mychain.GetEntriesFast()
+    #entries = 100
+
 
     for jentry in xrange( entries ):
 
@@ -271,6 +288,10 @@ def main(argv):
             del fillkelen[t+str(ipl)]
 
     hfile.Write()
+    
+    currdir = os.getcwd()
+    if outdir != currdir:
+    	os.chdir(currdir)
 
 if __name__ == '__main__':
     rc = main(sys.argv)

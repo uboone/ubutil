@@ -28,6 +28,10 @@
 #			      tracking/dataset/<trackername>
 #			      (for each tracker separate directories are created)
 #
+# --dir <directory name>    - Specify a directory to dump .root files
+#			      (if no directory is specified, the root file will be 
+# 			      stored in the current directory)	
+#
 ###############################################################################
 import sys,os
 # Prevent root from printing garbage on initialization.
@@ -68,6 +72,7 @@ def main(argv):
     outfile = 'pid.root'
     tracker = ''
     dataset = 'histdir'
+    outdir = ''
     args = argv[1:]
     while len(args) > 0:
         if args[0] == '-h' or args[0] == '--help':
@@ -82,6 +87,9 @@ def main(argv):
         elif args[0] == '--tracker' and len(args) > 1:
             tracker = args[1]
             del args[0:2]
+	elif args[0] == '--dir' and len(args) > 1:
+	    outdir = args[1]
+	    del args[0:2]     
         elif args[0] == '--dataset' and len(args) > 1:
             dataset = args[1]
             del args[0:2]
@@ -143,7 +151,7 @@ def main(argv):
     minKE = 0.05
     
     entries = mychain.GetEntriesFast()
-    #entries = 1000
+    #entries = 100
     	
     for jentry in xrange( entries ): 
     	if jentry%1000==0:
@@ -200,6 +208,13 @@ def main(argv):
 				      fillpdgchi2[t](trkpidpdg);
 					
   	
+    if outdir == '':
+    	 outdir = os.getcwd()
+
+    if not os.path.exists(outdir):
+    	os.makedirs(outdir)
+    os.chdir(outdir)	 
+	 	
     hfile = gROOT.FindObject(outfile)
     if hfile:
         hfile.Close()
@@ -217,7 +232,11 @@ def main(argv):
 	    direc = dir2.mkdir(str(t))
             direc.cd()		
             pida[t].Write()
-	    pdgchi2[t].Write()    	
+	    pdgchi2[t].Write()   
+	  
+    currdir = os.getcwd()
+    if outdir != currdir:
+    	os.chdir(currdir)	     	
 
 
 if __name__ == '__main__':

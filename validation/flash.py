@@ -20,6 +20,10 @@
 # --dataset <dataset name>  - Specify a dataset name, singlemu or BNB etc.
 #                             All histograms will be saved in output:flash/dataset
 #
+# --dir <directory name>    - Specify a directory to dump .root file
+#			      (if no directory is specified, the root file will be 
+# 			      stored in the current directory)	
+#
 ###############################################################################
 import sys,os
 # Prevent root from printing garbage on initialization.
@@ -54,10 +58,12 @@ def help():
             else:
                 print
 
+
 def main(argv):
     infile = '/pnfs/uboone/scratch/users/tjyang/output/v03_08_01/ana/prod_muminus_0.1-2.0GeV_isotropic_uboone/anahist.root'
     outfile = 'flash.root'
     dataset = 'histdir'
+    outdir = ''
     args = argv[1:]
     while len(args) > 0:
         if args[0] == '-h' or args[0] == '--help':
@@ -69,6 +75,9 @@ def main(argv):
         elif args[0] == '--output' and len(args) > 1:
             outfile = args[1]
             del args[0:2]
+	elif args[0] == '--dir' and len(args) > 1:
+	    outdir = args[1]
+	    del args[0:2]     
         elif args[0] == '--dataset' and len(args) > 1:
             dataset = args[1]
             del args[0:2]
@@ -84,6 +93,14 @@ def main(argv):
     mychain.SetBranchStatus("*",0);
     mychain.SetBranchStatus("no_flashes",1);
     mychain.SetBranchStatus("flash_*",1);
+    
+    if outdir == '':
+    	 outdir = os.getcwd()
+    
+    if not os.path.exists(outdir):
+    	os.makedirs(outdir)
+    os.chdir(outdir)
+    
     hfile = gROOT.FindObject(outfile)
     if hfile:
         hfile.Close()
@@ -120,6 +137,7 @@ def main(argv):
     mychain.SetBranchAddress("flash_zcenter",vflash_zcenter)
 
     entries = mychain.GetEntriesFast()
+    #entries = 100
 
     for jentry in xrange( entries ):
 
@@ -153,6 +171,10 @@ def main(argv):
     del fillhflash_zcenter
 
     hfile.Write()
+    
+    currdir = os.getcwd()
+    if outdir != currdir:
+    	os.chdir(currdir)
 
 if __name__ == '__main__':
     rc = main(sys.argv)

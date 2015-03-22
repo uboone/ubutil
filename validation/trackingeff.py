@@ -27,6 +27,10 @@
 #                             All histograms will be saved in output:
 #			      tracking/dataset/<trackername>
 #			      (for each tracker separate directories are created)
+# 
+# --dir <directory name>    - Specify a directory to dump .root files
+#			      (if no directory is specified, the root file will be 
+# 			      stored in the current directory)
 #
 ###############################################################################
 import sys,os
@@ -99,6 +103,7 @@ def main(argv):
     outfile = 'tracking.root'
     tracker = ''
     dataset = 'histdir'
+    outdir = ''
     args = argv[1:]
     while len(args) > 0:
         if args[0] == '-h' or args[0] == '--help':
@@ -116,6 +121,9 @@ def main(argv):
         elif args[0] == '--dataset' and len(args) > 1:
             dataset = args[1]
             del args[0:2]
+	elif args[0] == '--dir' and len(args) > 1:
+	    outdir = args[1]
+	    del args[0:2]     
         else:
             print 'Unkonw option %s' % args[0]
             return 1
@@ -221,7 +229,7 @@ def main(argv):
 
     minKE = 0.05
     
-    #entries = mychain.GetEntriesFast()
+    entries = mychain.GetEntriesFast()
     #entries = 100
     	
     for jentry in xrange( entries ): 
@@ -306,6 +314,13 @@ def main(argv):
 								fillmcmom_g[t](p)			
 					
   	
+    if outdir == '':
+    	 outdir = os.getcwd()
+    
+    if not os.path.exists(outdir):
+    	os.makedirs(outdir)
+    os.chdir(outdir)
+    
     hfile = gROOT.FindObject(outfile)
     if hfile:
         hfile.Close()
@@ -336,6 +351,10 @@ def main(argv):
     	    mcthetaxz_e[t].Write()
     	    mcthetayz_e[t].Write()
     	    mcmom_e[t].Write()
+	    
+    currdir = os.getcwd()
+    if outdir != currdir:
+    	os.chdir(currdir)	    
 
 
 if __name__ == '__main__':
