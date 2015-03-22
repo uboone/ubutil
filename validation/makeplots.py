@@ -32,6 +32,10 @@
 #
 # --pid	              - Make PID plots
 #
+# --dir 	      - Specify an ouput directory to dump all the
+#			.ps and .gif files
+#
+#
 ###############################################################################
 import sys, os
 # Prevent root from printing garbage on initialization.
@@ -143,7 +147,7 @@ def savecanvas1d(datasets,can,leg,hname):
         leg[i].Draw()
         SortOutStats(gPad,0.2,0.25,0.9,0.9)
         can[i].Print(hname+'_%s.gif'%i)
-        can[i].Print(hname+'_%s.pdf'%i)
+        #can[i].Print(hname+'_%s.pdf'%i)
     
 def savecanvas1d3plane(datasets,can,leg,hname):
     for i in datasets:
@@ -152,7 +156,7 @@ def savecanvas1d3plane(datasets,can,leg,hname):
             leg[i].Draw()
             SortOutStats(gPad,0.2,0.25,0.9,0.9)
         can[i].Print(hname+'_%s.gif'%i)
-        can[i].Print(hname+'_%s.pdf'%i)
+        #can[i].Print(hname+'_%s.pdf'%i)
 
 # Print help.
 
@@ -271,14 +275,19 @@ def plotcalorimetry(infile):
                             plot1d3plane(dataset+t,'dedx',inname,candedx,legdedx,nplotsdedx,list3)
                             plot1d3plane(dataset+t,'kelen',inname,cankelen,legkelen,nplotskelen,list3,'colz')
                         gDirectory.cd("..")
+    
+    if not os.path.exists('calorimetry'):
+    	os.makedirs('calorimetry')
+    os.chdir('calorimetry')
+    
     #Save dE/dx vs Residula Range plots.
     for i in innames:
         for j in datasets:
             for k in trackers:
                 if i+j+k in candedxrr:
-                    #candedxrr[i+j+k].cd()
-                    #candedxrr[i+j+k].Update()
-                    #candedxrr[i+j+k].Print('dedxrr_%s_%s_%s.gif'%(i,j,k))
+                    candedxrr[i+j+k].cd()
+                    candedxrr[i+j+k].Update()
+                    candedxrr[i+j+k].Print('dedxrr_%s_%s.gif'%(j,k))
                     #candedxrr[i+j+k].Print('dedxrr_%s_%s_%s.pdf'%(i,j,k))
 		    candedxrr[i+j+k].Print("calorimetry.ps(")
 
@@ -291,6 +300,7 @@ def plotcalorimetry(infile):
                     legdedx[i+j].Draw()
                     SortOutStats(gPad,0.3,0.25,0.9,0.9)
                 #if (count == len(trackers)*len(datasets)):
+		candedx[i+j].Print('dedx_%s_%s.gif'%(i,j))
                 candedx[i+j].Print("calorimetry.ps")
             #else:			
                 #candedx[i+j].Print("calorimetry.ps(")	
@@ -314,6 +324,7 @@ def plotcalorimetry(infile):
 #                    legkelen.Draw()
                     #SortOutStats(gPad,0.3,0.25,0.9,0.9)
 		count = count+1
+		cankelen[i+j].Print('kelen_%s_%s.gif'%(i,j))
                 if (count == len(trackers)*len(datasets)):
                     cankelen[i+j].Print("calorimetry.ps)")
 		else:			
@@ -381,16 +392,19 @@ def plottracking(infile):
 			        can[inname+dataset+t].cd(6)
 			        mcmom.Draw()	
     
+    if not os.path.exists('tracking'):
+    	os.makedirs('tracking')
+    os.chdir('tracking')
     count = 0
-    print count
     for i in innames:
         for j in datasets:
             for k in trackers:
                 if i+j+k in can:
 		    count = count+1
+		    can[i+j+k].Print('eff_%s_%s.gif'%(j,k))
 		    if (count == len(trackers)*len(innames)*len(datasets)):
 		        can[i+j+k].Print("tracking.ps)")
-		    else:			
+		    else:		
 		        can[i+j+k].Print("tracking.ps(")	
 			
 def plotpid(infile):
@@ -440,17 +454,20 @@ def plotpid(infile):
 			        pdgchi2.Draw()
 			        
     
+    if not os.path.exists('pid'):
+    	os.makedirs('pid')
+    os.chdir('pid')
     count = 0
-    print count
     for i in innames:
         for j in datasets:
             for k in trackers:
                 if i+j+k in can:
 		    count = count+1
+		    can[i+j+k].Print('pid_%s_%s.gif'%(j,k))
 		    if (count == len(trackers)*len(innames)*len(datasets)):
 		        can[i+j+k].Print("pid.ps)")
 		    else:			
-		        can[i+j+k].Print("pid.ps(")				
+			can[i+j+k].Print("pid.ps(")				
 
 def plotmomresolution(infile):
     infiles = infile.split(",")
@@ -627,18 +644,26 @@ def plotmomresolution(infile):
 					
 					    
     
+    if not os.path.exists('momresolution'):
+    	os.makedirs('momresolution')
+    os.chdir('momresolution')
     count = 0
     for i in innames:
         for j in datasets:
+	    cantrue[i+j].Print('cantrue_%s.gif'%(j)) 
 	    cantrue[i+j].Print("momresolu.ps(")
             for k in trackers:
+	        canrecolen[i+j+k].Print('canrecolen_%s_%s.gif'%(j,k))
 	    	canrecolen[i+j+k].Print("momresolu.ps")
 	    	for l in momtags:
 		       count = count+1
+		       canrecomom[i+j+k+l].Print('canrecomom_%s_%s_%s.gif'%(j,k,l))
 	    	       canrecomom[i+j+k+l].Print("momresolu.ps")
  	               if i+j+k+l in can1:
+		              can1[i+j+k+l].Print('can1_%s_%s_%s.gif'%(j,k,l))
 		    	      can1[i+j+k+l].Print("momresolu.ps")
 		       if i+j+k+l in can2:
+		              can2[i+j+k+l].Print('can2_%s_%s_%s.gif'%(j,k,l))
 		       	      if (count==len(momtags)):	
 		    		   can2[i+j+k+l].Print("momresolu.ps)")
 		    	      else:			
@@ -723,7 +748,6 @@ def plothit(infile):
     savecanvas1d3plane(datasets,canhit_ph,leghit_ph,'hit_ph')
     savecanvas1d3plane(datasets,canphperelec,legphperelec,'phperelec')
     savecanvas1d3plane(datasets,canchargeperelec,legchargeperelec,'chargeperelec')
-    os.chdir('../')
 
 def plotflash(infile):
     infiles = infile.split(",")
@@ -781,8 +805,9 @@ def plotflash(infile):
     savecanvas1d(datasets,canflash_zcenter,legflash_zcenter,'flash_zcenter')
 
 def main(argv):
-
     infile=''
+    outdir= ''
+    release=''
     calorimetry = 0
     hit = 0
     tracking = 0
@@ -797,6 +822,12 @@ def main(argv):
         elif args[0] == '--input' and len(args) > 1:
             infile = args[1]
             del args[0:2]
+	elif args[0] == '--dir':
+	    outdir = args[1]   
+	    del args[0:2] 
+	elif args[0] == '--release':
+	    release = args[1] 
+	    del args[0:2]
         elif args[0] == '--calorimetry':
             calorimetry = 1
             del args[0]
@@ -820,7 +851,14 @@ def main(argv):
         else:
             print 'Unknown option %s' % args[0]
             return 1
-
+	   
+    if outdir == '':
+    	 outdir = os.getcwd()
+    
+    if not os.path.exists(outdir):
+    	os.makedirs(outdir)
+    os.chdir(outdir)
+   
     if calorimetry:
         if infile == '':
             print 'Please specify input file using --input.'
@@ -861,6 +899,10 @@ def main(argv):
             return 1
         else:
             plotpid(infile)
+	    
+    currdir = os.getcwd()
+    if outdir != currdir:
+    	os.chdir(currdir) 	    
 	    	  
 if __name__ == '__main__':
     rc = main(sys.argv)
