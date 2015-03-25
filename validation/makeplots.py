@@ -96,20 +96,21 @@ def plot1d(dataset,hname,inname,can,leg,nplots,list):
     if dataset not in can:
         nplots[dataset] = 0
         can[dataset] = TCanvas('can'+hname+dataset,'can'+hname+dataset,800,600)
-        leg[dataset] = TLegend(0.7,0.2,0.9,0.35)
+        leg[dataset] = TLegend(0.67,0.2,0.9,0.35)
         leg[dataset].SetFillStyle(0)
     can[dataset].cd()
     nplots[dataset] += 1
     hist = GetObject(hname+dataset,list)
     if hist:
         if nplots[dataset] == 1:
+            hist.GetXaxis().SetLabelSize(0.04)
             hist.Draw()
         else:
             hist.SetLineColor(nplots[dataset])
             hist.Draw("sames")
-            if hist.GetMaximum()*1.1>gPad.GetUymax():
-                hist1 = gPad.GetListOfPrimitives()[0]
-                hist1.GetYaxis().SetRangeUser(0,hist.GetMaximum()*1.1)
+            hist1 = gPad.GetListOfPrimitives()[0]
+            if hist.GetMaximum()*1.1>hist1.GetMaximum():
+                  hist1.GetYaxis().SetRangeUser(0,hist.GetMaximum()*1.1)
         leg[dataset].AddEntry(hist,inname,'l')
 
 
@@ -119,7 +120,7 @@ def plot1d3plane(dataset,hname,inname,can,leg,nplots,list,drawopt=''):
         nplots[dataset] = 0
         can[dataset] = TCanvas('can'+hname+dataset,'can'+hname+dataset,1000,800)
         can[dataset].Divide(2,2)
-        leg[dataset] = TLegend(0.7,0.2,0.9,0.35)
+        leg[dataset] = TLegend(0.67,0.2,0.9,0.35)
         leg[dataset].SetFillStyle(0)
     can[dataset].cd()
     nplots[dataset] += 1
@@ -130,6 +131,7 @@ def plot1d3plane(dataset,hname,inname,can,leg,nplots,list,drawopt=''):
             if drawopt=='colz':
                 hist.SetStats(0)
             if nplots[dataset] == 1:
+                hist.GetXaxis().SetLabelSize(0.04)
                 hist.Draw(drawopt)
             else:
                 hist.SetLineColor(nplots[dataset])
@@ -145,7 +147,7 @@ def savecanvas1d(datasets,can,leg,hname):
     for i in datasets:
         can[i].cd()
         leg[i].Draw()
-        SortOutStats(gPad,0.2,0.25,0.9,0.9)
+        SortOutStats(gPad,0.23,0.25,0.9,0.9)
         can[i].Print(hname+'_%s.gif'%i)
         can[i].Print(hname+'_%s.pdf'%i)
     
@@ -154,7 +156,7 @@ def savecanvas1d3plane(datasets,can,leg,hname):
         for j in range(3):
             can[i].cd(j+1)
             leg[i].Draw()
-            SortOutStats(gPad,0.2,0.25,0.9,0.9)
+            SortOutStats(gPad,0.23,0.25,0.9,0.9)
         can[i].Print(hname+'_%s.gif'%i)
         can[i].Print(hname+'_%s.pdf'%i)
 
@@ -725,7 +727,7 @@ def plothit(infile):
         list1 = myfile[inname].GetListOfKeys()
         # Go to directory calorimetry
         for i in list1:
-            if i.GetClassName() == 'TDirectoryFile':
+            if i.GetClassName() == 'TDirectoryFile' and i.GetName() == 'hit':
                 myfile[inname].cd(i.GetName())
                 list2 = gDirectory.GetListOfKeys()
                 # Go to dataset directory
@@ -746,7 +748,6 @@ def plothit(infile):
                         plot1d3plane(dataset,'hphperelec',inname,canphperelec,legphperelec,nplotsphperelec,list3)
                         plot1d3plane(dataset,'hchargeperelec',inname,canchargeperelec,legchargeperelec,nplotschargeperelec,list3)
                         gDirectory.cd("..")
-
     # Write all the plots into a separate directory
     if not os.path.exists('hits'):
     	os.makedirs('hits')
