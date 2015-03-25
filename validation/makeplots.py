@@ -101,6 +101,7 @@ def plot1d(dataset,hname,inname,can,leg,nplots,list):
     can[dataset].cd()
     nplots[dataset] += 1
     hist = GetObject(hname+dataset,list)
+    #print dataset,hname,inname,nplots[dataset],hist
     if hist:
         if nplots[dataset] == 1:
             hist.GetXaxis().SetLabelSize(0.04)
@@ -791,7 +792,7 @@ def plotflash(infile):
         list1 = myfile[inname].GetListOfKeys()
         # Go to directory calorimetry
         for i in list1:
-            if i.GetClassName() == 'TDirectoryFile':
+            if i.GetClassName() == 'TDirectoryFile' and i.GetName() == 'flash':
                 myfile[inname].cd(i.GetName())
                 list2 = gDirectory.GetListOfKeys()
                 # Go to dataset directory
@@ -807,7 +808,7 @@ def plotflash(infile):
                         plot1d(dataset,'hflash_pe',inname,canflash_pe,legflash_pe,nplotsflash_pe,list3)
                         plot1d(dataset,'hflash_ycenter',inname,canflash_ycenter,legflash_ycenter,nplotsflash_ycenter,list3)
                         plot1d(dataset,'hflash_zcenter',inname,canflash_zcenter,legflash_zcenter,nplotsflash_zcenter,list3)
-
+                        gDirectory.cd('..')
     if not os.path.exists('flash'):
     	os.makedirs('flash')
     os.chdir('flash')	
