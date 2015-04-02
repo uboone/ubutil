@@ -3,7 +3,7 @@
 <!-- Production Project -->
 
 <!DOCTYPE project [
-<!ENTITY release "v04_02_00">
+<!ENTITY release "v04_03_01">
 <!ENTITY file_type "mc">
 <!ENTITY run_type "physics">
 <!ENTITY name "prod_eminus_0.5-5.0GeV_25degf_uboone">
@@ -24,7 +24,7 @@
   <!-- Larsoft information -->
   <larsoft>
     <tag>&release;</tag>
-    <qual>e6:prof</qual>
+    <qual>e7:prof</qual>
   </larsoft>
 
   <!-- Project stages -->
