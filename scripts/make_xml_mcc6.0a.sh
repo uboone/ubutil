@@ -180,13 +180,13 @@ do
       fi
     fi
 
-    # Reco 2D
+    # Reco 1
 
-    reco2dfcl=standard_reco_uboone_2D.fcl
+    reco1fcl=reco_uboone_stage_1.fcl
 
-    # Reco 3D
+    # Reco 2
 
-    reco3dfcl=standard_reco_uboone_3D.fcl
+    reco2fcl=reco_uboone_stage_2.fcl
 
     # Merge/Analysis
 
@@ -324,11 +324,11 @@ EOF
 <!ENTITY release "$rr">
 <!ENTITY file_type "mc">
 <!ENTITY run_type "physics">
-<!ENTITY name "${newprj}_reco">
+<!ENTITY name "${newprj}">
 <!ENTITY tag "$tag">
 ]>
 
-<project name="&name;">
+<project name="&name;_reco">
 
   <!-- Project size -->
   <numevents>$nev</numevents>
@@ -353,25 +353,25 @@ EOF
 
   <!-- Project stages -->
 
-  <stage name="reco2D">
-    <fcl>$reco2dfcl</fcl>
+  <stage name="reco1">
+    <fcl>$reco1fcl</fcl>
     <inputlist>/uboone/data/users/${userbase}/&tag;/${rs}/detsim/&name;/files.list</inputlist>
-    <outdir>/pnfs/uboone/scratch/${userdir}/&tag;/&release;/reco2D/&name;</outdir>
-    <logdir>/uboone/data/users/${userbase}/&tag;/&release;/reco2D/&name;</logdir>
-    <workdir>/uboone/data/users/${userbase}/work/&tag;/&release;/reco2D/&name;</workdir>
+    <outdir>/pnfs/uboone/scratch/${userdir}/&tag;/&release;/reco1/&name;</outdir>
+    <logdir>/uboone/data/users/${userbase}/&tag;/&release;/reco1/&name;</logdir>
+    <workdir>/uboone/data/users/${userbase}/work/&tag;/&release;/reco1/&name;</workdir>
     <numjobs>$njob2</numjobs>
     <datatier>reconstructed-2d</datatier>
-    <defname>&name;_&tag;_reco2D</defname>
+    <defname>&name;_&tag;_reco1</defname>
   </stage>
 
-  <stage name="reco3D">
-    <fcl>$reco3dfcl</fcl>
-    <outdir>/pnfs/uboone/scratch/${userdir}/&tag;/&release;/reco3D/&name;</outdir>
-    <logdir>/uboone/data/users/${userbase}/&tag;/&release;/reco3D/&name;</logdir>
-    <workdir>/uboone/data/users/${userbase}/work/&tag;/&release;/reco3D/&name;</workdir>
+  <stage name="reco2">
+    <fcl>$reco2fcl</fcl>
+    <outdir>/pnfs/uboone/scratch/${userdir}/&tag;/&release;/reco2/&name;</outdir>
+    <logdir>/uboone/data/users/${userbase}/&tag;/&release;/reco2/&name;</logdir>
+    <workdir>/uboone/data/users/${userbase}/work/&tag;/&release;/reco2/&name;</workdir>
     <numjobs>$njob2</numjobs>
     <datatier>reconstructed-3d</datatier>
-    <defname>&name;_&tag;_reco3D</defname>
+    <defname>&name;_&tag;_reco2</defname>
   </stage>
 
   <stage name="mergeana">
@@ -393,7 +393,5 @@ EOF
 
 </project>
 EOF
-
-  fi
 
 done

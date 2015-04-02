@@ -162,13 +162,13 @@ do
       fi
     fi
 
-    # Reco 2D
+    # Reco 1
 
-    reco2dfcl=standard_reco_uboone_2D.fcl
+    reco1fcl=reco_uboone_stage_1.fcl
 
-    # Reco 3D
+    # Reco 2
 
-    reco3dfcl=standard_reco_uboone_3D.fcl
+    reco2fcl=reco_uboone_stage_2.fcl
 
     # Merge/Analysis
 
@@ -278,9 +278,6 @@ EOF
     <defname>&name;_&tag;_g4</defname>
   </stage>
 
-EOF
-  if [ x$detsimfcl != x ]; then
-    cat <<EOF >> $newxml
   <stage name="detsim">
     <fcl>$detsimfcl</fcl>
     <outdir>/pnfs/uboone/scratch/${userdir}/&tag;/&release;/detsim/&name;</outdir>
@@ -291,55 +288,24 @@ EOF
     <defname>&name;_&tag;_detsim</defname>
   </stage>
 
-EOF
-  fi
-  if [ x$optsimfcl != x ]; then
-    cat <<EOF >> $newxml
-  <stage name="optsim">
-    <fcl>$optsimfcl</fcl>
-    <outdir>/pnfs/uboone/scratch/${userdir}/&tag;/&release;/optsim/&name;</outdir>
-    <logdir>/uboone/data/users/${userbase}/&tag;/&release;/optsim/&name;</logdir>
-    <workdir>/uboone/data/users/${userbase}/work/&tag;/&release;/optsim/&name;</workdir>
-    <numjobs>$njob2</numjobs>
-    <datatier>optical-simulated</datatier>
-    <defname>&name;_&tag;_optsim</defname>
-  </stage>
-
-EOF
-  fi
-  if [ x$tpcsimfcl != x ]; then
-    cat <<EOF >> $newxml
-  <stage name="tpcsim">
-    <fcl>$tpcsimfcl</fcl>
-    <outdir>/pnfs/uboone/scratch/${userdir}/&tag;/&release;/tpcsim/&name;</outdir>
-    <logdir>/uboone/data/users/${userbase}/&tag;/&release;/tpcsim/&name;</logdir>
-    <workdir>/uboone/data/users/${userbase}/work/&tag;/&release;/tpcsim/&name;</workdir>
-    <numjobs>$njob2</numjobs>
-    <datatier>tpc-simulated</datatier>
-    <defname>&name;_&tag;_tpcsim</defname>
-  </stage>
-
-EOF
-  fi
-  cat <<EOF >> $newxml
-  <stage name="reco2D">
-    <fcl>$reco2dfcl</fcl>
-    <outdir>/pnfs/uboone/scratch/${userdir}/&tag;/&release;/reco2D/&name;</outdir>
-    <logdir>/uboone/data/users/${userbase}/&tag;/&release;/reco2D/&name;</logdir>
-    <workdir>/uboone/data/users/${userbase}/work/&tag;/&release;/reco2D/&name;</workdir>
+  <stage name="reco1">
+    <fcl>$reco1fcl</fcl>
+    <outdir>/pnfs/uboone/scratch/${userdir}/&tag;/&release;/reco1/&name;</outdir>
+    <logdir>/uboone/data/users/${userbase}/&tag;/&release;/reco1/&name;</logdir>
+    <workdir>/uboone/data/users/${userbase}/work/&tag;/&release;/reco1/&name;</workdir>
     <numjobs>$njob2</numjobs>
     <datatier>reconstructed-2d</datatier>
-    <defname>&name;_&tag;_reco2D</defname>
+    <defname>&name;_&tag;_reco1</defname>
   </stage>
 
-  <stage name="reco3D">
-    <fcl>$reco3dfcl</fcl>
-    <outdir>/pnfs/uboone/scratch/${userdir}/&tag;/&release;/reco3D/&name;</outdir>
-    <logdir>/uboone/data/users/${userbase}/&tag;/&release;/reco3D/&name;</logdir>
-    <workdir>/uboone/data/users/${userbase}/work/&tag;/&release;/reco3D/&name;</workdir>
+  <stage name="reco2">
+    <fcl>$reco2fcl</fcl>
+    <outdir>/pnfs/uboone/scratch/${userdir}/&tag;/&release;/reco2/&name;</outdir>
+    <logdir>/uboone/data/users/${userbase}/&tag;/&release;/reco2/&name;</logdir>
+    <workdir>/uboone/data/users/${userbase}/work/&tag;/&release;/reco2/&name;</workdir>
     <numjobs>$njob2</numjobs>
     <datatier>reconstructed-3d</datatier>
-    <defname>&name;_&tag;_reco3D</defname>
+    <defname>&name;_&tag;_reco2</defname>
   </stage>
 
   <stage name="mergeana">
@@ -361,7 +327,5 @@ EOF
 
 </project>
 EOF
-
-  fi
 
 done
