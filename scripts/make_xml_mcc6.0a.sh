@@ -1,7 +1,7 @@
 #! /bin/bash
 #----------------------------------------------------------------------
 #
-# Name: make_xml_mcc6.0.sh
+# Name: make_xml_mcc6a.0.sh
 #
 # Purpose: Make xml files for mcc 6.0.  This script loops over all
 #          generator-level fcl files in the source area of the currently 
@@ -9,14 +9,21 @@
 #          $UBOONECODE_DIR/source/fcl/gen), and makes a corresponding xml
 #          project file in the local directory.
 #
+#          This version of this script makes two xml project files for
+#          each generator file.  One project runs simulation (stages gen
+#          through detsim).  The second project runs reconstruction (stages
+#          reco1 through mergeana).  The two projects may have different
+#          larsoft/uboonecode versions.
+#
 # Usage:
 #
-# make_xml_mcc6.0.sh [-h|--help] [-r <release>] [-u|--user <user>] [--local <dir|tar>] [--nev <n>] [--nevjob <n>] [--nevgjob <n>]
+# make_xml_mcc6.0.sh [-h|--help] [-rs <sim-release>] [-rr <reco-release>] [-u|--user <user>] [--local <dir|tar>] [--nev <n>] [--nevjob <n>] [--nevgjob <n>]
 #
 # Options:
 #
 # -h|--help     - Print help.
-# -r <release>  - Use the specified larsoft/uboonecode release.
+# -rs <release> - Use the specified larsoft/uboonecode release for simulation.
+# -rr <release> - Use the specified larsoft/uboonecode release for reconstruction.
 # -t|--tag <tag> - Specify sample tag (default "mcc6.0").
 # -u|--user <user> - Use users/<user> as working and output directories
 #                    (default is to use uboonepro).
@@ -31,7 +38,8 @@
 
 # Parse arguments.
 
-rel=v04_03_03
+rs=v04_03_01
+rr=v04_03_03
 userdir=uboonepro
 userbase=$userdir
 nevarg=0
@@ -46,15 +54,24 @@ while [ $# -gt 0 ]; do
     # User directory.
 
     -h|--help )
-      echo "Usage: make_xml_mcc6.0.sh [-h|--help] [-r <release>] [-t|--tag <tag>] [-u|--user <user>] [--local <dir|tar>] [--nev <n>] [--nevjob <n>] [--nevgjob <n>]"
+      echo "Usage: make_xml_mcc6.0.sh [-h|--help] [-rs <sim-release>] [-rr <reco-release>] [-t|--tag <tag>] [-u|--user <user>] [--local <dir|tar>] [--nev <n>] [--nevjob <n>] [--nevgjob <n>]"
       exit
     ;;
 
-    # Release.
+    # Simulation release.
 
-    -r )
+    -rs )
     if [ $# -gt 1 ]; then
-      rel=$2
+      rs=$2
+      shift
+    fi
+    ;;
+
+    # Reconstruction release.
+
+    -rr )
+    if [ $# -gt 1 ]; then
+      rr=$2
       shift
     fi
     ;;
@@ -132,7 +149,8 @@ find $UBOONECODE_DIR/source/fcl/gen -name \*.fcl | while read fcl
 do
   if ! echo $fcl | grep -q common; then
     newprj=`basename $fcl .fcl`
-    newxml=${newprj}.xml
+    simxml=${newprj}.xml
+    recoxml=${newprj}_reco.xml
     filt=1
 
     # Make xml file.
@@ -219,13 +237,13 @@ do
       njob1=$njob2
     fi
 
-  cat <<EOF > $newxml
+  cat <<EOF > $simxml
 <?xml version="1.0"?>
 
 <!-- Production Project -->
 
 <!DOCTYPE project [
-<!ENTITY release "$rel">
+<!ENTITY release "$rs">
 <!ENTITY file_type "mc">
 <!ENTITY run_type "physics">
 <!ENTITY name "$newprj">
@@ -250,9 +268,9 @@ do
 EOF
   if [ x$local != x ]; then
     echo "local=$local"
-    echo "    <local>${local}</local>" >> $newxml
+    echo "    <local>${local}</local>" >> $simxml
   fi
-  cat <<EOF >> $newxml
+  cat <<EOF >> $simxml
   </larsoft>
 
   <!-- Project stages -->
@@ -288,8 +306,56 @@ EOF
     <defname>&name;_&tag;_detsim</defname>
   </stage>
 
+  <!-- file type -->
+  <filetype>&file_type;</filetype>
+
+  <!-- run type -->
+  <runtype>&run_type;</runtype>
+
+</project>
+EOF
+
+  cat <<EOF > $recoxml
+<?xml version="1.0"?>
+
+<!-- Production Project -->
+
+<!DOCTYPE project [
+<!ENTITY release "$rr">
+<!ENTITY file_type "mc">
+<!ENTITY run_type "physics">
+<!ENTITY name "${newprj}">
+<!ENTITY tag "$tag">
+]>
+
+<project name="&name;_reco">
+
+  <!-- Project size -->
+  <numevents>$nev</numevents>
+
+  <!-- Operating System -->
+  <os>SL6</os>
+
+  <!-- Batch resources -->
+  <resource>DEDICATED,OPPORTUNISTIC</resource>
+
+  <!-- Larsoft information -->
+  <larsoft>
+    <tag>&release;</tag>
+    <qual>${qual}:prof</qual>
+EOF
+  if [ x$local != x ]; then
+    echo "local=$local"
+    echo "    <local>${local}</local>" >> $recoxml
+  fi
+  cat <<EOF >> $recoxml
+  </larsoft>
+
+  <!-- Project stages -->
+
   <stage name="reco1">
     <fcl>$reco1fcl</fcl>
+    <inputlist>/uboone/data/users/${userbase}/&tag;/${rs}/detsim/&name;/files.list</inputlist>
     <outdir>/pnfs/uboone/scratch/${userdir}/&tag;/&release;/reco1/&name;</outdir>
     <logdir>/uboone/data/users/${userbase}/&tag;/&release;/reco1/&name;</logdir>
     <workdir>/uboone/data/users/${userbase}/work/&tag;/&release;/reco1/&name;</workdir>
