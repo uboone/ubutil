@@ -17,7 +17,7 @@
 #
 # Usage:
 #
-# make_xml_mcc6.0.sh [-h|--help] [-rs <sim-release>] [-rr <reco-release>] [-u|--user <user>] [--local <dir|tar>] [--nev <n>] [--nevjob <n>] [--nevgjob <n>]
+# make_xml_mcc6.0a.sh [-h|--help] [-rs <sim-release>] [-rr <reco-release>] [-t|--tag <tag>] [-u|--user <user>] [-ls <dir|tar>] [-lr <dir|tar>] [--nev <n>] [--nevjob <n>] [--nevgjob <n>]
 #
 # Options:
 #
@@ -27,8 +27,8 @@
 # -t|--tag <tag> - Specify sample tag (default "mcc6.0").
 # -u|--user <user> - Use users/<user> as working and output directories
 #                    (default is to use uboonepro).
-# --local <dir|tar> - Specify larsoft local directory or tarball (xml 
-#                     <local>...</local>).
+# -ls <dir|tar> - Specify larsoft local directory or tarball for simulation.
+# -lr <dir|tar> - Specify larsoft local directory or tarball for reconstruction.
 # --nev <n>     - Specify number of events for all samples.  Otherwise
 #                 use hardwired defaults.
 # --nevjob <n>  - Specify the default number of events per job.
@@ -45,7 +45,8 @@ userbase=$userdir
 nevarg=0
 nevjob=100
 nevgjobarg=0
-local=''
+ls=''
+lr=''
 tag=mcc6.0
 
 while [ $# -gt 0 ]; do
@@ -54,7 +55,7 @@ while [ $# -gt 0 ]; do
     # User directory.
 
     -h|--help )
-      echo "Usage: make_xml_mcc6.0.sh [-h|--help] [-rs <sim-release>] [-rr <reco-release>] [-t|--tag <tag>] [-u|--user <user>] [--local <dir|tar>] [--nev <n>] [--nevjob <n>] [--nevgjob <n>]"
+      echo "Usage: make_xml_mcc6.0a.sh [-h|--help] [-rs <sim-release>] [-rr <reco-release>] [-t|--tag <tag>] [-u|--user <user>] [-ls <dir|tar>] [-lr <dir|tar>] [--nev <n>] [--nevjob <n>] [--nevgjob <n>]"
       exit
     ;;
 
@@ -86,11 +87,20 @@ while [ $# -gt 0 ]; do
     fi
     ;;
 
-    # Local release.
+    # Local simulation release.
 
-    --local )
+    -ls )
     if [ $# -gt 1 ]; then
-      local=$2
+      ls=$2
+      shift
+    fi
+    ;;
+
+    # Local reconstruction release.
+
+    -lr )
+    if [ $# -gt 1 ]; then
+      lr=$2
       shift
     fi
     ;;
@@ -236,6 +246,7 @@ do
     if [ $njob1 -lt $njob2 ]; then
       njob1=$njob2
     fi
+  fi
 
   cat <<EOF > $simxml
 <?xml version="1.0"?>
@@ -266,9 +277,9 @@ do
     <tag>&release;</tag>
     <qual>${qual}:prof</qual>
 EOF
-  if [ x$local != x ]; then
-    echo "local=$local"
-    echo "    <local>${local}</local>" >> $simxml
+  if [ x$ls != x ]; then
+    echo "ls=$ls"
+    echo "    <local>${ls}</local>" >> $simxml
   fi
   cat <<EOF >> $simxml
   </larsoft>
@@ -344,9 +355,9 @@ EOF
     <tag>&release;</tag>
     <qual>${qual}:prof</qual>
 EOF
-  if [ x$local != x ]; then
-    echo "local=$local"
-    echo "    <local>${local}</local>" >> $recoxml
+  if [ x$lr != x ]; then
+    echo "lr=$lr"
+    echo "    <local>${lr}</local>" >> $recoxml
   fi
   cat <<EOF >> $recoxml
   </larsoft>
