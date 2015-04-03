@@ -58,13 +58,14 @@ def get_dropbox(filename):
 # Return fcl configuration for experiment-specific sam metadata.
 
 def get_sam_metadata(project, stage):
-    result = 'services.user.FileCatalogMetadataMicroBooNE: {\n'
+    result = 'services.FileCatalogMetadataMicroBooNE: {\n'
     result = result + '  FCLName: "%s"\n' % os.path.basename(stage.fclname)
     result = result + '  FCLVersion: "%s"\n' % project.release_tag
     result = result + '  ProjectName: "%s"\n' % project.name
     result = result + '  ProjectStage: "%s"\n' % stage.name
     result = result + '  ProjectVersion: "%s"\n' % project.release_tag
     result = result + '}\n'
+    result = result + 'services.TFileMetadataMicroBooNE: @local::microboone_tfile_metadata\n'
     return result
 
 # Function to return path to the setup_uboone.sh script
