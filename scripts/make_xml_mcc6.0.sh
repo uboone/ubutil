@@ -218,6 +218,7 @@ do
     if [ $njob1 -lt $njob2 ]; then
       njob1=$njob2
     fi
+  fi
 
   cat <<EOF > $newxml
 <?xml version="1.0"?>
