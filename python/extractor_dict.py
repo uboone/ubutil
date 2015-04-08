@@ -4,16 +4,11 @@ import os
 import subprocess
 from subprocess import Popen, PIPE
 import time
-import samweb_cli
-#from samweb_client.utility import fileEnstoreChecksum
 import ast
 import project_utilities, root_metadata
 import json
 
-def getmetadata(inputfile):
-        # Set up the experiment name for samweb Python API
-	samweb = samweb_cli.SAMWebClient(experiment=project_utilities.get_experiment())
-
+def getmetadata(inputfile, md0={}):
 	# Extract metadata into a pipe.
 	local = project_utilities.path_to_local(inputfile)
 	if local != '':
@@ -111,8 +106,14 @@ def getmetadata(inputfile):
 
 	# Get the other meta data field parameters						
 	md['file_name'] =  inputfile.split("/")[-1]
-	md['file_size'] =  os.path.getsize(inputfile)
-	md['crc'] = root_metadata.fileEnstoreChecksum(inputfile)
+	if md0.has_key('file_size'):
+		md['file_size'] = md0['file_size']
+	else:
+		md['file_size'] =  os.path.getsize(inputfile)
+	if md0.has_key('crc'):
+		md['crc'] = md0['crc']
+	else:
+		md['crc'] = root_metadata.fileEnstoreChecksum(inputfile)
 	return md
 
 if __name__ == "__main__":
