@@ -95,10 +95,15 @@ def get_setup_script_path():
 
 # Construct dimension string for project, stage.
 
-def dimensions(project, stage):
+def dimensions(project, stage, ana=False):
 
+    data_tier = ''
+    if ana:
+        data_tier = 'root-tuple'
+    else:
+        data_tier = stage.data_tier
     dim = 'file_type %s' % project.file_type
-    dim = dim + ' and data_tier %s' % stage.data_tier
+    dim = dim + ' and data_tier %s' % data_tier
     dim = dim + ' and ub_project.name %s' % project.name
     dim = dim + ' and ub_project.stage %s' % stage.name
     dim = dim + ' and ub_project.version %s' % project.release_tag
