@@ -58,13 +58,23 @@ def get_dropbox(filename):
 # Return fcl configuration for experiment-specific sam metadata.
 
 def get_sam_metadata(project, stage):
-    result = 'services.user.FileCatalogMetadataMicroBooNE: {\n'
+    result = 'services.FileCatalogMetadataMicroBooNE: {\n'
     result = result + '  FCLName: "%s"\n' % os.path.basename(stage.fclname)
     result = result + '  FCLVersion: "%s"\n' % project.release_tag
     result = result + '  ProjectName: "%s"\n' % project.name
     result = result + '  ProjectStage: "%s"\n' % stage.name
     result = result + '  ProjectVersion: "%s"\n' % project.release_tag
     result = result + '}\n'
+    if project.release_tag > 'v04_03_03':
+        result = result + 'services.TFileMetadataMicroBooNE: @local::microboone_tfile_metadata\n'
+    else:
+        result = result + 'services.TFileMetadataMicroBooNE: {\n'
+        result = result + '  JSONFileName:          "ana_hist.root.json"\n'
+        result = result + '  GenerateTFileMetadata: true\n'
+        result = result + '  dataTier:              "root-tuple"\n'
+        result = result + '  fileFormat:            "root"\n'
+        result = result + '}\n'
+
     return result
 
 # Function to return path to the setup_uboone.sh script
@@ -85,10 +95,15 @@ def get_setup_script_path():
 
 # Construct dimension string for project, stage.
 
-def dimensions(project, stage):
+def dimensions(project, stage, ana=False):
 
+    data_tier = ''
+    if ana:
+        data_tier = 'root-tuple'
+    else:
+        data_tier = stage.data_tier
     dim = 'file_type %s' % project.file_type
-    dim = dim + ' and data_tier %s' % stage.data_tier
+    dim = dim + ' and data_tier %s' % data_tier
     dim = dim + ' and ub_project.name %s' % project.name
     dim = dim + ' and ub_project.stage %s' % stage.name
     dim = dim + ' and ub_project.version %s' % project.release_tag

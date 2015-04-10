@@ -33,18 +33,18 @@ cpid=$3
 cat <<EOF
 #include "${jobfcl}"
 
-services.user.IFDH:
+services.IFDH:
 {
   IFDH_BASE_URI: "http://samweb.fnal.gov:8480/sam/uboone/api"
 }
 
-services.user.CatalogInterface:
+services.CatalogInterface:
 {
   service_provider: "IFCatalogInterface"
   webURI: "${prjurl}"
 }
 
-services.user.FileTransfer:
+services.FileTransfer:
 {
   service_provider: "IFFileTransfer"
 }
