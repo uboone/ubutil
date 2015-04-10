@@ -254,7 +254,7 @@ do
 
 <!DOCTYPE project [
 <!ENTITY relsim "$rs">
-<!ENTITY relreco "$rs">
+<!ENTITY relreco "$rr">
 <!ENTITY file_type "mc">
 <!ENTITY run_type "physics">
 <!ENTITY name "$newprj">

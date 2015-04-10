@@ -4,7 +4,7 @@
 
 <!DOCTYPE project [
 <!ENTITY relsim "v04_03_01">
-<!ENTITY relreco "v04_03_01">
+<!ENTITY relreco "v04_04_00">
 <!ENTITY file_type "mc">
 <!ENTITY run_type "physics">
 <!ENTITY name "prod_kminus_0.1-2.0GeV_isotropic_uboone">
