@@ -119,7 +119,9 @@
     <numjobs>200</numjobs>
     <targetsize>8000000000</targetsize>
     <datatier>reconstructed-3d</datatier>
+    <anadatatier>root-tupe</anadatatier>
     <defname>&name;_&tag;</defname>
+    <anadefname>&name;_&tag;_ana</anadefname>
   </stage>
 
   <!-- file type -->

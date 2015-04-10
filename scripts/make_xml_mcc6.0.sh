@@ -381,9 +381,9 @@ EOF
     <numjobs>$njob2</numjobs>
     <targetsize>8000000000</targetsize>
     <datatier>reconstructed-3d</datatier>
-    <anadatatier>root-tupe</datatier>
+    <anadatatier>root-tupe</anadatatier>
     <defname>&name;_&tag;</defname>
-    <abadefname>&name;_&tag;_ana</defname>
+    <anadefname>&name;_&tag;_ana</anadefname>
   </stage>
 
   <!-- file type -->
