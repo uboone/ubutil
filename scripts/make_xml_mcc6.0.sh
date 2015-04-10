@@ -1,7 +1,7 @@
 #! /bin/bash
 #----------------------------------------------------------------------
 #
-# Name: make_xml_mcc6a.0.sh
+# Name: make_xml_mcc6.0.sh
 #
 # Purpose: Make xml files for mcc 6.0.  This script loops over all
 #          generator-level fcl files in the source area of the currently 
@@ -39,7 +39,7 @@
 # Parse arguments.
 
 rs=v04_03_01
-rr=v04_03_03
+rr=v04_04_00
 userdir=uboonepro
 userbase=$userdir
 nevarg=0
