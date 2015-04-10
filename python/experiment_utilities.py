@@ -99,7 +99,7 @@ def dimensions(project, stage, ana=False):
 
     data_tier = ''
     if ana:
-        data_tier = 'root-tuple'
+        data_tier = stage.ana_data_tier
     else:
         data_tier = stage.data_tier
     dim = 'file_type %s' % project.file_type
