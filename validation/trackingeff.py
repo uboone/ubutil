@@ -217,6 +217,9 @@ def main(argv):
         mychain.SetBranchStatus("trkstartdcosx_"+t,1)
         mychain.SetBranchStatus("trkstartdcosy_"+t,1)
         mychain.SetBranchStatus("trkstartdcosz_"+t,1)
+        mychain.SetBranchStatus("trkenddcosx_"+t,1)
+        mychain.SetBranchStatus("trkenddcosy_"+t,1)
+        mychain.SetBranchStatus("trkenddcosz_"+t,1)
         mychain.SetBranchStatus("trkendx_"+t,1)
         mychain.SetBranchStatus("trkendy_"+t,1)
         mychain.SetBranchStatus("trkendz_"+t,1)
@@ -246,7 +249,7 @@ def main(argv):
         if nb <= 0:
             continue
 	    
-	for i in xrange( mychain.geant_list_size_in_tpcAV ):
+	for i in xrange( mychain.geant_list_size ):
 		apdg = abs(mychain.pdg[i])
 		if (mychain.inTPCActive[i] == 1):
 			if ( (apdg == 13  and mychain.Eng[i]>=0.001*mychain.Mass[i]+minKE) or (apdg == 211 and mychain.Eng[i]>=0.001*mychain.Mass[i]+minKE) or (apdg == 321 and
@@ -273,8 +276,11 @@ def main(argv):
 		trkstartdcosx = mychain.GetLeaf("trkstartdcosx_"+t).GetValue(i)
 		trkstartdcosy = mychain.GetLeaf("trkstartdcosy_"+t).GetValue(i)
 		trkstartdcosz = mychain.GetLeaf("trkstartdcosz_"+t).GetValue(i)
+		trkenddcosx = mychain.GetLeaf("trkenddcosx_"+t).GetValue(i)
+		trkenddcosy = mychain.GetLeaf("trkenddcosy_"+t).GetValue(i)
+		trkenddcosz = mychain.GetLeaf("trkenddcosz_"+t).GetValue(i)
 		trklen = mychain.GetLeaf("trklen_"+t).GetValue(i)
-		for j in xrange(mychain.geant_list_size_in_tpcAV):
+		for j in xrange(mychain.geant_list_size):
 			apdg = abs(mychain.pdg[j])
 			mcstartx = mychain.StartPointx_tpcAV[j]
 			mcstarty = mychain.StartPointy_tpcAV[j]
@@ -289,29 +295,36 @@ def main(argv):
 			pz = mychain.Pz[j]	
 			p = mychain.P[j]
 			if (mychain.inTPCActive[j] == 1):
-			 	if ( (apdg == 13  and mychain.Eng[j]>=0.001*mychain.Mass[j]+minKE) or (apdg == 211 and mychain.Eng[j]>=0.001*mychain.Mass[j]+minKE) or (apdg == 321 and
-	    	        	mychain.Eng[j]>=0.001*mychain.Mass[j]+minKE) or (apdg == 2212 and mychain.Eng[j]>=0.001*mychain.Mass[j]+minKE) ):
-					num = ((trkstartdcosx*px)+(trkstartdcosy*py)+(trkstartdcosz*pz))
-					angle=num/p
-					if (angle>1): 
-						angle=1	
-					if (angle<-1):
-						angle=-1					
-				        ang = math.degrees(math.acos(angle))
-					if ( (abs(ang)<=10) or (abs(180-(ang))<=10)):
-						# do start point matching
-						pmatch1 = math.sqrt(pow(mcstartx-trkstartx,2)+pow(mcstarty-trkstarty,2)+pow(mcstartz-trkstartz,2))
-						pmatch2 = math.sqrt(pow(mcstartx-trkendx,2)+pow(mcstarty-trkendy,2)+pow(mcstartz-trkendz,2))
-						minstart = min(pmatch1, pmatch2)
-						if (minstart<=5):
-							if (trklen >= 0.5*mychain.pathlen[j]):
-								fillmclen_g[t](mychain.pathlen[j])
-								fillmcpdg_g[t](mychain.pdg[j])
-								fillmctheta_g[t](mychain.theta[j]*180/3.142)
-								fillmcphi_g[t](mychain.phi[j]*180/3.142)
-								fillmcthetaxz_g[t](mychain.theta_xz[j]*180/3.142)
-								fillmcthetayz_g[t](mychain.theta_yz[j]*180/3.142)
-								fillmcmom_g[t](p)			
+                            if ( (apdg == 13  and mychain.Eng[j]>=0.001*mychain.Mass[j]+minKE) or (apdg == 211 and mychain.Eng[j]>=0.001*mychain.Mass[j]+minKE) or (apdg == 321 and mychain.Eng[j]>=0.001*mychain.Mass[j]+minKE) or (apdg == 2212 and mychain.Eng[j]>=0.001*mychain.Mass[j]+minKE) ):
+                                num = ((trkstartdcosx*px)+(trkstartdcosy*py)+(trkstartdcosz*pz))
+                                angle=num/p
+                                if (angle>1): 
+                                    angle=1	
+                                if (angle<-1):
+                                    angle=-1					
+                                ang = math.degrees(math.acos(angle))
+                                onum = ((trkenddcosx*px)+(trkenddcosy*py)+(trkenddcosz*pz))
+                                oangle=onum/p
+                                if (oangle>1): 
+                                    oangle=1	
+                                if (oangle<-1):
+                                    oangle=-1					
+                                oang = math.degrees(math.acos(oangle))
+
+                                if ( (abs(ang)<=10) or (abs(180-(ang))<=10) or (abs(ang)<=10) or (abs(180-oang)<=10)):
+                                    # do start point matching
+                                    pmatch1 = math.sqrt(pow(mcstartx-trkstartx,2)+pow(mcstarty-trkstarty,2)+pow(mcstartz-trkstartz,2))
+                                    pmatch2 = math.sqrt(pow(mcstartx-trkendx,2)+pow(mcstarty-trkendy,2)+pow(mcstartz-trkendz,2))
+                                    minstart = min(pmatch1, pmatch2)
+                                    if (minstart<=5):
+                                        if (trklen >= 0.5*mychain.pathlen[j]):
+                                            fillmclen_g[t](mychain.pathlen[j])
+                                            fillmcpdg_g[t](mychain.pdg[j])
+                                            fillmctheta_g[t](mychain.theta[j]*180/3.142)
+                                            fillmcphi_g[t](mychain.phi[j]*180/3.142)
+                                            fillmcthetaxz_g[t](mychain.theta_xz[j]*180/3.142)
+                                            fillmcthetayz_g[t](mychain.theta_yz[j]*180/3.142)
+                                            fillmcmom_g[t](p)			
 					
   	
     if outdir == '':
