@@ -4,7 +4,7 @@
 
 <!DOCTYPE project [
 <!ENTITY relsim "v04_03_01">
-<!ENTITY relreco "v04_06_00">
+<!ENTITY relreco "v04_06_01">
 <!ENTITY file_type "mc">
 <!ENTITY run_type "physics">
 <!ENTITY name "prodgenie_numi_nu_uboone">
