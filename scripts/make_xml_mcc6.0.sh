@@ -234,8 +234,6 @@ do
       else
         nevjob=100
       fi
-    else
-      nevjob=100
     fi
 
     if [ $nevgjob -eq 0 ]; then
