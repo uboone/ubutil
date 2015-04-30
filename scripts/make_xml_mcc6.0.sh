@@ -17,18 +17,20 @@
 #
 # Usage:
 #
-# make_xml_mcc6.0a.sh [-h|--help] [-rs <sim-release>] [-rr <reco-release>] [-t|--tag <tag>] [-u|--user <user>] [-ls <dir|tar>] [-lr <dir|tar>] [--nev <n>] [--nevjob <n>] [--nevgjob <n>]
+# make_xml_mcc6.0.sh [-h|--help] [-rs <sim-release>] [-rr <reco-release>] [-t|--tag <tag>] [-u|--user <user>] [-ls <dir|tar>] [-lr1 <dir|tar>] [-lr2 <dir|tar>] [--nev <n>] [--nevjob <n>] [--nevgjob <n>]
 #
 # Options:
 #
 # -h|--help     - Print help.
 # -rs <release> - Use the specified larsoft/uboonecode release for simulation.
-# -rr <release> - Use the specified larsoft/uboonecode release for reconstruction.
+# -rr1 <release> - Use the specified larsoft/uboonecode release for stage 1 reconstruction.
+# -rr2 <release> - Use the specified larsoft/uboonecode release for stage 2 reconstruction.
 # -t|--tag <tag> - Specify sample tag (default "mcc6.0").
 # -u|--user <user> - Use users/<user> as working and output directories
 #                    (default is to use uboonepro).
 # -ls <dir|tar> - Specify larsoft local directory or tarball for simulation.
-# -lr <dir|tar> - Specify larsoft local directory or tarball for reconstruction.
+# -lr1 <dir|tar> - Specify larsoft local directory or tarball for stage 1 reconstruction.
+# -lr2 <dir|tar> - Specify larsoft local directory or tarball for stage 2 reconstruction.
 # --nev <n>     - Specify number of events for all samples.  Otherwise
 #                 use hardwired defaults.
 # --nevjob <n>  - Specify the default number of events per job.
@@ -39,14 +41,16 @@
 # Parse arguments.
 
 rs=v04_03_01
-rr=v04_06_01
+rr1=v04_06_01
+rr2=v04_06_02
 userdir=uboonepro
 userbase=$userdir
 nevarg=0
-nevjob=100
+nevjobarg=0
 nevgjobarg=0
 ls=''
-lr=''
+lr1=''
+lr2=''
 tag=mcc6.0
 
 while [ $# -gt 0 ]; do
@@ -55,7 +59,7 @@ while [ $# -gt 0 ]; do
     # User directory.
 
     -h|--help )
-      echo "Usage: make_xml_mcc6.0a.sh [-h|--help] [-rs <sim-release>] [-rr <reco-release>] [-t|--tag <tag>] [-u|--user <user>] [-ls <dir|tar>] [-lr <dir|tar>] [--nev <n>] [--nevjob <n>] [--nevgjob <n>]"
+      echo "Usage: make_xml_mcc6.0.sh [-h|--help] [-rs <sim-release>] [-rr1 <reco1-release>] [-rr2 <reco2-release>] [-t|--tag <tag>] [-u|--user <user>] [-ls <dir|tar>] [-lr1 <dir|tar>] [-lr2 <dir|tar>] [--nev <n>] [--nevjob <n>] [--nevgjob <n>]"
       exit
     ;;
 
@@ -68,11 +72,20 @@ while [ $# -gt 0 ]; do
     fi
     ;;
 
-    # Reconstruction release.
+    # Reconstruction stage 1 release.
 
-    -rr )
+    -rr1 )
     if [ $# -gt 1 ]; then
-      rr=$2
+      rr1=$2
+      shift
+    fi
+    ;;
+
+    # Reconstruction stage 2 release.
+
+    -rr2 )
+    if [ $# -gt 1 ]; then
+      rr2=$2
       shift
     fi
     ;;
@@ -96,11 +109,20 @@ while [ $# -gt 0 ]; do
     fi
     ;;
 
-    # Local reconstruction release.
+    # Local stage 1 reconstruction release.
 
-    -lr )
+    -lr1 )
     if [ $# -gt 1 ]; then
-      lr=$2
+      lr1=$2
+      shift
+    fi
+    ;;
+
+    # Local stage 2 reconstruction release.
+
+    -lr2 )
+    if [ $# -gt 1 ]; then
+      lr2=$2
       shift
     fi
     ;;
@@ -118,7 +140,7 @@ while [ $# -gt 0 ]; do
 
     --nevjob )
     if [ $# -gt 1 ]; then
-      nevjob=$2
+      nevjobarg=$2
       shift
     fi
     ;;
@@ -203,11 +225,23 @@ do
 
     # Set number of gen/g4 events per job.
 
+    nevjob=$nevjobarg
     nevgjob=$nevgjobarg
+
+    if [ $nevjob -eq 0 ]; then
+      if echo $newprj | grep -q 'dirt.*cosmic'; then
+        nevjob=20
+      else
+        nevjob=100
+      fi
+    else
+      nevjob=100
+    fi
+
     if [ $nevgjob -eq 0 ]; then
       if echo $newprj | grep -q dirt; then
         if echo $newprj | grep -q cosmic; then
-          nevgjob=500
+          nevgjob=200
         else
           nevgjob=2000
         fi
@@ -254,7 +288,8 @@ do
 
 <!DOCTYPE project [
 <!ENTITY relsim "$rs">
-<!ENTITY relreco "$rr">
+<!ENTITY relreco1 "$rr1">
+<!ENTITY relreco2 "$rr2">
 <!ENTITY file_type "mc">
 <!ENTITY run_type "physics">
 <!ENTITY name "$newprj">
@@ -327,7 +362,7 @@ EOF
 
 </project>
 
-<project name="&name;_reco">
+<project name="&name;_reco1">
 
   <!-- Project size -->
   <numevents>$nev</numevents>
@@ -340,12 +375,12 @@ EOF
 
   <!-- Larsoft information -->
   <larsoft>
-    <tag>&relreco;</tag>
+    <tag>&relreco1;</tag>
     <qual>${qual}:prof</qual>
 EOF
-  if [ x$lr != x ]; then
-    echo "lr=$lr"
-    echo "    <local>${lr}</local>" >> $xml
+  if [ x$lr1 != x ]; then
+    echo "lr1=$lr1"
+    echo "    <local>${lr1}</local>" >> $xml
   fi
   cat <<EOF >> $xml
   </larsoft>
@@ -355,19 +390,54 @@ EOF
   <stage name="reco1">
     <fcl>$reco1fcl</fcl>
     <inputlist>/uboone/data/users/${userbase}/&tag;/&relsim;/detsim/&name;/files.list</inputlist>
-    <outdir>/pnfs/uboone/scratch/${userdir}/&tag;/&relreco;/reco1/&name;</outdir>
-    <logdir>/uboone/data/users/${userbase}/&tag;/&relreco;/reco1/&name;</logdir>
-    <workdir>/uboone/data/users/${userbase}/work/&tag;/&relreco;/reco1/&name;</workdir>
+    <outdir>/pnfs/uboone/scratch/${userdir}/&tag;/&relreco1;/reco1/&name;</outdir>
+    <logdir>/uboone/data/users/${userbase}/&tag;/&relreco1;/reco1/&name;</logdir>
+    <workdir>/uboone/data/users/${userbase}/work/&tag;/&relreco1;/reco1/&name;</workdir>
     <numjobs>$njob2</numjobs>
     <datatier>reconstructed-2d</datatier>
     <defname>&name;_&tag;_reco1</defname>
   </stage>
 
+  <!-- file type -->
+  <filetype>&file_type;</filetype>
+
+  <!-- run type -->
+  <runtype>&run_type;</runtype>
+
+</project>
+
+<project name="&name;_reco2">
+
+  <!-- Project size -->
+  <numevents>$nev</numevents>
+
+  <!-- Operating System -->
+  <os>SL6</os>
+
+  <!-- Batch resources -->
+  <resource>DEDICATED,OPPORTUNISTIC</resource>
+
+  <!-- Larsoft information -->
+  <larsoft>
+    <tag>&relreco2;</tag>
+    <qual>${qual}:prof</qual>
+EOF
+  if [ x$lr2 != x ]; then
+    echo "lr2=$lr2"
+    echo "    <local>${lr2}</local>" >> $xml
+  fi
+  cat <<EOF >> $xml
+  </larsoft>
+
+  <!-- Project stages -->
+
+
   <stage name="reco2">
     <fcl>$reco2fcl</fcl>
-    <outdir>/pnfs/uboone/scratch/${userdir}/&tag;/&relreco;/reco2/&name;</outdir>
-    <logdir>/uboone/data/users/${userbase}/&tag;/&relreco;/reco2/&name;</logdir>
-    <workdir>/uboone/data/users/${userbase}/work/&tag;/&relreco;/reco2/&name;</workdir>
+    <inputlist>/uboone/data/users/${userbase}/&tag;/&relreco1;/reco1/&name;/files.list</inputlist>
+    <outdir>/pnfs/uboone/scratch/${userdir}/&tag;/&relreco2;/reco2/&name;</outdir>
+    <logdir>/uboone/data/users/${userbase}/&tag;/&relreco2;/reco2/&name;</logdir>
+    <workdir>/uboone/data/users/${userbase}/work/&tag;/&relreco2;/reco2/&name;</workdir>
     <numjobs>$njob2</numjobs>
     <datatier>reconstructed-3d</datatier>
     <defname>&name;_&tag;_reco2</defname>
@@ -375,9 +445,9 @@ EOF
 
   <stage name="mergeana">
     <fcl>$mergefcl</fcl>
-    <outdir>/pnfs/uboone/scratch/${userdir}/&tag;/&relreco;/mergeana/&name;</outdir>
-    <logdir>/uboone/data/users/${userbase}/&tag;/&relreco;/mergeana/&name;</logdir>
-    <workdir>/uboone/data/users/${userbase}/work/&tag;/&relreco;/mergeana/&name;</workdir>
+    <outdir>/pnfs/uboone/scratch/${userdir}/&tag;/&relreco2;/mergeana/&name;</outdir>
+    <logdir>/uboone/data/users/${userbase}/&tag;/&relreco2;/mergeana/&name;</logdir>
+    <workdir>/uboone/data/users/${userbase}/work/&tag;/&relreco2;/mergeana/&name;</workdir>
     <numjobs>$njob2</numjobs>
     <targetsize>8000000000</targetsize>
     <datatier>reconstructed-3d</datatier>
