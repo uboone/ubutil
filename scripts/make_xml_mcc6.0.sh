@@ -207,7 +207,7 @@ do
     if [ $nevgjob -eq 0 ]; then
       if echo $newprj | grep -q dirt; then
         if echo $newprj | grep -q cosmic; then
-          nevgjob=200
+          nevgjob=500
         else
           nevgjob=2000
         fi
