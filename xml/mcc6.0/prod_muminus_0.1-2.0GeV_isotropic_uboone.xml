@@ -4,7 +4,8 @@
 
 <!DOCTYPE project [
 <!ENTITY relsim "v04_03_01">
-<!ENTITY relreco "v04_06_01">
+<!ENTITY relreco1 "v04_06_01">
+<!ENTITY relreco2 "v04_06_02">
 <!ENTITY file_type "mc">
 <!ENTITY run_type "physics">
 <!ENTITY name "prod_muminus_0.1-2.0GeV_isotropic_uboone">
@@ -71,7 +72,7 @@
 
 </project>
 
-<project name="&name;_reco">
+<project name="&name;_reco1">
 
   <!-- Project size -->
   <numevents>10000</numevents>
@@ -84,7 +85,7 @@
 
   <!-- Larsoft information -->
   <larsoft>
-    <tag>&relreco;</tag>
+    <tag>&relreco1;</tag>
     <qual>e7:prof</qual>
   </larsoft>
 
@@ -93,19 +94,48 @@
   <stage name="reco1">
     <fcl>reco_uboone_stage_1.fcl</fcl>
     <inputlist>/uboone/data/users/uboonepro/&tag;/&relsim;/detsim/&name;/files.list</inputlist>
-    <outdir>/pnfs/uboone/scratch/uboonepro/&tag;/&relreco;/reco1/&name;</outdir>
-    <logdir>/uboone/data/users/uboonepro/&tag;/&relreco;/reco1/&name;</logdir>
-    <workdir>/uboone/data/users/uboonepro/work/&tag;/&relreco;/reco1/&name;</workdir>
+    <outdir>/pnfs/uboone/scratch/uboonepro/&tag;/&relreco1;/reco1/&name;</outdir>
+    <logdir>/uboone/data/users/uboonepro/&tag;/&relreco1;/reco1/&name;</logdir>
+    <workdir>/uboone/data/users/uboonepro/work/&tag;/&relreco1;/reco1/&name;</workdir>
     <numjobs>100</numjobs>
     <datatier>reconstructed-2d</datatier>
     <defname>&name;_&tag;_reco1</defname>
   </stage>
 
+  <!-- file type -->
+  <filetype>&file_type;</filetype>
+
+  <!-- run type -->
+  <runtype>&run_type;</runtype>
+
+</project>
+
+<project name="&name;_reco2">
+
+  <!-- Project size -->
+  <numevents>10000</numevents>
+
+  <!-- Operating System -->
+  <os>SL6</os>
+
+  <!-- Batch resources -->
+  <resource>DEDICATED,OPPORTUNISTIC</resource>
+
+  <!-- Larsoft information -->
+  <larsoft>
+    <tag>&relreco2;</tag>
+    <qual>e7:prof</qual>
+  </larsoft>
+
+  <!-- Project stages -->
+
+
   <stage name="reco2">
     <fcl>reco_uboone_stage_2.fcl</fcl>
-    <outdir>/pnfs/uboone/scratch/uboonepro/&tag;/&relreco;/reco2/&name;</outdir>
-    <logdir>/uboone/data/users/uboonepro/&tag;/&relreco;/reco2/&name;</logdir>
-    <workdir>/uboone/data/users/uboonepro/work/&tag;/&relreco;/reco2/&name;</workdir>
+    <inputlist>/uboone/data/users/uboonepro/&tag;/&relreco1;/reco1/&name;/files.list</inputlist>
+    <outdir>/pnfs/uboone/scratch/uboonepro/&tag;/&relreco2;/reco2/&name;</outdir>
+    <logdir>/uboone/data/users/uboonepro/&tag;/&relreco2;/reco2/&name;</logdir>
+    <workdir>/uboone/data/users/uboonepro/work/&tag;/&relreco2;/reco2/&name;</workdir>
     <numjobs>100</numjobs>
     <datatier>reconstructed-3d</datatier>
     <defname>&name;_&tag;_reco2</defname>
@@ -113,9 +143,9 @@
 
   <stage name="mergeana">
     <fcl>standard_ana_uboone.fcl</fcl>
-    <outdir>/pnfs/uboone/scratch/uboonepro/&tag;/&relreco;/mergeana/&name;</outdir>
-    <logdir>/uboone/data/users/uboonepro/&tag;/&relreco;/mergeana/&name;</logdir>
-    <workdir>/uboone/data/users/uboonepro/work/&tag;/&relreco;/mergeana/&name;</workdir>
+    <outdir>/pnfs/uboone/scratch/uboonepro/&tag;/&relreco2;/mergeana/&name;</outdir>
+    <logdir>/uboone/data/users/uboonepro/&tag;/&relreco2;/mergeana/&name;</logdir>
+    <workdir>/uboone/data/users/uboonepro/work/&tag;/&relreco2;/mergeana/&name;</workdir>
     <numjobs>100</numjobs>
     <targetsize>8000000000</targetsize>
     <datatier>reconstructed-3d</datatier>
