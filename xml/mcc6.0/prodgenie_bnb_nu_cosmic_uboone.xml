@@ -5,7 +5,7 @@
 <!DOCTYPE project [
 <!ENTITY relsim "v04_03_01">
 <!ENTITY relreco1 "v04_06_01">
-<!ENTITY relreco2 "v04_06_02">
+<!ENTITY relreco2 "v04_06_03">
 <!ENTITY file_type "mc">
 <!ENTITY run_type "physics">
 <!ENTITY name "prodgenie_bnb_nu_cosmic_uboone">
@@ -131,7 +131,7 @@
 
 
   <stage name="reco2">
-    <fcl>reco_uboone_stage_2.fcl</fcl>
+    <fcl>reco_uboone_stage_2_w_cluster3d.fcl</fcl>
     <inputlist>/uboone/data/users/uboonepro/&tag;/&relreco1;/reco1/&name;/files.list</inputlist>
     <outdir>/pnfs/uboone/scratch/uboonepro/&tag;/&relreco2;/reco2/&name;</outdir>
     <logdir>/uboone/data/users/uboonepro/&tag;/&relreco2;/reco2/&name;</logdir>

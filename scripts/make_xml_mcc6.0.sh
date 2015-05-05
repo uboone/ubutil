@@ -42,7 +42,7 @@
 
 rs=v04_03_01
 rr1=v04_06_01
-rr2=v04_06_02
+rr2=v04_06_03
 userdir=uboonepro
 userbase=$userdir
 nevarg=0
@@ -217,7 +217,7 @@ do
 
     # Reco 2
 
-    reco2fcl=reco_uboone_stage_2.fcl
+    reco2fcl=reco_uboone_stage_2_w_cluster3d.fcl
 
     # Merge/Analysis
 
