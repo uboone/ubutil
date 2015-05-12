@@ -4,8 +4,8 @@
 
 <!DOCTYPE project [
 <!ENTITY relsim "v04_03_01">
-<!ENTITY relreco1 "v04_06_01">
-<!ENTITY relreco2 "v04_06_03">
+<!ENTITY relreco1 "v04_06_03_01">
+<!ENTITY relreco2 "v04_06_03_01">
 <!ENTITY file_type "mc">
 <!ENTITY run_type "physics">
 <!ENTITY name "prodgenie_numi_dirt_nu_cosmic_uboone">
