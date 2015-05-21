@@ -3,7 +3,7 @@
 #
 # Name: make_xml_devel.sh
 #
-# Purpose: Make xml files for mcc 6.0.  This script loops over all
+# Purpose: Make xml files for latest version.  This script loops over all
 #          generator-level fcl files in the source area of the currently 
 #          setup version of uboonecode (that is, under 
 #          $UBOONECODE_DIR/source/fcl/gen), and makes a corresponding xml
@@ -40,9 +40,9 @@
 
 # Parse arguments.
 
-rs=v04_08_00
-rr1=v04_08_00
-rr2=v04_08_00
+rs=v04_08_01
+rr1=v04_08_01
+rr2=v04_08_01
 userdir=uboonepro
 userbase=$userdir
 nevarg=0
@@ -229,19 +229,15 @@ do
     nevgjob=$nevgjobarg
 
     if [ $nevjob -eq 0 ]; then
-      if echo $newprj | grep -q 'dirt.*cosmic'; then
-        nevjob=20
-      else
-        nevjob=100
-      fi
+      nevjob=25
     fi
 
     if [ $nevgjob -eq 0 ]; then
       if echo $newprj | grep -q dirt; then
         if echo $newprj | grep -q cosmic; then
-          nevgjob=200
+          nevgjob=50
         else
-          nevgjob=2000
+          nevgjob=500
         fi
       else
         nevgjob=nevjob
@@ -445,7 +441,6 @@ EOF
     <logdir>/uboone/data/users/${userbase}/&tag;/&relreco2;/mergeana/&name;</logdir>
     <workdir>/uboone/data/users/${userbase}/work/&tag;/&relreco2;/mergeana/&name;</workdir>
     <numjobs>$njob2</numjobs>
-    <targetsize>8000000000</targetsize>
     <datatier>reconstructed-3d</datatier>
     <anadatatier>root-tupe</anadatatier>
     <defname>&name;_&tag;</defname>
