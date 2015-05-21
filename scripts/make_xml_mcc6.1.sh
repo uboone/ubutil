@@ -1,9 +1,9 @@
 #! /bin/bash
 #----------------------------------------------------------------------
 #
-# Name: make_xml_devel.sh
+# Name: make_xml_mcc6.1.sh
 #
-# Purpose: Make xml files for latest version.  This script loops over all
+# Purpose: Make xml files for mcc 6.1.  This script loops over all
 #          generator-level fcl files in the source area of the currently 
 #          setup version of uboonecode (that is, under 
 #          $UBOONECODE_DIR/source/fcl/gen), and makes a corresponding xml
@@ -17,7 +17,7 @@
 #
 # Usage:
 #
-# make_xml_devel.sh [-h|--help] [-rs <sim-release>] [-rr <reco-release>] [-t|--tag <tag>] [-u|--user <user>] [-ls <dir|tar>] [-lr1 <dir|tar>] [-lr2 <dir|tar>] [--nev <n>] [--nevjob <n>] [--nevgjob <n>]
+# make_xml_mcc6.1.sh [-h|--help] [-rs <sim-release>] [-rr <reco-release>] [-t|--tag <tag>] [-u|--user <user>] [-ls <dir|tar>] [-lr1 <dir|tar>] [-lr2 <dir|tar>] [--nev <n>] [--nevjob <n>] [--nevgjob <n>]
 #
 # Options:
 #
@@ -25,7 +25,7 @@
 # -rs <release> - Use the specified larsoft/uboonecode release for simulation.
 # -rr1 <release> - Use the specified larsoft/uboonecode release for stage 1 reconstruction.
 # -rr2 <release> - Use the specified larsoft/uboonecode release for stage 2 reconstruction.
-# -t|--tag <tag> - Specify sample tag (default "devel").
+# -t|--tag <tag> - Specify sample tag (default "mcc6.1").
 # -u|--user <user> - Use users/<user> as working and output directories
 #                    (default is to use uboonepro).
 # -ls <dir|tar> - Specify larsoft local directory or tarball for simulation.
@@ -51,7 +51,7 @@ nevgjobarg=0
 ls=''
 lr1=''
 lr2=''
-tag=devel
+tag=mcc6.1
 
 while [ $# -gt 0 ]; do
   case "$1" in
@@ -59,7 +59,7 @@ while [ $# -gt 0 ]; do
     # User directory.
 
     -h|--help )
-      echo "Usage: make_xml_devel.sh [-h|--help] [-rs <sim-release>] [-rr1 <reco1-release>] [-rr2 <reco2-release>] [-t|--tag <tag>] [-u|--user <user>] [-ls <dir|tar>] [-lr1 <dir|tar>] [-lr2 <dir|tar>] [--nev <n>] [--nevjob <n>] [--nevgjob <n>]"
+      echo "Usage: make_xml_mcc6.1.sh [-h|--help] [-rs <sim-release>] [-rr1 <reco1-release>] [-rr2 <reco2-release>] [-t|--tag <tag>] [-u|--user <user>] [-ls <dir|tar>] [-lr1 <dir|tar>] [-lr2 <dir|tar>] [--nev <n>] [--nevjob <n>] [--nevgjob <n>]"
       exit
     ;;
 
