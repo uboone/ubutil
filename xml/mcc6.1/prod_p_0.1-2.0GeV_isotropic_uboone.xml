@@ -39,7 +39,7 @@
     <logdir>/uboone/data/users/uboonepro/&tag;/&relsim;/gen/&name;</logdir>
     <workdir>/uboone/data/users/uboonepro/work/&tag;/&relsim;/gen/&name;</workdir>
     <output>prod_p_0.1-2.0GeV_isotropic_uboone_${PROCESS}_%tc_gen.root</output>
-    <numjobs>400</numjobs>
+    <numjobs>200</numjobs>
     <datatier>generated</datatier>
     <defname>&name;_&tag;_gen</defname>
   </stage>
@@ -49,7 +49,7 @@
     <outdir>/pnfs/uboone/scratch/uboonepro/&tag;/&relsim;/g4/&name;</outdir>
     <logdir>/uboone/data/users/uboonepro/&tag;/&relsim;/g4/&name;</logdir>
     <workdir>/uboone/data/users/uboonepro/work/&tag;/&relsim;/g4/&name;</workdir>
-    <numjobs>400</numjobs>
+    <numjobs>200</numjobs>
     <datatier>simulated</datatier>
     <defname>&name;_&tag;_g4</defname>
   </stage>
@@ -59,7 +59,7 @@
     <outdir>/pnfs/uboone/scratch/uboonepro/&tag;/&relsim;/detsim/&name;</outdir>
     <logdir>/uboone/data/users/uboonepro/&tag;/&relsim;/detsim/&name;</logdir>
     <workdir>/uboone/data/users/uboonepro/work/&tag;/&relsim;/detsim/&name;</workdir>
-    <numjobs>400</numjobs>
+    <numjobs>200</numjobs>
     <datatier>detector-simulated</datatier>
     <defname>&name;_&tag;_detsim</defname>
   </stage>
@@ -96,7 +96,7 @@
     <outdir>/pnfs/uboone/scratch/uboonepro/&tag;/&relreco1;/reco1/&name;</outdir>
     <logdir>/uboone/data/users/uboonepro/&tag;/&relreco1;/reco1/&name;</logdir>
     <workdir>/uboone/data/users/uboonepro/work/&tag;/&relreco1;/reco1/&name;</workdir>
-    <numjobs>400</numjobs>
+    <numjobs>200</numjobs>
     <datatier>reconstructed-2d</datatier>
     <defname>&name;_&tag;_reco1</defname>
   </stage>
@@ -134,7 +134,7 @@
     <outdir>/pnfs/uboone/scratch/uboonepro/&tag;/&relreco2;/reco2/&name;</outdir>
     <logdir>/uboone/data/users/uboonepro/&tag;/&relreco2;/reco2/&name;</logdir>
     <workdir>/uboone/data/users/uboonepro/work/&tag;/&relreco2;/reco2/&name;</workdir>
-    <numjobs>400</numjobs>
+    <numjobs>200</numjobs>
     <datatier>reconstructed-3d</datatier>
     <defname>&name;_&tag;_reco2</defname>
   </stage>
@@ -144,7 +144,7 @@
     <outdir>/pnfs/uboone/scratch/uboonepro/&tag;/&relreco2;/mergeana/&name;</outdir>
     <logdir>/uboone/data/users/uboonepro/&tag;/&relreco2;/mergeana/&name;</logdir>
     <workdir>/uboone/data/users/uboonepro/work/&tag;/&relreco2;/mergeana/&name;</workdir>
-    <numjobs>400</numjobs>
+    <numjobs>200</numjobs>
     <datatier>reconstructed-3d</datatier>
     <anadatatier>root-tupe</anadatatier>
     <defname>&name;_&tag;</defname>
