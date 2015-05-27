@@ -40,9 +40,9 @@
 
 # Parse arguments.
 
-rs=v04_08_01
-rr1=v04_08_01
-rr2=v04_08_01
+rs=v04_08_02
+rr1=v04_08_02
+rr2=v04_08_02
 userdir=uboonepro
 userbase=$userdir
 nevarg=0
@@ -229,7 +229,11 @@ do
     nevgjob=$nevgjobarg
 
     if [ $nevjob -eq 0 ]; then
-      nevjob=25
+      if echo $newprj | grep -q cosmic; then
+        nevjob=25
+      else
+        nevjob=50
+      fi
     fi
 
     if [ $nevgjob -eq 0 ]; then

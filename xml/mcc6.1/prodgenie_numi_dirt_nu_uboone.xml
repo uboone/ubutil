@@ -59,7 +59,7 @@
     <outdir>/pnfs/uboone/scratch/uboonepro/&tag;/&relsim;/detsim/&name;</outdir>
     <logdir>/uboone/data/users/uboonepro/&tag;/&relsim;/detsim/&name;</logdir>
     <workdir>/uboone/data/users/uboonepro/work/&tag;/&relsim;/detsim/&name;</workdir>
-    <numjobs>400</numjobs>
+    <numjobs>200</numjobs>
     <datatier>detector-simulated</datatier>
     <defname>&name;_&tag;_detsim</defname>
   </stage>
@@ -96,7 +96,7 @@
     <outdir>/pnfs/uboone/scratch/uboonepro/&tag;/&relreco1;/reco1/&name;</outdir>
     <logdir>/uboone/data/users/uboonepro/&tag;/&relreco1;/reco1/&name;</logdir>
     <workdir>/uboone/data/users/uboonepro/work/&tag;/&relreco1;/reco1/&name;</workdir>
-    <numjobs>400</numjobs>
+    <numjobs>200</numjobs>
     <datatier>reconstructed-2d</datatier>
     <defname>&name;_&tag;_reco1</defname>
   </stage>
@@ -134,7 +134,7 @@
     <outdir>/pnfs/uboone/scratch/uboonepro/&tag;/&relreco2;/reco2/&name;</outdir>
     <logdir>/uboone/data/users/uboonepro/&tag;/&relreco2;/reco2/&name;</logdir>
     <workdir>/uboone/data/users/uboonepro/work/&tag;/&relreco2;/reco2/&name;</workdir>
-    <numjobs>400</numjobs>
+    <numjobs>200</numjobs>
     <datatier>reconstructed-3d</datatier>
     <defname>&name;_&tag;_reco2</defname>
   </stage>
@@ -144,7 +144,7 @@
     <outdir>/pnfs/uboone/scratch/uboonepro/&tag;/&relreco2;/mergeana/&name;</outdir>
     <logdir>/uboone/data/users/uboonepro/&tag;/&relreco2;/mergeana/&name;</logdir>
     <workdir>/uboone/data/users/uboonepro/work/&tag;/&relreco2;/mergeana/&name;</workdir>
-    <numjobs>400</numjobs>
+    <numjobs>200</numjobs>
     <datatier>reconstructed-3d</datatier>
     <anadatatier>root-tupe</anadatatier>
     <defname>&name;_&tag;</defname>

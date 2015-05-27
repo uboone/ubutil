@@ -229,7 +229,11 @@ do
     nevgjob=$nevgjobarg
 
     if [ $nevjob -eq 0 ]; then
-      nevjob=25
+      if echo $newprj | grep -q cosmic; then
+        nevjob=25
+      else
+        nevjob=50
+      fi
     fi
 
     if [ $nevgjob -eq 0 ]; then
