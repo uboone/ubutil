@@ -1,48 +1,44 @@
 # Source this file to set the basic configuration needed by LArSoft 
 # and for the uBooNE-specific software that interfaces to LArSoft.
 
-# Set up ups for LArSoft
-# Sourcing this setup will add /grid/fermiapp/products/larsoft and
-# /grid/fermiapp/products/common to $PRODUCTS
-#
-
-OASIS_LARSOFT_DIR="/cvmfs/oasis.opensciencegrid.org/fermilab/products/larsoft/"
 FERMIAPP_LARSOFT_DIR="/grid/fermiapp/products/larsoft/"
-OASIS_UBOONE_DIR="/cvmfs/oasis.opensciencegrid.org/microboone/products/"
+FERMIOSG_LARSOFT_DIR="/cvmfs/fermilab.opensciencegrid.org/products/larsoft/"
+OASIS_LARSOFT_DIR="/cvmfs/oasis.opensciencegrid.org/fermilab/products/larsoft/"
+
 FERMIAPP_UBOONE_DIR="/grid/fermiapp/products/uboone/"
-FERMIAPP_COMMON_DIR="/grid/fermiapp/products/"
+FERMIOSG_UBOONE_DIR="/cvmfs/uboone.opensciencegrid.org/products/"
+OASIS_UBOONE_DIR="/cvmfs/oasis.opensciencegrid.org/microboone/products/"
+
 UBOONE_BLUEARC_DATA="/uboone/data/"
 
-#if [[ -d "${FERMIAPP_COMMON_DIR}" ]]; then
-#    echo "Setting up the Grid Fermiapp common UPS area...${FERMIAPP_COMMON_DIR}"
-#    source ${FERMIAPP_COMMON_DIR}/setups.sh
-#fi
+# Set up ups for LArSoft
+# Sourcing this setup will add larsoft and common to $PRODUCTS
 
-if [[ -d "${FERMIAPP_LARSOFT_DIR}" ]]; then
-    echo "Setting up the Grid Fermiapp larsoft UPS area...${FERMIAPP_LARSOFT_DIR}"
-    echo /bin/bash > /dev/null
-    source ${FERMIAPP_LARSOFT_DIR}/setups
-    export PRODUCTS=${PRODUCTS}:/grid/fermiapp/products/common/db
+for dir in $FERMIAPP_LARSOFT_DIR $FERMIOSG_LARSOFT_DIR $OASIS_LARSOFT_DIR;
+do
+  if [[ -d $dir ]]; then
+    echo "Setting up larsoft UPS area... ${dir}"
+    source $dir/setup
+    common=`dirname $dir`/common/db
+    if [[ -d $common ]]; then
+      export PRODUCTS=${PRODUCTS}:`dirname $dir`/common/db
+    fi
+    break
+  fi
+done
 
-elif [[ -d "${OASIS_LARSOFT_DIR}" ]]; then
-    echo "Setting up the OASIS Fermilab UPS area...${OASIS_LARSOFT_DIR}"
-    echo /bin/bash > /dev/null
-    source ${OASIS_LARSOFT_DIR}/setups.for.cvmfs
-    export PRODUCTS=${PRODUCTS}:/cvmfs/oasis.opensciencegrid.org/fermilab/products/common/db
-fi
+# Set up ups for uBooNE
 
-if [[ -d "${FERMIAPP_UBOONE_DIR}" ]]; then
-    echo "Setting up the Grid Fermiapp uboone UPS area...${FERMIAPP_UBOONE_DIR}"
-    echo /bin/bash > /dev/null
-    source ${FERMIAPP_UBOONE_DIR}/setups
+for dir in $FERMIAPP_UBOONE_DIR $FERMIOSG_UBOONE_DIR $OASIS_UBOONE_DIR;
+do
+  if [[ -d $dir ]]; then
+    echo "Setting up uboone UPS area... ${dir}"
+    source $dir/setup
+    break
+  fi
+done
 
-elif [[ -d "${OASIS_UBOONE_DIR}" ]]; then
-    echo "Setting up the OASIS uboone UPS area...${OASIS_UBOONE_DIR}"
-    echo /bin/bash > /dev/null
-    source ${OASIS_UBOONE_DIR}/setups.for.cvmfs
-fi
-
-# Add uBooNE path to FW_SEARCH_PATH
+# Add uBooNE data path to FW_SEARCH_PATH
 #
 if [[ -d "${UBOONE_BLUEARC_DATA}" ]]; then
 
@@ -50,7 +46,6 @@ if [[ -d "${UBOONE_BLUEARC_DATA}" ]]; then
     export FW_SEARCH_PATH=${UBOONE_BLUEARC_DATA}:${FW_SEARCH_PATH}
 
 fi
-
 
 # Set up the basic tools that will be needed
 #
@@ -69,7 +64,7 @@ export MRB_PROJECT=larsoft
 # Define environment variables that store the standard experiment name.
 
 export JOBSUB_GROUP=uboone
-export EXPERIMENT=uboone
+export EXPERIMENT=uboone     # Used by ifdhc
 export SAM_EXPERIMENT=uboone
 
 # For Art workbook
