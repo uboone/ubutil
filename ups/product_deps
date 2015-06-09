@@ -2,7 +2,7 @@
 
 # The *parent* line must the first non-commented line and defines this product and version
 # The version should be of the form vxx_yy_zz (e.g. v01_02_03)
-parent ubutil v01_19_00
+parent ubutil v01_20_00
 defaultqual e7
 
 # These optional lines define the installed directories where headers,
@@ -42,10 +42,10 @@ table_fragment_end
 # Add the dependent product and version
 
 product          version
-art             v1_13_02
+art             v1_14_02
 larbatch        v01_09_00
 
-cetbuildtools	v4_09_02	-	only_for_build
+cetbuildtools	v4_11_01	-	only_for_build
 end_product_list
 
 
