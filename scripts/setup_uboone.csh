@@ -15,7 +15,7 @@ set UBOONE_BLUEARC_DATA = "/uboone/data/"
 # Sourcing this setup will add larsoft and common to $PRODUCTS
 
 foreach dir ( $FERMIAPP_LARSOFT_DIR $FERMIOSG_LARSOFT_DIR $OASIS_LARSOFT_DIR )
-  if ( -d $dir ) then
+  if ( -f $dir/setup ) then
     echo "Setting up larsoft UPS area... ${dir}"
     set prod_db = $dir
     source $dir/setup
@@ -30,7 +30,7 @@ end
 # Set up ups for uBooNE
 
 foreach dir ( $FERMIAPP_UBOONE_DIR $FERMIOSG_UBOONE_DIR $OASIS_UBOONE_DIR )
-  if ( -d $dir ) then
+  if ( -f $dir/setup ) then
     echo "Setting up uboone UPS area... ${dir}"
     set prod_db = $dir
     source $dir/setup

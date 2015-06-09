@@ -16,7 +16,7 @@ UBOONE_BLUEARC_DATA="/uboone/data/"
 
 for dir in $FERMIAPP_LARSOFT_DIR $FERMIOSG_LARSOFT_DIR $OASIS_LARSOFT_DIR;
 do
-  if [[ -d $dir ]]; then
+  if [[ -f $dir/setup ]]; then
     echo "Setting up larsoft UPS area... ${dir}"
     source $dir/setup
     common=`dirname $dir`/common/db
@@ -31,7 +31,7 @@ done
 
 for dir in $FERMIAPP_UBOONE_DIR $FERMIOSG_UBOONE_DIR $OASIS_UBOONE_DIR;
 do
-  if [[ -d $dir ]]; then
+  if [[ -f $dir/setup ]]; then
     echo "Setting up uboone UPS area... ${dir}"
     source $dir/setup
     break
