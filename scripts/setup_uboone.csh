@@ -1,36 +1,42 @@
 # Source this file to set the basic configuration needed by LArSoft 
 # and for the uBooNE-specific software that interfaces to LArSoft.
 
+set FERMIAPP_LARSOFT_DIR = "/grid/fermiapp/products/larsoft/"
+set FERMIOSG_LARSOFT_DIR = "/cvmfs/fermilab.opensciencegrid.org/products/larsoft/"
+set OASIS_LARSOFT_DIR = "/cvmfs/oasis.opensciencegrid.org/fermilab/products/larsoft/"
+
+set FERMIAPP_UBOONE_DIR = "/grid/fermiapp/products/uboone/"
+set FERMIOSG_UBOONE_DIR = "/cvmfs/uboone.opensciencegrid.org/products/"
+set OASIS_UBOONE_DIR = "/cvmfs/oasis.opensciencegrid.org/microboone/products/"
+
+set UBOONE_BLUEARC_DATA = "/uboone/data/"
+
 # Set up ups for LArSoft
-# Sourcing this setup will add /grid/fermiapp/products/larsoft and
-# /grid/fermiapp/products/common to $PRODUCTS
-#
+# Sourcing this setup will add larsoft and common to $PRODUCTS
 
+foreach dir ( $FERMIAPP_LARSOFT_DIR $FERMIOSG_LARSOFT_DIR $OASIS_LARSOFT_DIR )
+  if ( -f $dir/setup ) then
+    echo "Setting up larsoft UPS area... ${dir}"
+    set prod_db = $dir
+    source $dir/setup
+    set common = `dirname $dir`/common/db
+    if ( -d $common ) then
+      setenv PRODUCTS ${PRODUCTS}:`dirname $dir`/common/db
+    endif
+    break
+  endif
+end
 
-set OASIS_LARSOFT_DIR = /cvmfs/oasis.opensciencegrid.org/fermilab/products/larsoft/
-set FERMIAPP_LARSOFT_DIR = /grid/fermiapp/products/larsoft/
-set OASIS_UBOONE_DIR = /cvmfs/oasis.opensciencegrid.org/microboone/products/
-set FERMIAPP_UBOONE_DIR = /grid/fermiapp/products/uboone/
-set FERMIAPP_COMMON_DIR = /grid/fermiapp/products/
-set UBOONE_BLUEARC_DATA = /uboone/data
+# Set up ups for uBooNE
 
-if ( -d "${FERMIAPP_LARSOFT_DIR}" ) then
-    echo "Setting up the Grid Fermiapp larsoft UPS area...${FERMIAPP_LARSOFT_DIR}"
-    source ${FERMIAPP_LARSOFT_DIR}/setups
-    setenv PRODUCTS ${PRODUCTS}:/grid/fermiapp/products/common/db
-else if ( -d "${OASIS_LARSOFT_DIR}" ) then
-    echo "Setting up the OASIS Fermilab UPS area...${OASIS_LARSOFT_DIR}"
-    source ${OASIS_LARSOFT_DIR}/setups
-    setenv PRODUCTS ${PRODUCTS}:/grid/fermiapp/products/common/db
-endif
-
-if ( -d "${FERMIAPP_UBOONE_DIR}" ) then
-    echo "Setting up the Grid Fermiapp uboone UPS area...${FERMIAPP_UBOONE_DIR}"
-    source ${FERMIAPP_UBOONE_DIR}/setups
-else if ( -d "${OASIS_UBOONE_DIR}" ) then
-    echo "Setting up the OASIS uboone UPS area...${OASIS_UBOONE_DIR}"
-    source ${OASIS_UBOONE_DIR}/setups
-endif
+foreach dir ( $FERMIAPP_UBOONE_DIR $FERMIOSG_UBOONE_DIR $OASIS_UBOONE_DIR )
+  if ( -f $dir/setup ) then
+    echo "Setting up uboone UPS area... ${dir}"
+    set prod_db = $dir
+    source $dir/setup
+    break
+  endif
+end
 
 # Add uBooNE path to FW_SEARCH_PATH
 #
