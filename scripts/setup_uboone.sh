@@ -21,7 +21,7 @@ do
     source $dir/setup
     common=`dirname $dir`/common/db
     if [[ -d $common ]]; then
-      export PRODUCTS=${PRODUCTS}:`dirname $dir`/common/db
+      export PRODUCTS=`dropit -p $PRODUCTS common/db`:`dirname $dir`/common/db
     fi
     break
   fi
@@ -50,6 +50,11 @@ fi
 # Set up the basic tools that will be needed
 #
 if [ `uname` != Darwin ]; then
+
+  # Work around git table file bugs.
+
+  export PATH=`dropit git`
+  export LD_LIBRARY_PATH=`dropit -p $LD_LIBRARY_PATH git`
   setup git
 fi
 setup gitflow

@@ -21,7 +21,7 @@ foreach dir ( $FERMIAPP_LARSOFT_DIR $FERMIOSG_LARSOFT_DIR $OASIS_LARSOFT_DIR )
     source $dir/setup
     set common = `dirname $dir`/common/db
     if ( -d $common ) then
-      setenv PRODUCTS ${PRODUCTS}:`dirname $dir`/common/db
+      setenv PRODUCTS `dropit -p $PRODUCTS common/db`:`dirname $dir`/common/db
     endif
     break
   endif
@@ -51,6 +51,11 @@ endif
 # Set up the basic tools that will be needed
 #
 if ( `uname` != Darwin ) then
+
+  # Work around git table file bugs.
+
+  setenv PATH `dropit git`
+  setenv LD_LIBRARY_PATH `dropit -p $LD_LIBRARY_PATH git`
   setup git
 endif
 setup gitflow
