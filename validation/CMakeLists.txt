@@ -4,7 +4,7 @@
 
 # Executable python files.
 
-LIST(APPEND exes calorimetry.py makeplots.py )
+LIST(APPEND exes calorimetry.py flash.py hit.py pid.py trackingeff.py Momresolution.py makeplots.py runVal.sh)
 
 # Non-executable python modules that we want to be on PYTHONPATH.
 
