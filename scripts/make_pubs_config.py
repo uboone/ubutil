@@ -152,7 +152,7 @@ def main(argv):
         first_subrun = first_subrun_arg
         last_subrun = last_subrun_arg
         if last_subrun < 0:
-            last_subrun_arg = first_stage.num_jobs
+            last_subrun = first_stage.num_jobs
 
         # Extract stage names and status codes.
 
