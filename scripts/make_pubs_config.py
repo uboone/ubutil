@@ -18,10 +18,12 @@
 # -m|--email <email>  - Specify contact e-mail address (default <username>@fnal.gov).
 # --command <command> - Specify command (default "python dstream_prod/production.py")
 # --server <node>     - Specify server node (default current node).
-# --runtable <run-table> - Specify run table (default "subrunN" where N=
-#                          number of jobs in first stage of project.
+# --runtable <run-table> - Specify run table (default "mcrun").
 # --first_run <first-run> - Specify first run (default 1).
 # --first_subrun <first-subrun> - Specify first subrun (default 1).
+# --last_run <last-run> - Specify the last run (default same as first run).
+# --last_subrun <last-subrun> - Specify the last subrun (default same as number of 
+#                               jobs in first stage of project).
 #
 ######################################################################
 
@@ -62,8 +64,10 @@ def main(argv):
     command = 'python dstream_prod/production.py'
     server = ''
     runtablearg = ''
-    first_run = 1
-    first_subrun = 1
+    first_run_arg = 1
+    first_subrun_arg = 1
+    last_run_arg = -1
+    last_subrun_arg = -1
 
     args = argv[1:]
     while len(args) > 0:
@@ -83,10 +87,16 @@ def main(argv):
             runtablearg = args[1]
             del args[0:2]
         elif args[0] == '--first_run' and len(args) > 1:
-            first_run = int(args[1])
+            first_run_arg = int(args[1])
             del args[0:2]
         elif args[0] == '--first_subrun' and len(args) > 1:
-            first_subrun = int(args[1])
+            first_subrun_arg = int(args[1])
+            del args[0:2]
+        elif args[0] == '--last_run' and len(args) > 1:
+            last_run_arg = int(args[1])
+            del args[0:2]
+        elif args[0] == '--last_subrun' and len(args) > 1:
+            last_subrun_arg = int(args[1])
             del args[0:2]
         elif args[0][0] == '-':
             print 'Unknown option %s' % args[0]
@@ -132,7 +142,17 @@ def main(argv):
         if server == '':
             server = socket.gethostname()
         if runtable == '':
-            runtable = 'subrun%d' % first_stage.num_jobs
+            runtable = 'mcrun'
+
+        first_run = first_run_arg
+        last_run = last_run_arg
+        if last_run < 0:
+            last_run = first_run
+
+        first_subrun = first_subrun_arg
+        last_subrun = last_subrun_arg
+        if last_subrun < 0:
+            last_subrun = first_stage.num_jobs
 
         # Extract stage names and status codes.
 
@@ -178,6 +198,8 @@ def main(argv):
         print 'RESOURCE STAGE_STATUS => %s' % status_codes
         print 'RESOURCE STAGE_NAME => %s' % stage_names
         print 'RESOURCE NRUNS => %d' % first_stage.num_jobs
+        print 'RESOURCE MAX_RUN => %d' % last_run
+        print 'RESOURCE MAX_SUBRUN => %d' % last_subrun
         print 'PROJECT_END'
         print
 
