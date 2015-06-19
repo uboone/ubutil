@@ -3,9 +3,9 @@
 <!-- Production Project -->
 
 <!DOCTYPE project [
-<!ENTITY relsim "v04_08_01">
-<!ENTITY relreco1 "v04_08_01">
-<!ENTITY relreco2 "v04_08_01">
+<!ENTITY relsim "v04_12_00">
+<!ENTITY relreco1 "v04_12_00">
+<!ENTITY relreco2 "v04_12_00">
 <!ENTITY file_type "mc">
 <!ENTITY run_type "physics">
 <!ENTITY name "prodgenie_numi_dirt_nu_cosmic_uboone">
