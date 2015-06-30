@@ -96,7 +96,7 @@ def getmetadata(inputfile, md0={}):
 		elif mdkey == 'fclName':
 			md['fcl.name'] = mdval
 		elif mdkey == 'fclVersion':
-			md['fcl.version']  = mdkey
+			md['fcl.version']  = mdval
 
 		# For all other keys, copy art metadata directly to sam metadata.
 		# This works for run-tuple (run, subrun, runtype) and time stamps.
