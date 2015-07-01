@@ -17,7 +17,7 @@
 #
 # Usage:
 #
-# make_xml_devel.sh [-h|--help] [-rs <sim-release>] [-rr <reco-release>] [-t|--tag <tag>] [-u|--user <user>] [-ls <dir|tar>] [-lr1 <dir|tar>] [-lr2 <dir|tar>] [--nev <n>] [--nevjob <n>] [--nevgjob <n>]
+# make_xml_devel.sh [-h|--help] [-r|--release <release>] [-t|--tag <tag>] [-u|--user <user>] [-l|--local <dir|tar>] [--nev <n>] [--nevjob <n>] [--nevgjob <n>]
 #
 # Options:
 #
@@ -25,12 +25,14 @@
 # -rs <release> - Use the specified larsoft/uboonecode release for simulation.
 # -rr1 <release> - Use the specified larsoft/uboonecode release for stage 1 reconstruction.
 # -rr2 <release> - Use the specified larsoft/uboonecode release for stage 2 reconstruction.
+# -r|--release <release> - Same as -rs <release> -rr1 <release> -rr2 <release>
 # -t|--tag <tag> - Specify sample tag (default "devel").
 # -u|--user <user> - Use users/<user> as working and output directories
 #                    (default is to use uboonepro).
 # -ls <dir|tar> - Specify larsoft local directory or tarball for simulation.
 # -lr1 <dir|tar> - Specify larsoft local directory or tarball for stage 1 reconstruction.
 # -lr2 <dir|tar> - Specify larsoft local directory or tarball for stage 2 reconstruction.
+# -l|--local <dir|tar> - Same as -ls <dir|tar> -lr1 <dir|tar> -lr2 <dir|tar>
 # --nev <n>     - Specify number of events for all samples.  Otherwise
 #                 use hardwired defaults.
 # --nevjob <n>  - Specify the default number of events per job.
@@ -40,9 +42,9 @@
 
 # Parse arguments.
 
-rs=v04_14_00
-rr1=v04_14_00
-rr2=v04_14_00
+rs=v04_14_01
+rr1=v04_14_01
+rr2=v04_14_01
 userdir=uboonepro
 userbase=$userdir
 nevarg=0
@@ -59,7 +61,7 @@ while [ $# -gt 0 ]; do
     # User directory.
 
     -h|--help )
-      echo "Usage: make_xml_devel.sh [-h|--help] [-rs <sim-release>] [-rr1 <reco1-release>] [-rr2 <reco2-release>] [-t|--tag <tag>] [-u|--user <user>] [-ls <dir|tar>] [-lr1 <dir|tar>] [-lr2 <dir|tar>] [--nev <n>] [--nevjob <n>] [--nevgjob <n>]"
+      echo "Usage: make_xml_devel.sh [-h|--help] [-r|--release <release>] [-t|--tag <tag>] [-u|--user <user>] [-l|--local <dir|tar>] [--nev <n>] [--nevjob <n>] [--nevgjob <n>]"
       exit
     ;;
 
@@ -85,6 +87,17 @@ while [ $# -gt 0 ]; do
 
     -rr2 )
     if [ $# -gt 1 ]; then
+      rr2=$2
+      shift
+    fi
+    ;;
+
+    # All stages release.
+
+    -r|--release )
+    if [ $# -gt 1 ]; then
+      rs=$2
+      rr1=$2
       rr2=$2
       shift
     fi
@@ -122,6 +135,17 @@ while [ $# -gt 0 ]; do
 
     -lr2 )
     if [ $# -gt 1 ]; then
+      lr2=$2
+      shift
+    fi
+    ;;
+
+    # Local all stages release.
+
+    -l|--local )
+    if [ $# -gt 1 ]; then
+      ls=$2
+      lr1=$2
       lr2=$2
       shift
     fi
