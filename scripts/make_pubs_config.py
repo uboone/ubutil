@@ -24,6 +24,8 @@
 # --last_run <last-run> - Specify the last run (default same as first run).
 # --last_subrun <last-subrun> - Specify the last subrun (default same as number of 
 #                               jobs in first stage of project).
+# --nruns <nruns>     - Maximum number of files to process per invocation of
+#                       production command (pubs parameter NRUNS).  Default 10.
 #
 ######################################################################
 
@@ -68,6 +70,7 @@ def main(argv):
     first_subrun_arg = 1
     last_run_arg = -1
     last_subrun_arg = -1
+    nruns_arg = -1
 
     args = argv[1:]
     while len(args) > 0:
@@ -97,6 +100,9 @@ def main(argv):
             del args[0:2]
         elif args[0] == '--last_subrun' and len(args) > 1:
             last_subrun_arg = int(args[1])
+            del args[0:2]
+        elif args[0] == '--nruns' and len(args) > 1:
+            nruns_arg = int(args[1])
             del args[0:2]
         elif args[0][0] == '-':
             print 'Unknown option %s' % args[0]
@@ -154,6 +160,12 @@ def main(argv):
         if last_subrun < 0:
             last_subrun = first_stage.num_jobs
 
+        nruns = nruns_arg
+        if nruns < 0:
+            nruns = 10
+        if nruns > first_stage.num_jobs:
+            nruns = first_stage.num_jobs
+
         # Extract stage names and status codes.
 
         status = 0
@@ -197,7 +209,7 @@ def main(argv):
         print 'RESOURCE EXPERTS => %s' % contact
         print 'RESOURCE STAGE_STATUS => %s' % status_codes
         print 'RESOURCE STAGE_NAME => %s' % stage_names
-        print 'RESOURCE NRUNS => %d' % first_stage.num_jobs
+        print 'RESOURCE NRUNS => %d' % nruns
         print 'RESOURCE MAX_RUN => %d' % last_run
         print 'RESOURCE MAX_SUBRUN => %d' % last_subrun
         print 'PROJECT_END'

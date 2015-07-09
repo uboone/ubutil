@@ -81,15 +81,15 @@ def get_sam_metadata(project, stage):
 
 def get_setup_script_path():
 
-    OASIS_DIR="/cvmfs/oasis.opensciencegrid.org/microboone/products/"
+    CVMFS_DIR="/cvmfs/uboone.opensciencegrid.org/products/"
     FERMIAPP_DIR="/grid/fermiapp/products/uboone/"
 
     if os.path.isfile(FERMIAPP_DIR+"setup_uboone.sh"):
         setup_script = FERMIAPP_DIR+"setup_uboone.sh"
-    elif os.path.isfile(OASIS_DIR+"setup_uboone.sh"):
-        setup_script = OASIS_DIR+"setup_uboone.sh"
+    elif os.path.isfile(CVMFS_DIR+"setup_uboone.sh"):
+        setup_script = CVMFS_DIR+"setup_uboone.sh"
     else:
-        raise RuntimeError, "Could not find setup script at "+FERMIAPP_DIR+" or "+OASIS_DIR
+        raise RuntimeError, "Could not find setup script at "+FERMIAPP_DIR+" or "+CVMFS_DIR
 
     return setup_script
 
