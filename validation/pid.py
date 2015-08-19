@@ -113,13 +113,14 @@ def main(argv):
     
     mychain.SetBranchStatus("*",0)
     mychain.SetBranchStatus("geant_list_size_in_tpcAV",1)
+    mychain.SetBranchStatus("geant_list_size",1)
     mychain.SetBranchStatus("inTPCActive",1)
     mychain.SetBranchStatus("Eng",1)
     mychain.SetBranchStatus("StartPoint*",1)
     mychain.SetBranchStatus("EndPoint*",1)
     mychain.SetBranchStatus("pdg",1)
     mychain.SetBranchStatus("Mass",1)
-    
+    mychain.SetBranchStatus("processname",1)
       
     pida = {}
     fillpida = {}
@@ -166,6 +167,27 @@ def main(argv):
         nb = mychain.GetEntry( jentry )
         if nb <= 0:
             continue
+
+        if mychain.pdg[0]==2212:
+            numDaughters = 0
+            #print mychain.geant_list_size
+            for j in xrange(mychain.geant_list_size):
+                if j == 0:
+                    continue
+                if ('conv' not in mychain.processname[j] and
+                    'LowEnConversion' not in mychain.processname[j] and
+                    'Pair' not in mychain.processname[j] and
+                    'compt' not in mychain.processname[j] and
+                    'Compt' not in mychain.processname[j] and
+                    'Brem' not in mychain.processname[j] and
+                    'phot' not in mychain.processname[j] and
+                    'Photo' not in mychain.processname[j] and
+                    'Ion' not in mychain.processname[j] and
+                    'annihil' not in mychain.processname[j]):
+                    numDaughters += 1
+            if numDaughters > 0:
+                continue
+
 	   
         for t in trackers:	    
             ntracks = dntracks[t][0]
