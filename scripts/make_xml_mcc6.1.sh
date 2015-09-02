@@ -445,8 +445,8 @@ EOF
     <logdir>/uboone/data/users/${userbase}/&tag;/&relreco2;/mergeana/&name;</logdir>
     <workdir>/uboone/data/users/${userbase}/work/&tag;/&relreco2;/mergeana/&name;</workdir>
     <numjobs>$njob2</numjobs>
-    <datatier>reconstructed-3d</datatier>
-    <anadatatier>root-tupe</anadatatier>
+    <datatier>reconstructed</datatier>
+    <anadatatier>root-tuple</anadatatier>
     <defname>&name;_&tag;</defname>
     <anadefname>&name;_&tag;_ana</anadefname>
   </stage>

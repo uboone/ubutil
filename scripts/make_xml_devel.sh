@@ -42,9 +42,9 @@
 
 # Parse arguments.
 
-rs=v04_21_00
-rr1=v04_21_00
-rr2=v04_21_00
+rs=v04_21_01
+rr1=v04_21_01
+rr2=v04_21_01
 userdir=uboonepro
 userbase=$userdir
 nevarg=0
@@ -469,8 +469,8 @@ EOF
     <logdir>/uboone/data/users/${userbase}/&tag;/&relreco2;/mergeana/&name;</logdir>
     <workdir>/uboone/data/users/${userbase}/work/&tag;/&relreco2;/mergeana/&name;</workdir>
     <numjobs>$njob2</numjobs>
-    <datatier>reconstructed-3d</datatier>
-    <anadatatier>root-tupe</anadatatier>
+    <datatier>reconstructed</datatier>
+    <anadatatier>root-tuple</anadatatier>
     <defname>&name;_&tag;</defname>
     <anadefname>&name;_&tag;_ana</anadefname>
   </stage>
