@@ -52,7 +52,11 @@ def get_dropbox(filename):
     # Construct dropbox path.
 
     #path = '/uboone/data/uboonepro/dropbox/%s/%s/%s' % (file_type, group, data_tier)
-    path = '/pnfs/uboone/scratch/uboonepro/dropbox/%s/%s/%s' % (file_type, group, data_tier)
+    if os.environ.has_key('FTS_DROPBOX'):
+        dropbox_root = os.environ['FTS_DROPBOX']
+    else:
+        dropbox_root = '/pnfs/uboone/scratch/uboonepro/dropbox'
+    path = '%s/%s/%s/%s' % (dropbox_root, file_type, group, data_tier)
     return path
 
 # Return fcl configuration for experiment-specific sam metadata.
