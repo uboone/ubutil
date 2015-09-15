@@ -207,6 +207,10 @@ do
     newprj=`basename $fcl .fcl`
     xml=${newprj}.xml
     filt=1
+    samprj=${newprj}
+    if [ $userbase != uboonepro ]; then
+	samprj=${userbase}_$newprj
+    fi
 
     # Make xml file.
 
@@ -314,7 +318,7 @@ do
 <!ENTITY relreco2 "$rr2">
 <!ENTITY file_type "mc">
 <!ENTITY run_type "physics">
-<!ENTITY name "$newprj">
+<!ENTITY name "$samprj">
 <!ENTITY tag "$tag">
 ]>
 
