@@ -42,9 +42,9 @@
 
 # Parse arguments.
 
-rs=v04_22_00
-rr1=v04_22_00
-rr2=v04_22_00
+rs=v04_23_00
+rr1=v04_23_00
+rr2=v04_23_00
 userdir=uboonepro
 userbase=$userdir
 nevarg=0
@@ -207,6 +207,10 @@ do
     newprj=`basename $fcl .fcl`
     xml=${newprj}.xml
     filt=1
+    samprj=${newprj}
+    if [ $userbase != uboonepro ]; then
+	samprj=${userbase}_$newprj
+    fi
 
     # Make xml file.
 
@@ -314,7 +318,7 @@ do
 <!ENTITY relreco2 "$rr2">
 <!ENTITY file_type "mc">
 <!ENTITY run_type "physics">
-<!ENTITY name "$newprj">
+<!ENTITY name "$samprj">
 <!ENTITY tag "$tag">
 ]>
 
