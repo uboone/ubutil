@@ -112,4 +112,13 @@ def dimensions(project, stage, ana=False):
     dim = dim + ' and ub_project.stage %s' % stage.name
     dim = dim + ' and ub_project.version %s' % project.release_tag
     dim = dim + ' and availability: anylocation'
+    if stage.pubs_output:
+        first_subrun = True
+        for subrun in stage.output_subruns:
+            if first_subrun:
+                dim = dim + ' and run_number %d.%d' % (stage.output_run, subrun)
+                first_subrun = False
+            else:
+                dim = dim + ',%d.%d' % (stage.output_run, subrun)
+
     return dim
