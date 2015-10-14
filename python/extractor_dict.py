@@ -52,9 +52,10 @@ def getmetadata(inputfile, md0={}):
 		elif mdkey == 'run_type':
 			pass
 
-		# Ignore data_stream for now.
+		# Ignore data_stream if it begins with "out".
+		# These kinds of stream names are probably junk module labels.
 
-		elif mdkey == 'data_stream':
+		elif mdkey == 'data_stream' and mdval[:3] == 'out':
 			pass
 
 		# Application family/name/version.
