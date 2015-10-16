@@ -45,7 +45,7 @@ product          version
 art             v1_16_02
 larbatch        v01_17_01
 
-cetbuildtools	v4_14_01	-	only_for_build
+cetbuildtools	v4_14_02	-	only_for_build
 end_product_list
 
 
