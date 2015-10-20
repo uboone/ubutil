@@ -42,9 +42,9 @@
 
 # Parse arguments.
 
-rs=v04_26_02
-rr1=v04_26_02
-rr2=v04_26_02
+rs=v04_27_00
+rr1=v04_27_00
+rr2=v04_27_00
 userdir=uboonepro
 userbase=$userdir
 nevarg=0
@@ -193,7 +193,7 @@ done
 
 # Get qualifier.
 
-qual=e7
+qual=e9
 
 # Delete existing xml files.
 
