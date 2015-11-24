@@ -67,7 +67,7 @@ def get_sam_metadata(project, stage):
     result = result + '  FCLVersion: "%s"\n' % project.release_tag
     result = result + '  ProjectName: "%s"\n' % project.name
     result = result + '  ProjectStage: "%s"\n' % stage.name
-    result = result + '  ProjectVersion: "%s"\n' % project.release_tag
+    result = result + '  ProjectVersion: "%s"\n' % project.version
     result = result + '}\n'
     if project.release_tag > 'v04_03_03':
         result = result + 'services.TFileMetadataMicroBooNE: @local::microboone_tfile_metadata\n'
@@ -110,8 +110,7 @@ def dimensions(project, stage, ana=False):
     dim = dim + ' and data_tier %s' % data_tier
     dim = dim + ' and ub_project.name %s' % project.name
     dim = dim + ' and ub_project.stage %s' % stage.name
-    dim = dim + ' and ub_project.version %s' % project.release_tag
-    dim = dim + ' and availability: anylocation'
+    dim = dim + ' and ub_project.version %s' % project.version
     if stage.pubs_output:
         first_subrun = True
         for subrun in stage.output_subruns:
@@ -120,5 +119,9 @@ def dimensions(project, stage, ana=False):
                 first_subrun = False
             else:
                 dim = dim + ',%d.%d' % (stage.output_run, subrun)
+    elif project.run_number != 0:
+        dim = dim + ' and run_number %d' % project.run_number
+    dim = dim + ' and availability: anylocation'
+
 
     return dim
