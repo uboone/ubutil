@@ -42,9 +42,9 @@
 
 # Parse arguments.
 
-rs=v04_30_00
-rr1=v04_30_00
-rr2=v04_30_00
+rs=v04_30_01
+rr1=v04_30_01
+rr2=v04_30_01
 userdir=uboonepro
 userbase=$userdir
 nevarg=0
@@ -352,8 +352,8 @@ EOF
   <stage name="gen">
     <fcl>$genfcl</fcl>
     <outdir>/pnfs/uboone/scratch/${userdir}/&tag;/&relsim;/gen/&name;</outdir>
-    <logdir>/uboone/data/users/${userbase}/&tag;/&relsim;/gen/&name;</logdir>
-    <workdir>/uboone/data/users/${userbase}/work/&tag;/&relsim;/gen/&name;</workdir>
+    <logdir>/pnfs/uboone/scratch/users/${userbase}/&tag;/&relsim;/gen/&name;</logdir>
+    <workdir>/pnfs/uboone/scratch/users/${userbase}/work/&tag;/&relsim;/gen/&name;</workdir>
     <output>${newprj}_\${PROCESS}_%tc_gen.root</output>
     <numjobs>$njob1</numjobs>
     <datatier>generated</datatier>
@@ -363,8 +363,8 @@ EOF
   <stage name="g4">
     <fcl>$g4fcl</fcl>
     <outdir>/pnfs/uboone/scratch/${userdir}/&tag;/&relsim;/g4/&name;</outdir>
-    <logdir>/uboone/data/users/${userbase}/&tag;/&relsim;/g4/&name;</logdir>
-    <workdir>/uboone/data/users/${userbase}/work/&tag;/&relsim;/g4/&name;</workdir>
+    <logdir>/pnfs/uboone/scratch/users/${userbase}/&tag;/&relsim;/g4/&name;</logdir>
+    <workdir>/pnfs/uboone/scratch/users/${userbase}/work/&tag;/&relsim;/g4/&name;</workdir>
     <numjobs>$njob1</numjobs>
     <datatier>simulated</datatier>
     <defname>&name;_&tag;_g4</defname>
@@ -373,8 +373,8 @@ EOF
   <stage name="detsim">
     <fcl>$detsimfcl</fcl>
     <outdir>/pnfs/uboone/scratch/${userdir}/&tag;/&relsim;/detsim/&name;</outdir>
-    <logdir>/uboone/data/users/${userbase}/&tag;/&relsim;/detsim/&name;</logdir>
-    <workdir>/uboone/data/users/${userbase}/work/&tag;/&relsim;/detsim/&name;</workdir>
+    <logdir>/pnfs/uboone/scratch/users/${userbase}/&tag;/&relsim;/detsim/&name;</logdir>
+    <workdir>/pnfs/uboone/scratch/users/${userbase}/work/&tag;/&relsim;/detsim/&name;</workdir>
     <numjobs>$njob2</numjobs>
     <datatier>detector-simulated</datatier>
     <defname>&name;_&tag;_detsim</defname>
@@ -416,8 +416,8 @@ EOF
   <stage name="reco1">
     <fcl>$reco1fcl</fcl>
     <outdir>/pnfs/uboone/scratch/${userdir}/&tag;/&relreco1;/reco1/&name;</outdir>
-    <logdir>/uboone/data/users/${userbase}/&tag;/&relreco1;/reco1/&name;</logdir>
-    <workdir>/uboone/data/users/${userbase}/work/&tag;/&relreco1;/reco1/&name;</workdir>
+    <logdir>/pnfs/uboone/scratch/users/${userbase}/&tag;/&relreco1;/reco1/&name;</logdir>
+    <workdir>/pnfs/uboone/scratch/users/${userbase}/work/&tag;/&relreco1;/reco1/&name;</workdir>
     <numjobs>$njob2</numjobs>
     <datatier>reconstructed-2d</datatier>
     <defname>&name;_&tag;_reco1</defname>
@@ -460,8 +460,8 @@ EOF
   <stage name="reco2">
     <fcl>$reco2fcl</fcl>
     <outdir>/pnfs/uboone/scratch/${userdir}/&tag;/&relreco2;/reco2/&name;</outdir>
-    <logdir>/uboone/data/users/${userbase}/&tag;/&relreco2;/reco2/&name;</logdir>
-    <workdir>/uboone/data/users/${userbase}/work/&tag;/&relreco2;/reco2/&name;</workdir>
+    <logdir>/pnfs/uboone/scratch/users/${userbase}/&tag;/&relreco2;/reco2/&name;</logdir>
+    <workdir>/pnfs/uboone/scratch/users/${userbase}/work/&tag;/&relreco2;/reco2/&name;</workdir>
     <numjobs>$njob2</numjobs>
     <datatier>reconstructed-3d</datatier>
     <defname>&name;_&tag;_reco2</defname>
@@ -470,8 +470,8 @@ EOF
   <stage name="mergeana">
     <fcl>$mergefcl</fcl>
     <outdir>/pnfs/uboone/scratch/${userdir}/&tag;/&relreco2;/mergeana/&name;</outdir>
-    <logdir>/uboone/data/users/${userbase}/&tag;/&relreco2;/mergeana/&name;</logdir>
-    <workdir>/uboone/data/users/${userbase}/work/&tag;/&relreco2;/mergeana/&name;</workdir>
+    <logdir>/pnfs/uboone/scratch/users/${userbase}/&tag;/&relreco2;/mergeana/&name;</logdir>
+    <workdir>/pnfs/uboone/scratch/users/${userbase}/work/&tag;/&relreco2;/mergeana/&name;</workdir>
     <numjobs>$njob2</numjobs>
     <datatier>reconstructed</datatier>
     <anadatatier>root-tuple</anadatatier>
