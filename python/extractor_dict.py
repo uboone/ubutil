@@ -56,7 +56,7 @@ def getmetadata(inputfile, md0={}):
 		# These kinds of stream names are probably junk module labels.
 
 		elif mdkey == 'data_stream' and mdval[:3] == 'out' and \
-			    mdval[4] >= '0' and mdval[4] <= '9':
+			    mdval[3] >= '0' and mdval[3] <= '9':
 			pass
 
 		# Application family/name/version.
