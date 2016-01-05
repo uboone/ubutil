@@ -43,7 +43,7 @@ table_fragment_end
 
 product          version
 art             v1_15_02
-larbatch        v01_20_00
+larbatch        v01_20_02
 
 cetbuildtools	v4_17_03	-	only_for_build
 end_product_list
