@@ -38,12 +38,25 @@ do
   fi
 done
 
+# Add current working directory (".") to FW_SEARCH_PATH
+#
+if [[ -n "${FW_SEARCH_PATH}" ]]; then
+  FW_SEARCH_PATH=`dropit -e -p $FW_SEARCH_PATH .`
+  export FW_SEARCH_PATH=.:${FW_SEARCH_PATH}
+else
+  export FW_SEARCH_PATH=.
+fi
+
 # Add uBooNE data path to FW_SEARCH_PATH
 #
 if [[ -d "${UBOONE_BLUEARC_DATA}" ]]; then
 
-    [[ -n $FW_SEARCH_PATH ]] && FW_SEARCH_PATH=`dropit -e -p $FW_SEARCH_PATH ${UBOONE_BLUEARC_DATA}`
-    export FW_SEARCH_PATH=${UBOONE_BLUEARC_DATA}:${FW_SEARCH_PATH}
+    if [[ -n "${FW_SEARCH_PATH}" ]]; then
+      FW_SEARCH_PATH=`dropit -e -p $FW_SEARCH_PATH ${UBOONE_BLUEARC_DATA}`
+      export FW_SEARCH_PATH=${UBOONE_BLUEARC_DATA}:${FW_SEARCH_PATH}
+    else
+      export FW_SEARCH_PATH=${UBOONE_BLUEARC_DATA}
+    fi
 
 fi
 
