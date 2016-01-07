@@ -38,6 +38,14 @@ foreach dir ( $FERMIAPP_UBOONE_DIR $FERMIOSG_UBOONE_DIR $OASIS_UBOONE_DIR )
   endif
 end
 
+# Add current working directory (".") to FW_SEARCH_PATH
+#
+if ( $?FW_SEARCH_PATH ) then
+    setenv FW_SEARCH_PATH .:${FW_SEARCH_PATH}
+else
+    setenv FW_SEARCH_PATH .
+endif
+
 # Add uBooNE path to FW_SEARCH_PATH
 #
 if ( -d "${UBOONE_BLUEARC_DATA}" ) then
