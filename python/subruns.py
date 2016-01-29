@@ -133,6 +133,28 @@ def get_subruns(inputfile):
                         if run_subrun not in result:
                             result.append(run_subrun)
 
+        # If previous section didn't find anything, try extracting 
+        # from analysis tree trees.
+
+        if len(result) == 0:
+            tdir = file.Get('analysistree')
+            if tdir and tdir.InheritsFrom('TDirectory'):
+
+                # Look for eventtree.
+
+                event_tree = tdir.Get('anatree')
+                if event_tree and event_tree.InheritsFrom('TTree'):
+                    nsubruns = event_tree.GetEntriesFast()
+                    tfr = ROOT.TTreeFormula('runs', 'run', event_tree)
+                    tfs = ROOT.TTreeFormula('subruns', 'subrun', event_tree)
+                    for entry in range(nsubruns):
+                        event_tree.GetEntry(entry)
+                        run = tfr.EvalInstance64()
+                        subrun = tfs.EvalInstance64()
+                        run_subrun = (run, subrun)
+                        if run_subrun not in result:
+                            result.append(run_subrun)
+
     else:
 
         # Root file could not be opened.
