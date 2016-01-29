@@ -18,6 +18,11 @@
 # Import stuff.
 
 import sys, os, project_utilities
+import extractor_dict
+import ifdh
+import json
+
+Ifdh = ifdh.ifdh()
 
 # Import ROOT (hide command line arguments).
 
@@ -36,6 +41,38 @@ sys.argv = myargv
 import warnings
 warnings.filterwarnings('ignore', category = RuntimeWarning, message = 'creating converter.*')
 
+# This function returns a list of (run, subrun) pairs for a given filename
+# by accessing sam metadata in the sam database.
+
+def get_file_subruns(filename):
+
+    result = []
+
+    md = Ifdh.getMetadata(filename)
+
+    state=0
+    for line in md.splitlines():
+        words = line.split()
+        if state == 0 and len(words) >= 2 and words[0] == 'Runs:':
+            state = 1
+            run_subrun = words[1].split('.')
+            if len(run_subrun) >= 2:
+                subrun_id = (int(run_subrun[0]), int(run_subrun[1]))
+                if subrun_id not in result:
+                    result.append(subrun_id)
+        elif state == 1 and len(words) >= 1:
+            if words[0].find(':') < 0:
+                run_subrun = words[0].split('.')
+                if len(run_subrun) >= 2:
+                    subrun_id = (int(run_subrun[0]), int(run_subrun[1]))
+                    if subrun_id not in result:
+                        result.append(subrun_id)
+            else:
+                state = 2
+
+    return result
+
+
 # This function opens an artroot file and extracts the list of runs and subruns
 # from the SubRuns TTree.
 # A list of (run, subrun) pairs is returned as a list of 2-tuples.
@@ -49,111 +86,53 @@ def get_subruns(inputfile):
     # Check whether this file exists.
     if not os.path.exists(inputfile):
         return result
-            
+
     # Root checks.
 
     file = project_utilities.SafeTFile(inputfile)
     if file and file.IsOpen() and not file.IsZombie():
 
         # Root file opened successfully.
-        # Get runs and subruns fro SubRuns tree.
+        # Check whether this file has an sqlite database, and therefore
+        # may have internal sam metadata.
 
-        subrun_tree = file.Get('SubRuns')
-        if subrun_tree and subrun_tree.InheritsFrom('TTree'):
-            nsubruns = subrun_tree.GetEntriesFast()
-            tfr = ROOT.TTreeFormula('runs',
-                                    'SubRunAuxiliary.id_.run_.run_',
-                                    subrun_tree)
-            tfs = ROOT.TTreeFormula('subruns',
-                                    'SubRunAuxiliary.id_.subRun_',
-                                    subrun_tree)
-            for entry in range(nsubruns):
-                subrun_tree.GetEntry(entry)
-                run = tfr.EvalInstance64()
-                subrun = tfs.EvalInstance64()
-                run_subrun = (run, subrun)
-                result.append(run_subrun)
+        db = file.Get('RootFileDB')
+        if db and db.InheritsFrom('TKey'):
 
-        # If previous section didn't find anything, try extracting 
-        # from beam data trees.
+            # Extract internal sam metadata.
 
-        if len(result) == 0:
-            tdir = file.Get('beamdata')
-            if tdir and tdir.InheritsFrom('TDirectory'):
+            md = extractor_dict.getmetadata(inputfile)
+            if type(md) == type({}) and md.has_key('parents'):
 
-                # Look for bnb tree.
+                # Extract run and subrun information from parent files.
 
-                bnb_tree = tdir.Get('bnb')
-                if bnb_tree and bnb_tree.InheritsFrom('TTree'):
-                    nsubruns = bnb_tree.GetEntriesFast()
-                    tfr = ROOT.TTreeFormula('runs', 'run', bnb_tree)
-                    tfs = ROOT.TTreeFormula('subruns', 'subrun', bnb_tree)
-                    for entry in range(nsubruns):
-                        bnb_tree.GetEntry(entry)
-                        run = tfr.EvalInstance64()
-                        subrun = tfs.EvalInstance64()
-                        run_subrun = (run, subrun)
-                        if run_subrun not in result:
-                            result.append(run_subrun)
+                for parent in md['parents']:
+                    parent_name = parent['file_name']
+                    subruns = get_file_subruns(str(parent_name))
+                    for subrun in subruns:
+                        if subrun not in result:
+                            result.append(subrun)
 
-                # Look for numi tree.
+        else:
 
-                numi_tree = tdir.Get('numi')
-                if numi_tree and numi_tree.InheritsFrom('TTree'):
-                    nsubruns = numi_tree.GetEntriesFast()
-                    tfr = ROOT.TTreeFormula('runs', 'run', numi_tree)
-                    tfs = ROOT.TTreeFormula('subruns', 'subrun', numi_tree)
-                    for entry in range(nsubruns):
-                        numi_tree.GetEntry(entry)
-                        run = tfr.EvalInstance64()
-                        subrun = tfs.EvalInstance64()
-                        run_subrun = (run, subrun)
-                        if run_subrun not in result:
-                            result.append(run_subrun)
+            # This file is not an artroot file.
+            # Try to extract information from corresponding json file.
 
-        # If previous section didn't find anything, try extracting 
-        # from specalib trees.
+            json_filename = inputfile + '.json'
+            if os.path.exists(json_filename):
+                json_file = open(json_filename)
+                if json_file:
+                    md = json.load(json_file)
+                    if type(md) == type({}) and md.has_key('parents'):
 
-        if len(result) == 0:
-            tdir = file.Get('specalib')
-            if tdir and tdir.InheritsFrom('TDirectory'):
+                        # Extract run and subrun information from parent files.
 
-                # Look for eventtree.
-
-                event_tree = tdir.Get('eventtree')
-                if event_tree and event_tree.InheritsFrom('TTree'):
-                    nsubruns = event_tree.GetEntriesFast()
-                    tfr = ROOT.TTreeFormula('runs', 'run', event_tree)
-                    tfs = ROOT.TTreeFormula('subruns', 'subrun', event_tree)
-                    for entry in range(nsubruns):
-                        event_tree.GetEntry(entry)
-                        run = tfr.EvalInstance64()
-                        subrun = tfs.EvalInstance64()
-                        run_subrun = (run, subrun)
-                        if run_subrun not in result:
-                            result.append(run_subrun)
-
-        # If previous section didn't find anything, try extracting 
-        # from analysis tree trees.
-
-        if len(result) == 0:
-            tdir = file.Get('analysistree')
-            if tdir and tdir.InheritsFrom('TDirectory'):
-
-                # Look for eventtree.
-
-                event_tree = tdir.Get('anatree')
-                if event_tree and event_tree.InheritsFrom('TTree'):
-                    nsubruns = event_tree.GetEntriesFast()
-                    tfr = ROOT.TTreeFormula('runs', 'run', event_tree)
-                    tfs = ROOT.TTreeFormula('subruns', 'subrun', event_tree)
-                    for entry in range(nsubruns):
-                        event_tree.GetEntry(entry)
-                        run = tfr.EvalInstance64()
-                        subrun = tfs.EvalInstance64()
-                        run_subrun = (run, subrun)
-                        if run_subrun not in result:
-                            result.append(run_subrun)
+                        for parent in md['parents']:
+                            parent_name = parent['file_name']
+                            subruns = get_file_subruns(str(parent_name))
+                            for subrun in subruns:
+                                if subrun not in result:
+                                    result.append(subrun)
 
     else:
 
