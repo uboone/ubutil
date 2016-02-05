@@ -278,7 +278,12 @@ do
       njob1=$njob2
     fi
   fi
-
+  
+  resource=DEDICATED,OPPORTUNISTIC  
+  if echo $newprj | grep -q prod_; then
+    resource=OFFSITE
+  fi
+  
   cat <<EOF > $xml
 <?xml version="1.0"?>
 
@@ -305,7 +310,7 @@ do
   <os>SL6</os>
 
   <!-- Batch resources -->
-  <resource>DEDICATED,OPPORTUNISTIC</resource>
+  <resource>$resource</resource>
 
   <!-- Larsoft information -->
   <larsoft>
