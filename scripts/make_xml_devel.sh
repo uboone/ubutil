@@ -42,9 +42,9 @@
 
 # Parse arguments.
 
-rs=v04_35_00
-rr1=v04_35_00
-rr2=v04_35_00
+rs=v04_36_01
+rr1=v04_36_01
+rr2=v04_36_01
 userdir=uboonepro
 userbase=$userdir
 nevarg=0
