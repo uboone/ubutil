@@ -2,9 +2,16 @@
 VER=""
 Run=0
 Event=0
-
+FCL=swizzler_reco_anatree_art.fcl
+LOCAL=
 while [ $# -gt 0 ]; do
     case "$1" in
+
+    # Interactive flag.
+    -h|--help )
+      echo getevent.sh --version v05_01_02 --run 4670 --event 662 [--fcl swizzle_software_trigger_streams.fcl --local local.tar]
+      exit 0
+      ;;
 
       # version.
       --version )
@@ -30,6 +37,23 @@ while [ $# -gt 0 ]; do
 	fi
 	;;
 
+     # fcl file
+     --fcl )
+       if [ $# -gt 1 ]; then
+	    FCL=$2
+	    shift
+	fi
+	;;
+
+     # local product tarball
+     --local )
+       if [ $# -gt 1 ]; then
+	    LOCAL=$2
+	    shift
+	fi
+	;;
+
+
     # Other.
     * )
       echo "Unknown option $1"
@@ -40,12 +64,20 @@ done
 
 echo VER=$VER
 echo Run=$Run
-echo SubRun=$SubRun
 echo Event=$Event
 
 #kx509
 source /grid/fermiapp/products/uboone/setup_uboone.sh
 setup uboonecode $VER -q e9:prof
+if [ -n "$LOCAL" ]; then
+    mkdir localProducts
+    cp $LOCAL localProducts
+    file=`basename $LOCAL`
+    cd localProducts
+    tar -xf $file
+    source setup
+    cd -
+fi
 rawfile=`samweb list-files "run_number=$Run and first_event<=$Event and last_event>=$Event and data_tier=raw and file_format=binaryraw-uncompressed"`
 echo rawfile=$rawfile
 ifdh cp `samweb get-file-access-url $rawfile` .
@@ -54,5 +86,6 @@ nskip=$[ $Event%50-1 ]
 if [ $nskip -eq -1 ]; then
     nskip=49
 fi
-lar -c swizzler_reco_anatree_art.fcl $rawfile --nskip $nskip -n 1 >& lar.out
+lar -c $FCL $rawfile --nskip $nskip -n 1 >& lar.out
 rm -f $rawfile
+rm -rf localProducts
