@@ -75,8 +75,8 @@ if [ -n "$LOCAL" ]; then
     file=`basename $LOCAL`
     cd localProducts
     tar -xf $file
-    source setup
     cd -
+    source localProducts/setup
 fi
 rawfile=`samweb list-files "run_number=$Run and first_event<=$Event and last_event>=$Event and data_tier=raw and file_format=binaryraw-uncompressed"`
 echo rawfile=$rawfile
