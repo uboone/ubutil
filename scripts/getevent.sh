@@ -75,9 +75,11 @@ if [ -n "$LOCAL" ]; then
     file=`basename $LOCAL`
     cd localProducts
     tar -xf $file
-    source setup
     cd -
+    source localProducts/setup
+    mrbslp
 fi
+ups active
 rawfile=`samweb list-files "run_number=$Run and first_event<=$Event and last_event>=$Event and data_tier=raw and file_format=binaryraw-uncompressed"`
 echo rawfile=$rawfile
 ifdh cp `samweb get-file-access-url $rawfile` .
@@ -89,3 +91,7 @@ fi
 lar -c $FCL $rawfile --nskip $nskip -n 1 >& lar.out
 rm -f $rawfile
 rm -rf localProducts
+if [ -n "$LOCAL" ]; then
+    file=`basename $LOCAL`
+    rm -f $file
+fi
