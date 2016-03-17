@@ -1,4 +1,4 @@
-#!/bin/bash
+#! /bin/bash
 VER=""
 Run=0
 Event=0
@@ -76,7 +76,9 @@ if [ -n "$LOCAL" ]; then
     cd localProducts
     tar -xf $file
     cd -
-    source localProducts/setup
+    sed "s@setenv MRB_INSTALL.*@setenv MRB_INSTALL `pwd`/localProducts@" localProducts/setup | \
+    sed "s@setenv MRB_TOP.*@setenv MRB_TOP `pwd`@" > localProducts/setup.local
+    . localProducts/setup.local
     mrbslp
 fi
 ups active
@@ -88,10 +90,8 @@ nskip=$[ $Event%50-1 ]
 if [ $nskip -eq -1 ]; then
     nskip=49
 fi
+ART_DEBUG_CONFIG=cfg.fcl lar -c $FCL $rawfile --nskip $nskip -n 1
+echo "lar -c $FCL $rawfile --nskip $nskip -n 1 >& lar.out"
 lar -c $FCL $rawfile --nskip $nskip -n 1 >& lar.out
 rm -f $rawfile
 rm -rf localProducts
-if [ -n "$LOCAL" ]; then
-    file=`basename $LOCAL`
-    rm -f $file
-fi
