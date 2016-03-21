@@ -118,6 +118,11 @@ def dimensions(project, stage, ana=False):
             if first_subrun:
                 dim = dim + ' and run_number %d.%d' % (stage.output_run, subrun)
                 first_subrun = False
+
+                # Kluge to pick up mc files with wrong run number.
+
+                if stage.output_run > 1 and stage.output_run < 100:
+                    dim = dim + ',1.%d' % subrun
             else:
                 dim = dim + ',%d.%d' % (stage.output_run, subrun)
     elif project.run_number != 0:
