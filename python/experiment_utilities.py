@@ -10,7 +10,8 @@
 #
 #----------------------------------------------------------------------
 
-import os
+import os, pycurl
+from StringIO import StringIO
 
 # Don't fail (on import) if samweb is not available.
 
@@ -117,6 +118,11 @@ def dimensions(project, stage, ana=False):
             if first_subrun:
                 dim = dim + ' and run_number %d.%d' % (stage.output_run, subrun)
                 first_subrun = False
+
+                # Kluge to pick up mc files with wrong run number.
+
+                if stage.output_run > 1 and stage.output_run < 100:
+                    dim = dim + ',1.%d' % subrun
             else:
                 dim = dim + ',%d.%d' % (stage.output_run, subrun)
     elif project.run_number != 0:
@@ -125,3 +131,48 @@ def dimensions(project, stage, ana=False):
 
 
     return dim
+
+
+# Status check before submitting batch jobs.
+
+def batch_status_check():
+
+    # Check ifbeam database url.
+    # Require server to return status code 200.
+    # Output is ignored.
+
+    url='http://ifb-data.fnal.gov:8100/ifbeam/data'
+    buffer = StringIO()
+    c = pycurl.Curl()
+    c.setopt(c.URL, url)
+    c.setopt(c.WRITEFUNCTION, buffer.write)
+    c.perform()
+    code = c.getinfo(c.RESPONSE_CODE)
+    c.close()
+    if code == 200:
+        result = True
+    else:
+        print 'Got bad status from ifbeam database server.'
+        result = False
+
+    # Check calibration database url.
+    # Require server to return status code 200 and output == 'OK'
+
+    if result:
+
+        url='http://dbdata0vm.fnal.gov:8186/uboonecon_prod/app/probe'
+        buffer = StringIO()
+        c = pycurl.Curl()
+        c.setopt(c.URL, url)
+        c.setopt(c.WRITEFUNCTION, buffer.write)
+        c.perform()
+        code = c.getinfo(c.RESPONSE_CODE)
+        c.close()
+        value = buffer.getvalue()
+        if code != 200 or value != 'OK':
+            print 'Got bad status from calibration database server.'
+            result = False
+
+    # Done.
+
+    return result
