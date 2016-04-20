@@ -2,7 +2,7 @@
 
 # The *parent* line must the first non-commented line and defines this product and version
 # The version should be of the form vxx_yy_zz (e.g. v01_02_03)
-parent ubutil v01_39_00
+parent ubutil v01_39_01
 defaultqual e9
 
 # These optional lines define the installed directories where headers,
@@ -43,7 +43,8 @@ table_fragment_end
 
 product          version
 art             v1_17_07
-larbatch        v01_21_00
+larbatch        v01_21_01
+pycurl          -		-	optional
 
 cetbuildtools	v4_19_04	-	only_for_build
 end_product_list
@@ -51,10 +52,10 @@ end_product_list
 
 # We now define allowed qualifiers and the corresponding qualifiers for the depdencies.
 # Make a table by adding columns before "notes". 
-qualifier	art		larbatch	notes
-e9:debug	nu:e9:debug	-nq-
-e9:opt		nu:e9:opt	-nq-
-e9:prof		nu:e9:prof	-nq-
+qualifier	art		larbatch	pycurl	notes
+e9:debug	nu:e9:debug	-nq-		-nq-
+e9:opt		nu:e9:opt	-nq-		-nq-
+e9:prof		nu:e9:prof	-nq-		-nq-
 end_qualifier_list
 
 # Preserve tabs and formatting in emacs and vi / vim:
