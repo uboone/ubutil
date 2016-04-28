@@ -3,24 +3,64 @@ import sys, getopt
 import os
 import subprocess
 from subprocess import Popen, PIPE
+import threading
+import Queue
 import time
 import ast
 import project_utilities, root_metadata
 import json
 
+# Function to wait for a subprocess to finish and fetch return code,
+# standard output, and standard error.
+# Call this function like this:
+#
+# q = Queue.Queue()
+# jobinfo = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+# wait_for_subprocess(jobinfo, q)
+# rc = q.get()      # Return code.
+# jobout = q.get()  # Standard output
+# joberr = q.get()  # Standard error
+
+
+def wait_for_subprocess(jobinfo, q):
+    jobout, joberr = jobinfo.communicate()
+    rc = jobinfo.poll()
+    q.put(rc)
+    q.put(jobout)
+    q.put(joberr)
+    return
+
+# Get metadata from input file and return as python dictionary.
+
 def getmetadata(inputfile, md0={}):
 	# Extract metadata into a pipe.
 	local = project_utilities.path_to_local(inputfile)
 	if local != '':
-		proc = subprocess.Popen(["sam_metadata_dumper", local], stdout=subprocess.PIPE)
+		proc = subprocess.Popen(["sam_metadata_dumper", local], stdout=subprocess.PIPE,
+					stderr=subprocess.PIPE)
 	else:
 		url = project_utilities.path_to_url(inputfile)
-		proc = subprocess.Popen(["sam_metadata_dumper", url], stdout=subprocess.PIPE)
+		proc = subprocess.Popen(["sam_metadata_dumper", url], stdout=subprocess.PIPE,
+					stderr=subprocess.PIPE)
 	if local != '' and local != inputfile:
 		os.remove(local)
 
+	q = Queue.Queue()
+	thread = threading.Thread(target=wait_for_subprocess, args=[proc, q])
+	thread.start()
+	thread.join(timeout=60)
+	if thread.is_alive():
+		print 'Terminating subprocess because of timeout.'
+		proc.terminate()
+		thread.join()
+	rc = q.get()
+	jobout = q.get()
+	joberr = q.get()
+	if rc != 0:
+		raise RuntimeError, 'sam_metadata_dumper returned nonzero exit status %d.' % rc
+	
 	mdtext=''
-	for line in proc.stdout.readlines():
+	for line in jobout.split('\n'):
 		if line[-3:-1] != ' ,':
 			mdtext = mdtext + line.replace(", ,",",")
 	mdtop = json.JSONDecoder().decode(mdtext)
