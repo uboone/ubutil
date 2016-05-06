@@ -241,11 +241,11 @@ do
 
     # Reco 1
 
-    reco1fcl=reco_uboone_stage_1.fcl
+    reco1fcl=reco_uboone_mcc7_driver_stage1.fcl
 
     # Reco 2
 
-    reco2fcl=reco_uboone_stage_2_w_cluster3d.fcl
+    reco2fcl=reco_uboone_mcc7_driver_stage2.fcl
 
     # Merge/Analysis
 
