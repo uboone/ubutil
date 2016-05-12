@@ -42,9 +42,9 @@
 
 # Parse arguments.
 
-rs=v05_11_00
-rr1=v05_11_00
-rr2=v05_11_00
+rs=v05_11_01
+rr1=v05_11_01
+rr2=v05_11_01
 userdir=uboonepro
 userbase=$userdir
 nevarg=0
@@ -241,11 +241,11 @@ do
 
     # Reco 1
 
-    reco1fcl=reco_uboone_stage_1.fcl
+    reco1fcl=reco_uboone_mcc7_driver_stage1.fcl
 
     # Reco 2
 
-    reco2fcl=reco_uboone_stage_2_w_cluster3d.fcl
+    reco2fcl=reco_uboone_mcc7_driver_stage2.fcl
 
     # Merge/Analysis
 
