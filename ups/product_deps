@@ -2,7 +2,7 @@
 
 # The *parent* line must the first non-commented line and defines this product and version
 # The version should be of the form vxx_yy_zz (e.g. v01_02_03)
-parent ubutil v06_00_00_rc4
+parent ubutil v06_00_00_rc5
 defaultqual e10
 
 # These optional lines define the installed directories where headers,
@@ -42,11 +42,11 @@ table_fragment_end
 # Add the dependent product and version
 
 product          version
-art             v2_00_02
-larbatch        v01_22_00
+art             v2_00_03
+larbatch        v01_22_01
 pycurl          -		-	optional
 
-cetbuildtools	v5_02_02	-	only_for_build
+cetbuildtools	v05_04_01	-	only_for_build
 end_product_list
 
 
