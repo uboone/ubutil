@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 #----------------------------------------------------------------------
 #
-# Name: project_utilities.py
+# Name: experiment_utilities.py
 #
 # Purpose: A python module containing various experiment-specific
 #          python utility functions.

@@ -7,7 +7,7 @@ import threading
 import Queue
 import time
 import ast
-import project_utilities, root_metadata
+import root_metadata
 import json
 
 # Function to wait for a subprocess to finish and fetch return code,

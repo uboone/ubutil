@@ -17,7 +17,7 @@
 
 # Import stuff.
 
-import sys, os, project_utilities
+import sys, os
 
 # Import ROOT (hide command line arguments).
 
