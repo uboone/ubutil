@@ -37,7 +37,7 @@ def count_tpc_events(inputfile):
             
     # Root checks.
 
-    file = project_utilities.SafeTFile(inputfile)
+    file = ROOT.TFile.Open(inputfile)
     if file and file.IsOpen() and not file.IsZombie():
 
         # Root file opened successfully.
