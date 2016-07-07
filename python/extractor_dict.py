@@ -7,7 +7,7 @@ import threading
 import Queue
 import time
 import ast
-import project_utilities, root_metadata
+import root_metadata
 import json
 
 # Function to wait for a subprocess to finish and fetch return code,
@@ -33,18 +33,10 @@ def wait_for_subprocess(jobinfo, q):
 # Get metadata from input file and return as python dictionary.
 
 def getmetadata(inputfile, md0={}):
-	# Extract metadata into a pipe.
-	local = project_utilities.path_to_local(inputfile)
-	if local != '':
-		proc = subprocess.Popen(["sam_metadata_dumper", local], stdout=subprocess.PIPE,
-					stderr=subprocess.PIPE)
-	else:
-		url = project_utilities.path_to_url(inputfile)
-		proc = subprocess.Popen(["sam_metadata_dumper", url], stdout=subprocess.PIPE,
-					stderr=subprocess.PIPE)
-	if local != '' and local != inputfile:
-		os.remove(local)
 
+        # Extract metadata into a pipe.
+        proc = subprocess.Popen(["sam_metadata_dumper", inputfile],
+                            stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 	q = Queue.Queue()
 	thread = threading.Thread(target=wait_for_subprocess, args=[proc, q])
 	thread.start()
