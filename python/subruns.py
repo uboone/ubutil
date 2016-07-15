@@ -17,7 +17,7 @@
 
 # Import stuff.
 
-import sys, os, project_utilities
+import sys, os
 
 # Import ROOT (hide command line arguments).
 
@@ -52,7 +52,7 @@ def get_subruns(inputfile):
             
     # Root checks.
 
-    file = project_utilities.SafeTFile(inputfile)
+    file = ROOT.TFile.Open(inputfile)
     if file and file.IsOpen() and not file.IsZombie():
 
         # Root file opened successfully.
