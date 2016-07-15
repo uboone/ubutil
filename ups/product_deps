@@ -43,7 +43,7 @@ table_fragment_end
 
 product          version
 art             v2_00_03
-larbatch        v01_22_01
+larbatch        v01_23_01
 pycurl          -		-	optional
 
 cetbuildtools	v5_02_02	-	only_for_build
