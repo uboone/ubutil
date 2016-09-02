@@ -51,10 +51,19 @@ def getmetadata(inputfile, md0={}):
     if rc != 0:
         raise RuntimeError, 'sam_metadata_dumper returned nonzero exit status %d.' % rc
 	
+    # Decode output from sam_metadata_dumper as json text.
+    # Add some fixes and workarounds here.
+    # Extract mix parents before conversion to json.
+
     mdtext=''
+    mixparents = []
     for line in jobout.split('\n'):
-        if line[-3:-1] != ' ,':
-            mdtext = mdtext + line.replace(", ,",",")
+        fields = line.split(':')
+        if fields[0].find('mixparent') >= 0 and len(fields) >= 2:
+            mixparents.append(fields[1].strip(' ,"'))
+        else:
+            if line[-3:-1] != ' ,':
+                mdtext = mdtext + line.replace(", ,",",")
     mdtop = json.JSONDecoder().decode(mdtext)
     if len(mdtop.keys()) == 0:
         print 'No top-level key in extracted metadata.'
@@ -137,6 +146,12 @@ def getmetadata(inputfile, md0={}):
 
         else:
             md[mdkey] = mdart[mdkey]
+
+    # Merge mix parents into normal parents.
+
+    for mixparent in mixparents:
+        mixparent_dict = {'file_name': mixparent}
+        md['parents'].append(mixparent_dict)
 
     # Get the other meta data field parameters
     md['file_name'] =  inputfile.split("/")[-1]
