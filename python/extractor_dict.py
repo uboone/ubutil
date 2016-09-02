@@ -138,17 +138,17 @@ def getmetadata(inputfile, md0={}):
         else:
             md[mdkey] = mdart[mdkey]
 
-	# Get the other meta data field parameters						
-	md['file_name'] =  inputfile.split("/")[-1]
-	if md0.has_key('file_size'):
-            md['file_size'] = md0['file_size']
-	else:
-            md['file_size'] =  os.path.getsize(inputfile)
-	if md0.has_key('crc'):
-            md['crc'] = md0['crc']
-	else:
-            md['crc'] = root_metadata.fileEnstoreChecksum(inputfile)
-	return md
+    # Get the other meta data field parameters
+    md['file_name'] =  inputfile.split("/")[-1]
+    if md0.has_key('file_size'):
+        md['file_size'] = md0['file_size']
+    else:
+        md['file_size'] =  os.path.getsize(inputfile)
+    if md0.has_key('crc'):
+        md['crc'] = md0['crc']
+    else:
+        md['crc'] = root_metadata.fileEnstoreChecksum(inputfile)
+    return md
 
 if __name__ == "__main__":
     md = getmetadata(str(sys.argv[1]))
