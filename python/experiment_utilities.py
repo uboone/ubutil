@@ -181,3 +181,18 @@ def batch_status_check():
     # Done.
 
     return result
+
+class MetaDataKey:
+
+   def __init__(self):
+     self.expname = "ub"
+
+   def metadataList(self):
+     return [self.expname + elt for elt in ('ProjectName', 'ProjectStage', 'ProjectVersion')]
+
+
+   def translateKey(self, key):
+     prefix = key[:2]
+     stem = key[2:]
+     projNoun = stem.split("Project")
+     return prefix + "_Project." + projNoun[1]
