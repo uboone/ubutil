@@ -64,7 +64,14 @@ def get_dropbox(filename):
 
 def get_sam_metadata(project, stage):
     result = 'services.FileCatalogMetadataMicroBooNE: {\n'
-    result = result + '  FCLName: "%s"\n' % os.path.basename(stage.fclname)
+    if type(stage.fclname) == type(''):
+        result = result + '  FCLName: "%s"\n' % os.path.basename(stage.fclname)
+    else:
+        result = result + '  FCLName: "'
+        for fcl in stage.fclname:
+            result = result + '%s/' % os.path.basename(fcl)
+        result = result[:-1]
+        result = result + '"\n' 
     result = result + '  FCLVersion: "%s"\n' % project.release_tag
     result = result + '  ProjectName: "%s"\n' % project.name
     result = result + '  ProjectStage: "%s"\n' % stage.name
@@ -181,3 +188,18 @@ def batch_status_check():
     # Done.
 
     return result
+
+class MetaDataKey:
+
+   def __init__(self):
+     self.expname = "ub"
+
+   def metadataList(self):
+     return [self.expname + elt for elt in ('ProjectName', 'ProjectStage', 'ProjectVersion')]
+
+
+   def translateKey(self, key):
+     prefix = key[:2]
+     stem = key[2:]
+     projNoun = stem.split("Project")
+     return prefix + "_Project." + projNoun[1]
