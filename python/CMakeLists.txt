@@ -5,7 +5,7 @@
 
 # Executable python files.
 
-LIST(APPEND exes tpc_events.py subruns.py)
+LIST(APPEND exes extractor_dict.py tpc_events.py subruns.py)
 
 # Non-executable python files.
 
