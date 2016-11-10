@@ -64,7 +64,7 @@ def get_dropbox(filename):
 
 def get_sam_metadata(project, stage):
     result = 'services.FileCatalogMetadataMicroBooNE: {\n'
-    if type(stage.fclname) == type(''):
+    if type(stage.fclname) == type('') or type(stage.fclname) == type(u''):
         result = result + '  FCLName: "%s"\n' % os.path.basename(stage.fclname)
     else:
         result = result + '  FCLName: "'
