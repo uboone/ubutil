@@ -52,27 +52,27 @@ void analyze(const fhicl::ParameterSet& pset, const std::string& head)
   // Get trigger paths and end paths, if applicable.
 
   if(head == "physics") {
-    std::vector<std::string> paths;
-    paths.push_back("trigger_paths");
-    paths.push_back("end_paths");
+    std::vector<std::string> groups;
+    groups.push_back("trigger_paths");
+    groups.push_back("end_paths");
 
     // Print paths.
 
-    for(auto const & path : paths) {
-      std::vector<std::string> subpaths = pset.get<std::vector<std::string> >(path);
-      std::cout << "physics." << path << ": [ ";
+    for(auto const & group : groups) {
+      std::vector<std::string> paths = pset.get<std::vector<std::string> >(group);
+      std::cout << "physics." << group << ": [ ";
       std::string sep;
-      for(auto const & subpath : subpaths) {
-	std::cout << sep << '"' << subpath << '"';
+      for(auto const & path : paths) {
+	std::cout << sep << '"' << path << '"';
 	sep = ", ";
       }
       std::cout << "]" << std::endl;
 
       // Print modules in each path.
 
-      for(auto const& subpath : subpaths) {
-	std::vector<std::string> modules = pset.get<std::vector<std::string> >(subpath);
-	std::cout << "physics." << subpath << ": [ ";
+      for(auto const& path : paths) {
+	std::vector<std::string> modules = pset.get<std::vector<std::string> >(path);
+	std::cout << "physics." << path << ": [ ";
 	sep.clear();
 	for(auto const & module : modules) {
 	  std::cout << sep << '"' << module << '"';
