@@ -49,6 +49,39 @@ void help()
 
 void analyze(const fhicl::ParameterSet& pset, const std::string& head)
 {
+  // Get trigger paths and end paths, if applicable.
+
+  if(head == "physics") {
+    std::vector<std::string> paths;
+    paths.push_back("trigger_paths");
+    paths.push_back("end_paths");
+
+    // Print paths.
+
+    for(auto const & path : paths) {
+      std::vector<std::string> subpaths = pset.get<std::vector<std::string> >(path);
+      std::cout << "physics." << path << ": [ ";
+      std::string sep;
+      for(auto const & subpath : subpaths) {
+	std::cout << sep << '"' << subpath << '"';
+	sep = ", ";
+      }
+      std::cout << "]" << std::endl;
+
+      // Print modules in each path.
+
+      for(auto const& subpath : subpaths) {
+	std::vector<std::string> modules = pset.get<std::vector<std::string> >(subpath);
+	std::cout << "physics." << subpath << ": [ ";
+	sep.clear();
+	for(auto const & module : modules) {
+	  std::cout << sep << '"' << module << '"';
+	  sep = ", ";
+	}
+	std::cout << "]" << std::endl;
+      }
+    }
+  }
 
   // Loop over keys.
 
