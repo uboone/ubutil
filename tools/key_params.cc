@@ -74,6 +74,7 @@ void analyze(const fhicl::ParameterSet& pset, const std::string& head)
 
       if(key == "StretchFullResponse" ||
 	 key == "TruncateTicks" ||
+	 key == "ProcessNoise" ||
 	 key == "InheritClockConfig" ||
 	 key == "EnableSimSpatialSCE" ||
 	 key == "EnableSimEfieldSCE" ||
@@ -102,6 +103,20 @@ void analyze(const fhicl::ParameterSet& pset, const std::string& head)
       if(key == "Temperature" ||
 	 key == "Electronlifetime")
 	std::cout << prefix << pset.get<double>(key) << std::endl;
+
+      // Type vector<bool>.
+
+      if(key == "TransformViewVec" ||
+	 key == "ZigZagCorrectVec") {
+	std::vector<bool> values = pset.get<std::vector<bool> >(key);
+	std::cout << prefix << "[ ";
+	std::string sep;
+	for(auto value : values) {
+	  std::cout << sep << (value ? "true" : "false");
+	  sep = ", ";
+	}
+	std::cout << "]" << std::endl;
+      }
 
       // Type vector<string>.
 
