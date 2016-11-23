@@ -89,6 +89,11 @@ void analyze(const fhicl::ParameterSet& pset, const std::string& head)
   for(auto const& key : keys) {
     if(pset.is_key_to_table(key)) {
 
+      // Print services.
+
+      if(head == "services")
+	std::cout << "\nservices." << key << ":" << std::endl;
+
       // Keys of tables handled here by recursively calling this function.
 
       fhicl::ParameterSet ps;
@@ -116,7 +121,8 @@ void analyze(const fhicl::ParameterSet& pset, const std::string& head)
 
       // Type string.
 
-      if(key == "LibraryFile")
+      if(key == "LibraryFile" ||
+	 key == "service_provider")
 	std::cout << prefix << '"' << pset.get<std::string>(key) << '"' << std::endl;
 
       // Type int.
@@ -153,12 +159,28 @@ void analyze(const fhicl::ParameterSet& pset, const std::string& head)
 
       // Type vector<string>.
 
-      if(key == "FilterFuncVec") {
+      if(key == "FilterFuncVec" ||
+	 (head.find("OpMapTimeRanges") < std::string::npos &&
+	  key.find("FEMOpMap") < std::string::npos)) {
 	std::vector<std::string> values = pset.get<std::vector<std::string> >(key);
 	std::cout << prefix << "[ ";
 	std::string sep;
 	for(auto value : values) {
 	  std::cout << sep << '"' << value << '"';
+	  sep = ", ";
+	}
+	std::cout << "]" << std::endl;
+      }
+
+      // Type vector<int>.
+
+      if(head.find("OpMapRunRanges") < std::string::npos &&
+	 key.find("FEMOpMap") < std::string::npos) {
+	std::vector<int> values = pset.get<std::vector<int> >(key);
+	std::cout << prefix << "[ ";
+	std::string sep;
+	for(auto value : values) {
+	  std::cout << sep << value;
 	  sep = ", ";
 	}
 	std::cout << "]" << std::endl;
