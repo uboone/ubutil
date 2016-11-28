@@ -122,7 +122,8 @@ void analyze(const fhicl::ParameterSet& pset, const std::string& head)
       // Type string.
 
       if(key == "LibraryFile" ||
-	 key == "service_provider")
+	 key == "service_provider" ||
+	 key.find("BeamGateModule") < std::string::npos)
 	std::cout << prefix << '"' << pset.get<std::string>(key) << '"' << std::endl;
 
       // Type int.
@@ -140,7 +141,8 @@ void analyze(const fhicl::ParameterSet& pset, const std::string& head)
       // Type double.
 
       if(key == "Temperature" ||
-	 key == "Electronlifetime")
+	 key == "Electronlifetime" ||
+	 key == "BNBFireTime")
 	std::cout << prefix << pset.get<double>(key) << std::endl;
 
       // Type vector<bool>.
@@ -160,6 +162,8 @@ void analyze(const fhicl::ParameterSet& pset, const std::string& head)
       // Type vector<string>.
 
       if(key == "FilterFuncVec" ||
+	 key == "swtrg_algonames" ||
+	 key == "swtrg_algotype" ||
 	 (head.find("OpMapTimeRanges") < std::string::npos &&
 	  key.find("FEMOpMap") < std::string::npos)) {
 	std::vector<std::string> values = pset.get<std::vector<std::string> >(key);
@@ -174,8 +178,9 @@ void analyze(const fhicl::ParameterSet& pset, const std::string& head)
 
       // Type vector<int>.
 
-      if(head.find("OpMapRunRanges") < std::string::npos &&
-	 key.find("FEMOpMap") < std::string::npos) {
+      if(key == "Mask" ||
+	 (head.find("OpMapRunRanges") < std::string::npos &&
+	  key.find("FEMOpMap") < std::string::npos)) {
 	std::vector<int> values = pset.get<std::vector<int> >(key);
 	std::cout << prefix << "[ ";
 	std::string sep;
@@ -190,7 +195,10 @@ void analyze(const fhicl::ParameterSet& pset, const std::string& head)
 
       if(key == "Efield" ||
 	 key == "FilterWidthCorrectionFactor" ||
-	 key == "MinSig") {
+	 key == "MinSig" ||
+	 key == "BNBTrigger" ||
+	 key == "ExtTrigger" ||
+	 key == "UserBNBTime") {
 	std::vector<double> values = pset.get<std::vector<double> >(key);
 	std::cout << prefix << "[ ";
 	std::string sep;
