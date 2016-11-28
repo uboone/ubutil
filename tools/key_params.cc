@@ -135,14 +135,22 @@ void analyze(const fhicl::ParameterSet& pset, const std::string& head)
 	 key == "ReadOutWindowSize" ||
 	 key == "NumTicksToDropFront" ||
 	 key == "MaxMultiHit" ||
-	 key == "GenNoise")
-	std::cout << prefix << pset.get<int>(key) << std::endl;
+	 key == "GenNoise" ||
+	 key == "TDist" ||
+	 key == "T0" ||
+	 key == "SigmaT")
+	try {
+	  std::cout << prefix << pset.get<int>(key) << std::endl;
+	}
+	catch(...) {}
 
       // Type double.
 
       if(key == "Temperature" ||
 	 key == "Electronlifetime" ||
-	 key == "BNBFireTime")
+	 key == "BNBFireTime" ||
+	 key == "GlobalTimeOffset" ||
+	 key == "RandomTimeOffset")
 	std::cout << prefix << pset.get<double>(key) << std::endl;
 
       // Type vector<bool>.
@@ -179,16 +187,21 @@ void analyze(const fhicl::ParameterSet& pset, const std::string& head)
       // Type vector<int>.
 
       if(key == "Mask" ||
+	 key == "T0" ||
+	 key == "SigmaT" ||
 	 (head.find("OpMapRunRanges") < std::string::npos &&
 	  key.find("FEMOpMap") < std::string::npos)) {
-	std::vector<int> values = pset.get<std::vector<int> >(key);
-	std::cout << prefix << "[ ";
-	std::string sep;
-	for(auto value : values) {
-	  std::cout << sep << value;
-	  sep = ", ";
+	try {
+	  std::vector<int> values = pset.get<std::vector<int> >(key);
+	  std::cout << prefix << "[ ";
+	  std::string sep;
+	  for(auto value : values) {
+	    std::cout << sep << value;
+	    sep = ", ";
+	  }
+	  std::cout << "]" << std::endl;
 	}
-	std::cout << "]" << std::endl;
+	catch(...) {}
       }
 
       // Type vector<double>.
