@@ -150,7 +150,10 @@ void analyze(const fhicl::ParameterSet& pset, const std::string& head)
 	 key == "Electronlifetime" ||
 	 key == "BNBFireTime" ||
 	 key == "GlobalTimeOffset" ||
-	 key == "RandomTimeOffset")
+	 key == "RandomTimeOffset" ||
+	 key == "G4RefTime" ||
+	 key == "SampleTime" ||
+	 key == "TimeOffset")
 	std::cout << prefix << pset.get<double>(key) << std::endl;
 
       // Type vector<bool>.
