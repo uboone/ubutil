@@ -116,7 +116,10 @@ void analyze(const fhicl::ParameterSet& pset, const std::string& head)
 	 key == "InheritClockConfig" ||
 	 key == "EnableSimSpatialSCE" ||
 	 key == "EnableSimEfieldSCE" ||
-	 key == "EnableCorrSCE")
+	 key == "EnableCorrSCE" ||
+	 key == "YZdependentResponse" ||
+	 key == "datadrivenResponse" ||
+	 key == "IncludeMisconfiguredU")
 	std::cout << prefix << (pset.get<bool>(key) ? "true" : "false") << std::endl;
 
       // Type string.
@@ -153,7 +156,8 @@ void analyze(const fhicl::ParameterSet& pset, const std::string& head)
 	 key == "RandomTimeOffset" ||
 	 key == "G4RefTime" ||
 	 key == "SampleTime" ||
-	 key == "TimeOffset")
+	 key == "TimeOffset" ||
+	 key == "DefaultEField")
 	std::cout << prefix << pset.get<double>(key) << std::endl;
 
       // Type vector<bool>.
@@ -175,6 +179,7 @@ void analyze(const fhicl::ParameterSet& pset, const std::string& head)
       if(key == "FilterFuncVec" ||
 	 key == "swtrg_algonames" ||
 	 key == "swtrg_algotype" ||
+	 key == "FieldResponseFVersion" ||
 	 (head.find("OpMapTimeRanges") < std::string::npos &&
 	  key.find("FEMOpMap") < std::string::npos)) {
 	std::vector<std::string> values = pset.get<std::vector<std::string> >(key);
@@ -214,7 +219,8 @@ void analyze(const fhicl::ParameterSet& pset, const std::string& head)
 	 key == "MinSig" ||
 	 key == "BNBTrigger" ||
 	 key == "ExtTrigger" ||
-	 key == "UserBNBTime") {
+	 key == "UserBNBTime" ||
+	 key == "FilterWidthCorrectionFactor") {
 	std::vector<double> values = pset.get<std::vector<double> >(key);
 	std::cout << prefix << "[ ";
 	std::string sep;
