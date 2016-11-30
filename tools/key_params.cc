@@ -157,7 +157,8 @@ void analyze(const fhicl::ParameterSet& pset, const std::string& head)
 	 key == "G4RefTime" ||
 	 key == "SampleTime" ||
 	 key == "TimeOffset" ||
-	 key == "DefaultEField")
+	 key == "DefaultEField" ||
+	 key == "DefaultTemperature")
 	std::cout << prefix << pset.get<double>(key) << std::endl;
 
       // Type vector<bool>.
