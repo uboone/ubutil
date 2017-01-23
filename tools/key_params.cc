@@ -113,7 +113,7 @@ void analyze(const fhicl::ParameterSet& pset, const std::string& head)
       if(key == "StretchFullResponse" ||
 	 key == "TruncateTicks" ||
 	 key == "ProcessNoise" ||
-	 key == "InheritClockConfig" ||
+	 key.find("Inherit") < std::string::npos ||
 	 key == "EnableSimSpatialSCE" ||
 	 key == "EnableSimEfieldSCE" ||
 	 key == "EnableCorrSCE" ||
