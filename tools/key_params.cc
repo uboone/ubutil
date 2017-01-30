@@ -113,7 +113,7 @@ void analyze(const fhicl::ParameterSet& pset, const std::string& head)
       if(key == "StretchFullResponse" ||
 	 key == "TruncateTicks" ||
 	 key == "ProcessNoise" ||
-	 key == "InheritClockConfig" ||
+	 key.find("Inherit") < std::string::npos ||
 	 key == "EnableSimSpatialSCE" ||
 	 key == "EnableSimEfieldSCE" ||
 	 key == "EnableCorrSCE" ||
@@ -126,7 +126,8 @@ void analyze(const fhicl::ParameterSet& pset, const std::string& head)
 
       if(key == "LibraryFile" ||
 	 key == "service_provider" ||
-	 key.find("BeamGateModule") < std::string::npos)
+	 key.find("BeamGateModule") < std::string::npos ||
+	 key.find("DBTag") < std::string::npos)
 	std::cout << prefix << '"' << pset.get<std::string>(key) << '"' << std::endl;
 
       // Type int.
