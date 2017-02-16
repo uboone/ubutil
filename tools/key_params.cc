@@ -119,7 +119,9 @@ void analyze(const fhicl::ParameterSet& pset, const std::string& head)
 	 key == "EnableCorrSCE" ||
 	 key == "YZdependentResponse" ||
 	 key == "datadrivenResponse" ||
-	 key == "IncludeMisconfiguredU")
+	 key == "IncludeMisconfiguredU" ||
+	 key == "YZdependentResponse" ||
+	 key == "datadrivenResponse")
 	std::cout << prefix << (pset.get<bool>(key) ? "true" : "false") << std::endl;
 
       // Type string.
@@ -217,12 +219,13 @@ void analyze(const fhicl::ParameterSet& pset, const std::string& head)
       // Type vector<double>.
 
       if(key == "Efield" ||
-	 key == "FilterWidthCorrectionFactor" ||
 	 key == "MinSig" ||
 	 key == "BNBTrigger" ||
 	 key == "ExtTrigger" ||
 	 key == "UserBNBTime" ||
-	 key == "FilterWidthCorrectionFactor") {
+	 key == "FilterWidthCorrectionFactor" ||
+	 key == "CalibResponseTOffset" ||
+	 key == "FieldRespAmpVec") {
 	std::vector<double> values = pset.get<std::vector<double> >(key);
 	std::cout << prefix << "[ ";
 	std::string sep;
