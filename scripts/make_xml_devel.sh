@@ -241,11 +241,11 @@ do
 
     # Reco 1
 
-    reco1fcl=reco_uboone_mcc7_driver_stage1.fcl
+    reco1fcl=reco_uboone_mcc8_driver_stage1.fcl
 
     # Reco 2
 
-    reco2fcl=reco_uboone_mcc7_driver_stage2.fcl
+    reco2fcl=reco_uboone_mcc8_driver_stage2.fcl
 
     # Merge/Analysis
 
@@ -354,6 +354,7 @@ EOF
     <outdir>/pnfs/uboone/scratch/${userdir}/&tag;/&relsim;/gen/&name;</outdir>
     <logdir>/pnfs/uboone/scratch/users/${userbase}/&tag;/&relsim;/gen/&name;</logdir>
     <workdir>/pnfs/uboone/scratch/users/${userbase}/work/&tag;/&relsim;/gen/&name;</workdir>
+    <bookdir>/uboone/data/users/${userbase}/book/&tag;/&relsim;/gen/&name;</bookdir>
     <output>${newprj}_\${PROCESS}_%tc_gen.root</output>
     <numjobs>$njob1</numjobs>
     <datatier>generated</datatier>
@@ -365,6 +366,7 @@ EOF
     <outdir>/pnfs/uboone/scratch/${userdir}/&tag;/&relsim;/g4/&name;</outdir>
     <logdir>/pnfs/uboone/scratch/users/${userbase}/&tag;/&relsim;/g4/&name;</logdir>
     <workdir>/pnfs/uboone/scratch/users/${userbase}/work/&tag;/&relsim;/g4/&name;</workdir>
+    <bookdir>/uboone/data/users/${userbase}/book/&tag;/&relsim;/g4/&name;</bookdir>
     <numjobs>$njob1</numjobs>
     <datatier>simulated</datatier>
     <defname>&name;_&tag;_g4</defname>
@@ -375,6 +377,7 @@ EOF
     <outdir>/pnfs/uboone/scratch/${userdir}/&tag;/&relsim;/detsim/&name;</outdir>
     <logdir>/pnfs/uboone/scratch/users/${userbase}/&tag;/&relsim;/detsim/&name;</logdir>
     <workdir>/pnfs/uboone/scratch/users/${userbase}/work/&tag;/&relsim;/detsim/&name;</workdir>
+    <bookdir>/uboone/data/users/${userbase}/book/&tag;/&relsim;/detsim/&name;</bookdir>
     <numjobs>$njob2</numjobs>
     <datatier>detector-simulated</datatier>
     <defname>&name;_&tag;_detsim</defname>
@@ -418,6 +421,7 @@ EOF
     <outdir>/pnfs/uboone/scratch/${userdir}/&tag;/&relreco1;/reco1/&name;</outdir>
     <logdir>/pnfs/uboone/scratch/users/${userbase}/&tag;/&relreco1;/reco1/&name;</logdir>
     <workdir>/pnfs/uboone/scratch/users/${userbase}/work/&tag;/&relreco1;/reco1/&name;</workdir>
+    <bookdir>/uboone/data/users/${userbase}/book/&tag;/&relreco1;/reco1/&name;</bookdir>
     <numjobs>$njob2</numjobs>
     <datatier>reconstructed-2d</datatier>
     <defname>&name;_&tag;_reco1</defname>
@@ -462,6 +466,7 @@ EOF
     <outdir>/pnfs/uboone/scratch/${userdir}/&tag;/&relreco2;/reco2/&name;</outdir>
     <logdir>/pnfs/uboone/scratch/users/${userbase}/&tag;/&relreco2;/reco2/&name;</logdir>
     <workdir>/pnfs/uboone/scratch/users/${userbase}/work/&tag;/&relreco2;/reco2/&name;</workdir>
+    <bookdir>/uboone/data/users/${userbase}/book/&tag;/&relreco2;/reco2/&name;</bookdir>
     <numjobs>$njob2</numjobs>
     <datatier>reconstructed-3d</datatier>
     <defname>&name;_&tag;_reco2</defname>
@@ -472,6 +477,7 @@ EOF
     <outdir>/pnfs/uboone/scratch/${userdir}/&tag;/&relreco2;/mergeana/&name;</outdir>
     <logdir>/pnfs/uboone/scratch/users/${userbase}/&tag;/&relreco2;/mergeana/&name;</logdir>
     <workdir>/pnfs/uboone/scratch/users/${userbase}/work/&tag;/&relreco2;/mergeana/&name;</workdir>
+    <bookdir>/uboone/data/users/${userbase}/book/&tag;/&relreco2;/mergeana/&name;</bookdir>
     <numjobs>$njob2</numjobs>
     <datatier>reconstructed</datatier>
     <anadatatier>root-tuple</anadatatier>
