@@ -43,11 +43,11 @@ table_fragment_end
 # Add the dependent product and version
 
 product          version
-art             v2_05_00
+art             v2_06_01
 larbatch        v01_27_01
 pycurl          -		-	optional
 
-cetbuildtools	v5_06_06	-	only_for_build
+cetbuildtools	v5_06_07	-	only_for_build
 end_product_list
 
 
