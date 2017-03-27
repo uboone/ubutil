@@ -347,6 +347,8 @@ EOF
   cat <<EOF >> $xml
   </larsoft>
 
+  <check>1</check>
+
   <!-- Project stages -->
 
   <stage name="gen">
@@ -414,6 +416,8 @@ EOF
   cat <<EOF >> $xml
   </larsoft>
 
+  <check>1</check>
+
   <!-- Project stages -->
 
   <stage name="reco1">
@@ -457,6 +461,8 @@ EOF
   fi
   cat <<EOF >> $xml
   </larsoft>
+
+  <check>1</check>
 
   <!-- Project stages -->
 
