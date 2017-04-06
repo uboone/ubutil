@@ -75,6 +75,9 @@ add_subdirectory(validation)
 # Tools (programs)
 add_subdirectory(tools)
 
+# FCL module
+add_subdirectory(fclmodule)
+
 # packaging utility
 include(UseCPack)
 

@@ -26,7 +26,7 @@ defaultqual e10
 #
 incdir  -
 fcldir  -
-libdir  -
+libdir  product_dir    python
 bindir  product_dir    bin
 
 # table fragment to set various environment variables.
