@@ -78,6 +78,12 @@ add_subdirectory(tools)
 # FCL module
 add_subdirectory(fclmodule)
 
+# Root batch framework.
+add_subdirectory(root_batch)
+
+# Root analysis modules.
+add_subdirectory(root_analyze)
+
 # packaging utility
 include(UseCPack)
 
