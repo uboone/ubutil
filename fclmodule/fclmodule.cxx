@@ -34,6 +34,7 @@
 
 #include "Python.h"
 #include <iostream>
+#include <iomanip>
 #include <sstream>
 #include "cetlib/search_path.h"
 #include "fhiclcpp/ParameterSet.h"
@@ -252,6 +253,157 @@ PyObject* convert_any(const boost::any& any)
   return pyval;
 }
 
+static std::string format(PyObject* obj, unsigned int pos, unsigned int indent, unsigned int maxlen)
+//
+// Purpose: Convert a python object to a prettified string.  The resulting string
+//          is suppsed to be valid python code.
+//
+// Arguments: obj    - Object to be formatted.
+//            pos    - Current character position (number of characters printed
+//                     since the last newline).
+//            indent - Indentation level (spaces) for multiline formatting.
+//            maxlen - Maximum line length before breaking.
+//
+// Returns: c++ string.
+//
+// Usage:
+//
+// This function is designed to call itself recursively in order to descend
+// into structured objects like dictionaries and sequences.
+//
+// Dictionaries and sequences may be printed in either single-line or multiline
+// format, depending on the complexity of the contained objects, and the indent
+// and maxlen parameters.
+//
+{
+  // Result string stream.
+
+  std::ostringstream ss;
+
+  if(PyString_Check(obj)) {
+
+    // String objects, add single quotes, but don't do any other formatting.
+
+    ss << "'" << PyString_AsString(obj) << "'";
+  }
+
+  else if(PyDict_Check(obj)) {
+
+    // Always print dictionary objects in multiline format, one key per line.
+
+    // Get list of keys.  Keys are assumed to be strings.
+
+    PyObject* keys = PyDict_Keys(obj);
+
+    // Make a first pass over the list of keys to determine the maximum length key.
+
+    int n = PyList_Size(keys);
+    int keymaxlen = 0;
+    for(int i=0; i<n; ++i) {
+      PyObject* key = PyList_GetItem(keys, i);
+      int keylen = PyString_Size(key);
+      if(keylen > keymaxlen)
+	keymaxlen = keylen;
+    }
+
+    // Second pass, loop over keys and values and convert them to strings.
+
+    char sep = '{';
+    for(int i=0; i<n; ++i) {
+      PyObject* key = PyList_GetItem(keys, i);
+      PyObject* value = PyDict_GetItem(obj, key);
+      const char* ks = PyString_AsString(key);
+      std::string ksquote = std::string("'") + std::string(ks) + std::string("'");
+      ss << sep << '\n'
+	 << std::setw(indent+2) << ""
+	 << std::setw(keymaxlen+2) << std::left << ksquote << " : "
+	 << format(value, indent + keymaxlen + 7, indent+2, maxlen);
+      sep = ',';
+    }
+    ss << '\n' << std::setw(indent+1) << std::right << '}';
+
+    Py_DECREF(keys);
+
+  }
+
+  else if(PyList_Check(obj) || PyTuple_Check(obj)) {
+
+    // Sequence printing handled here.
+    // Break lines only when position exceeds maxlen.
+
+    char open_seq = '(';
+    char close_seq = ')';
+    if(PyList_Check(obj)) {
+      open_seq = '[';
+      close_seq = ']';
+    }
+
+    // Loop over elements of this sequence.
+
+    std::string sep(1, open_seq);
+    int n = PyList_Size(obj);
+    unsigned int break_indent = pos+1;
+    for(int i=0; i<n; ++i) {
+      ss << sep;
+      pos += sep.size();
+      PyObject* ele = PySequence_GetItem(obj, i);
+
+      // Get the formatted string representation of this object.
+
+      std::string f = format(ele, pos, break_indent, maxlen);
+
+      // Get the number of characters before the first newline.
+
+      std::string::size_type fs = f.size();
+      std::string::size_type n1 = std::min(f.find('\n'), fs);
+
+      // Decide if we want to break the line before printing this element.
+      // Never break at the first element of a sequence.
+      // Force a break (except at first element) if this is a structured element.
+      // If we do break here, reformat this element with the updated position.
+
+      bool force_break = PyList_Check(ele) || PyTuple_Check(ele) || PyDict_Check(ele);
+      if(i > 0 && (force_break || pos + n1 > maxlen)) {
+	ss << '\n' << std::setw(break_indent) << "";
+	pos = break_indent;
+	f = format(ele, pos, break_indent, maxlen);
+      }
+
+      // Print this element
+
+      ss << f;
+
+      // Update the current character position, taking into account 
+      // whether the string we just printed contains a newline.
+
+      std::string::size_type n2 = f.find_last_of('\n');
+      if(n2 >= fs)
+	pos += fs;
+      else
+	pos = fs - n2 - 1;
+
+      sep = std::string(", ");
+      Py_DECREF(ele);
+    }
+
+    // Close sequence.
+
+    ss << close_seq;
+  }
+
+  else {
+
+    // Last resort, use python's string representation.
+
+    PyObject* pystr = PyObject_Str(obj);
+    ss << PyString_AsString(pystr);
+  }
+
+  // Done.
+
+  return ss.str();
+}
+
 static PyObject* make_pset(PyObject* self, PyObject *args)
 //
 // Purpose: Public module function to read fcl file and return a python dictionary.
@@ -289,10 +441,51 @@ static PyObject* make_pset(PyObject* self, PyObject *args)
   return result;
 }
 
+static PyObject* pretty(PyObject* self, PyObject *args)
+//
+// Purpose: Public module function to convert a python fcl dictionary to a
+//          prettified string.
+//
+// Arguments: self - Not used, because this is not a member function.
+//            args - Argument tuple.  This function expects a single 
+//                   python object of any type, but typically a dictionary.
+//
+// Returned value: A python string or none.
+//
+{
+  // Result.
+
+  PyObject* result = 0;
+
+  // Extract argument.
+
+  int n = PySequence_Length(args);
+  if(n == 0) {
+
+    // No arguments, return none.
+
+    result = Py_None;
+    Py_INCREF(result);
+  }
+  else {
+
+    // Otherwise, extract the first element.
+
+    PyObject* obj = PySequence_GetItem(args, 0);
+    std::string s = format(obj, 0, 0, 80);
+    result = PyString_FromString(s.c_str());
+  }
+
+  // Done.
+
+  return result;
+}
+
 // Module method table.
 
 static struct PyMethodDef fclmodule_methods[] = {
      {"make_pset", make_pset, METH_VARARGS},
+     {"pretty", pretty, METH_VARARGS},
      {0, 0}
 };
 
