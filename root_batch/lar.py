@@ -27,72 +27,65 @@
 #
 # Usage:
 #
-# This script is designed as a drop in replacement for the art executable
+# This script is designed as a drop-in replacement for the art executable
 # (art or lar) in the sense that it supports many of the same command line
 # options as the standard art executable.
 #
 # This script also resembles the art executable in that it requires a fcl
-# configuration file, and its actions are controlled by this fcl file.  The
-# expected format of the file file is given below.
+# configuration file, and its actions are in part controlled by this fcl file.
+# The expected format of the file file is given below.
 #
-# This script opens a sequence root ntuples and imports and calls a sequence
+# This script opens a sequence root files and imports and calls a sequence
 # of analysis modules.  It is designed specfically to work with analysis
-# tree ntuples, but should work with similarly structured root ntuples.
+# tree ntuples, but should work with other kinds of root ntuples or TTrees.
 #
 # This script performs the following functions:
 #
-# 1.  Opening and closing input root files (file loop).
+# 1.  Opening and closing input root files (file loop), possibly from sam.
 # 2.  Opening and closing one single output root file.
 # 3.  Reading the input TTree.
-# 4.  Setting input TTree branch statuses (load selected branches).
+# 4.  Setting input TTree branch statuses (load only selected branches).
 # 5.  Looping over and loading entries of input ntuples (event loop).
-# 6.  Calling analysis module functions.
+# 6.  Calling analysis module function hooks at appropriate times.
 # 7.  Generating sam metadata for the output file.
 #
-# Reading input from sam.
+# Reading input from sam
+#-----------------------
 #
 # The sam project and consumer process should be started externally to this script.
-# The project url and process id should be specified as command line arguments.
+# The project url and process id should be specified as command line arguments using
+# options --sam-web-uri and --sam-process-id.
 #
-# Fcl file format:
+# Analysis modules
+#-----------------
 #
-# input_tree : "anatree"   # Name of input TTree.
-# modules : { module1 : config1,
+# Each analysis module should define a factory function:
+#
+# make(config)
+#
+# The factory function should return an instance of an analysis class defined
+# in the module.  The single argument of the factory function is a pythonized
+# version of the fcl configuration object (i.e. a python dictionary).
+#
+# Analysis classes
+#-----------------
+#
+# The analysis class should inherit from base class RootAnalyze.  Refer to the 
+# source file (RootAnalyze.py) for a detailed description of class functions that
+# analysis classes can overload.  Analysis classes are not required to overload
+# any base class functions.  Most analysis classes will want to overload 
+# function "analyze," which is called for each ntuple entry (event).
+#
+# Fcl file format
+#----------------
+#
+# process_name : "myprocess"         # Required by work flow.
+# input_tree : "anatree"             # Name of input TTree.
+# modules : { module1 : config1
 #             module2 : config2 }
 #
-#
-#
-# The configuration object can any valid fcl object (e.g. a fcl table).  A pythonized
-# version of the configuration will be passed to the module factory function.
-#
-# Analysis modules should define the following module function.
-#
-# 1.  make(config) - Factory function to create an instance of an analysis class.  The
-#                    single argument is the pythonized configuration object from the
-#                    fcl file.
-#
-# The analysis class object returned by function make() can be any class, but
-# normally would be an instance of a class defined by the analysis module.
-#
-# There is no base class that the analysis class must inherit from.  The 
-# analysis class should define the following functions, which will be called 
-# at appropriate times.
-#
-# 1.  branches(tree) - Argument is a TTree.  Return a list or tuple of branch
-#                      names that the analysis class wants loaded from this tree.
-#                      Wildcards are allowed.  Return ['*'] to load all branches.
-#                      Called each time an input tree is opened.
-# 2.  output(tfile)  - Argument is an open TFile object.  Called once per job 
-#                      initialization.  Each analysis object can add arbitrary
-#                      content to the output file.  Analysis objects can also
-#                      keep a copy of the tfile object (really a reference) and
-#                      add content at later times (e.g. per run).
-# 3.  analyze(tree)  - Argument is a loaded TTree object.  Called for each
-#                      tree entry.
-#
-#
 ###############################################################################
-import sys, os, imp, fcl
+import sys, os, imp, fcl, json, datetime
 
 # Prevent root from printing garbage on initialization.
 if os.environ.has_key('TERM'):
@@ -106,10 +99,17 @@ import ROOT
 #ROOT.gErrorIgnoreLevel = ROOT.kError
 sys.argv = myargv
 
-# Help function.
+# Global ifdh object.
+
+Ifdh = None
+
 
 def help():
-
+    #----------------------------------------------------------------------
+    #
+    # Purpose: Print help.
+    #
+    #----------------------------------------------------------------------
     filename = sys.argv[0]
     file = open(filename, 'r')
 
@@ -127,17 +127,27 @@ def help():
                 print
 
 
-# Global ifdh object.
-
-Ifdh = None
-
-# SAM iterator.
-
 def sam_iter(prjurl, pid):
-    # Arguments:
+    #----------------------------------------------------------------------
     #
-    # prjurl - Project url.
-    # pid    - Process id.
+    # Purpose: A sam generator.
+    #
+    # Arguments: prjurl - Project url.
+    #            pid    - Process id.
+    #
+    # Returns: A sam iterator.
+    #
+    # This function is a python generator (meaning it contains "yield" 
+    # statements).  When called, it returns an iterator that acts like a
+    # list of files for files obtained from sam.
+    #
+    # Example:
+    #
+    # files = sam_iter(prjurl, pid)
+    # for file in files:
+    # ...
+    #
+    #----------------------------------------------------------------------
 
     # Initialize ifdh object, if not already done.
 
@@ -158,12 +168,12 @@ def sam_iter(prjurl, pid):
 
         # Get next file.
 
-        current_file = Ifdh.getNextFile(prjurl, pid)
-        if current_file:
+        url = Ifdh.getNextFile(prjurl, pid)
+        if url:
 
             # Fetch the input file.
 
-            current_file = Ifdh.fetchInput(current_file)
+            current_file = Ifdh.fetchInput(url)
             Ifdh.updateFileStatus(prjurl, pid, os.path.basename(current_file), 'transferred')
 
             # Return the next file.
@@ -181,32 +191,58 @@ def sam_iter(prjurl, pid):
 
 class Framework:
 
-    # Constructor.
-
     def __init__(self,
+                 pset,
                  input_file_names,
                  output_file_name,
-                 analysis_module_names,
-                 tree_name,
                  nev,
                  nskip) :
+        #----------------------------------------------------------------------
+        #
+        # Purpose: Constructor.
+        #
+        # Arguments: pset             - Pythonized fcl configuration (dictionary).
+        #            input_file_names - Input file name iterator.
+        #            output_file_name - Output file.
+        #            nev              - Maximum number of events to process.
+        #            nskip            - Number of events to stip.
+        #
+        # The input_file_names argument can be any of the following.
+        #
+        # 1.  A python list of file names.
+        # 2.  An open file object for a file list.
+        # 3.  A a sam iterator (as returned by generator "sam_iter").
+        #
+        #----------------------------------------------------------------------
 
         # Remember arguments.
 
-        self.input_file_names = input_file_names            # Input file names (iterator).
-        self.output_file_name = output_file_name            # Output file name.
-        self.analysis_module_names = analysis_module_names  # Analysis modules.
-        self.tree_name = tree_name                          # Input tree path.
-        self.nev = nev                                      # Number of events to process.
-        self.nskip = nskip                                  # Number of events to skip.
-        self.done = False                                   # Finish flag.
+        self.pset = pset
+        self.input_file_names = input_file_names
+        self.output_file_name = output_file_name
+        self.nev = nev
+        self.nskip = nskip
 
         # Other class data members.
 
-        self.output_file = None      # Output TFile object.
-        self.input_file = None       # Currently open input TFile object.
-        self.tree = None             # Current input TTree.
-        self.analyzers = []          # Analyzer objects.
+        self.tree_name = pset['input_tree']   # Input tree name.
+        self.output_file = None               # Output TFile object.
+        self.input_file = None                # Currently open input TFile object.
+        self.tree = None                      # Current input TTree.
+        self.analyzers = []                   # Analyzer objects.
+        self.runnum = None                    # Current run number.
+        self.subrunnum = None                 # Current subrun number.
+        self.evnum = None                     # Current event number.
+        self.done = False                     # Finished flag.
+
+        # Statistics and metadata.
+
+        self.metadata = {}           # Sam metadata dictionary.
+        self.first_event = None      # First event number.
+        self.last_event = None       # Last event number.
+        self.event_count = 0         # Number of events.
+        self.run_type = 'unknown'    # Run type.
+        self.parents = []            # Parents.
 
         # Open output file.
 
@@ -219,34 +255,150 @@ class Framework:
 
         # Import analysis modules and make analyzer objects.
 
-        for module_name in self.analysis_module_names:
-            config = self.analysis_module_names[module_name]
+        for module_name in self.pset['modules']:
             print 'Importing module %s' % module_name
             fp, pathname, description = imp.find_module(module_name)
             module = imp.load_module(module_name, fp, pathname, description)
             print 'Making analyzer object.'
-            analyzer = module.make(config)
+            analyzer = module.make(self.pset)
             self.analyzers.append(analyzer)
 
-        # Call the output function of each analyzer.
+        # Call the open output function of each analyzer.
 
         for analyzer in self.analyzers:
-            analyzer.output(self.output_file)
+            analyzer.open_output(self.output_file)
+
+        # Update metadata.
+
+        self.metadata['start_time'] = datetime.datetime.utcnow().replace(microsecond=0).isoformat()
+
+        # Extract experiment-independent metadata from FileCatalogMetadata configuration.
+
+        app = {}
+
+        if self.pset.has_key('process_name'):
+            app['name'] = self.pset['process_name']
+
+        if self.pset.has_key('services'):
+            services = self.pset['services']
+            if services.has_key('FileCatalogMetadata'):
+                fcm = services['FileCatalogMetadata']
+                if fcm.has_key('applicationFamily'):
+                    app['family'] = fcm['applicationFamily']
+                if fcm.has_key('applicationFamily'):
+                    app['version'] = fcm['applicationVersion']
+                if fcm.has_key('group'):
+                    self.metadata['group'] = fcm['group']
+                if fcm.has_key('fileType'):
+                    self.metadata['file_type'] = fcm['fileType']
+                if fcm.has_key('runType'):
+                    self.run_type = fcm['runType']
+
+        if len(app) > 0:
+            self.metadata['application'] = app
 
         # Done.
 
         return
 
 
-    # Destructor.
-
     def __del__(self):
+        #----------------------------------------------------------------------
+        # 
+        # Purpose: Destroctor.
+        #
+        #----------------------------------------------------------------------
+
         self.close()
 
 
-    # Read and process all entries for current tree.
+    def begin_run(self, run):
+        #----------------------------------------------------------------------
+        # 
+        # Purpose: Called at begin run time.  This function calls the begin run
+        #          functions provided by analysis modules.
+        #
+        # Arguments: run - Run number.
+        #
+        #----------------------------------------------------------------------
+
+        print 'Begin run %d' % run
+
+        # Call analyzer begin run hooks.
+
+        for analyzer in self.analyzers:
+            analyzer.begin_run(run)
+
+
+    def end_run(self, run):
+        #----------------------------------------------------------------------
+        # 
+        # Purpose: Called at end run time.  This function calls the end run
+        #          functions provided by analysis modules.
+        #
+        # Arguments: run - Run number.
+        #
+        #----------------------------------------------------------------------
+
+        print 'End run %d' % run
+
+        # Call analyzer end run hooks.
+
+        for analyzer in self.analyzers:
+            analyzer.end_run(run)
+
+
+    def begin_subrun(self, run, subrun):
+        #----------------------------------------------------------------------
+        # 
+        # Purpose: Called at begin subrun time.  This function calls the begin
+        #          subrun functions provided by analysis modules.
+        #
+        # Arguments: run - Run number.
+        #
+        #----------------------------------------------------------------------
+
+        print 'Begin subrun (%d, %d)' % (run, subrun)
+
+        # Call analyzer begin subrun hooks.
+
+        for analyzer in self.analyzers:
+            analyzer.begin_subrun(run, subrun)
+
+        # Add this subrun to metadata.
+
+        if not self.metadata.has_key('runs'):
+            self.metadata['runs'] = []
+        self.metadata['runs'].append((run, subrun, self.run_type))
+
+
+    def end_subrun(self, run, subrun):
+        #----------------------------------------------------------------------
+        # 
+        # Purpose: Called at end subrun time.  This function calls the end
+        #          subrun functions provided by analysis modules.
+        #
+        # Arguments: run - Run number.
+        #
+        #----------------------------------------------------------------------
+
+        print 'End subrun (%d, %d)' % (run, subrun)
+
+        # Call analyzer end subrun hooks.
+
+        for analyzer in self.analyzers:
+            analyzer.end_subrun(run, subrun)
+
 
     def read(self):
+        #----------------------------------------------------------------------
+        # 
+        # Purpose: Load and process all entries in the current tree (the event 
+        #          loop).  This function calls "analyze" functions provided by
+        #          analysis modules, as well as begin/end run and begin/end subrun.
+        #
+        #----------------------------------------------------------------------
+
         entries = self.tree.GetEntriesFast()
 
         for jentry in xrange(entries):
@@ -257,7 +409,9 @@ class Framework:
                 self.nskip -= 1
                 continue
 
-            if jentry%1 == 0:
+            # Keep user from getting bored.
+
+            if jentry%10 == 0:
                 print jentry,"/",entries
 
             # Make sure tree is loaded.
@@ -266,11 +420,66 @@ class Framework:
             if ientry < 0:
                 break
     
-            # Load next entry into memory and verify
+            # Load next entry into memory.
 
             nb = self.tree.GetEntry( jentry )
             if nb <= 0:
                 continue
+
+            # Extract the current (run, subrun, event).
+            # Since this script doesn't know where run, subrun, and event are
+            # stored in the input tree (if they are), it relies on analysis
+            # module function "event_info" to obtain this information.  It can
+            # happen the run, subrun, event information is not available.
+
+            oldrun = self.runnum
+            oldsubrun = self.subrunnum
+
+            newrun = None
+            newsubrun = None
+            newevent = None
+
+            for analyzer in self.analyzers:
+                info = analyzer.event_info(self.tree)
+                if newrun == None and info != None and len(info) >= 1 and info[0] != None:
+                    newrun = info[0]
+                if newsubrun == None and info != None and len(info) >= 2 and info[1] != None:
+                    newsubrun = info[1]
+                if newevent == None and info != None and len(info) >= 3 and info[2] != None:
+                    newevent = info[2]
+
+                # Stop checking after we get results.
+
+                if newrun != None and newsubrun != None and newevent != None:
+                    break
+
+            # Check for new run.
+
+            if newrun != None and newrun != oldrun:
+                if oldrun != None:
+                    self.end_run(oldrun)
+                self.runnum = newrun
+                self.begin_run(newrun)
+
+            # Check for new subrun.
+
+            if newrun != None and newsubrun != None and (newrun, newsubrun) != (oldrun, oldsubrun):
+                if oldrun != None and oldsubrun != None:
+                    self.end_subrun(oldrun, oldsubrun)
+                self.subrunnum = newsubrun
+                self.begin_subrun(newrun, newsubrun)
+
+            # Update event number.
+
+            self.eventnum = newevent
+
+            # Update metadata.
+
+            if self.eventnum != None:
+                if self.first_event == None:
+                    self.first_event = self.eventnum
+                self.last_event = self.eventnum
+            self.event_count += 1
 
             # Call analyze function for each analyzer.
 
@@ -290,10 +499,18 @@ class Framework:
         return
 
 
-    # Find input tree in input file in the specified TDirectory.
-    # If successful, return TTree object, otherwise None.
-
     def find_tree(self, dir):
+        #----------------------------------------------------------------------
+        # 
+        # Purpose: Find the input tree, as specified by class variable
+        #          self.tree_name, in the specified directory.  Also search
+        #          subdirectories.
+        #
+        # Arguments: dir - Root directory (TDirectory).
+        #
+        # Returns: Tree object (TTree) or None.
+        #
+        #----------------------------------------------------------------------
 
         result = None
 
@@ -331,9 +548,16 @@ class Framework:
         return result
 
 
-    # Open input file.
-
     def open_input(self, input_file_name):
+        #----------------------------------------------------------------------
+        # 
+        # Purpose: Open an input file.  Find the input tree and set branch
+        #          statuses.
+        #
+        # Arguments: input_file_name - Input file.
+        #
+        #----------------------------------------------------------------------
+
         print 'Opening input file %s' % input_file_name
         self.input_file = ROOT.TFile.Open(input_file_name)
         if not self.input_file.IsOpen():
@@ -349,7 +573,7 @@ class Framework:
 
         # Set branch statuses.
 
-        if self.tree != None:
+        else:
             self.tree.SetBranchStatus("*",0);
             for analyzer in self.analyzers:
                 branch_names = analyzer.branches(self.tree)
@@ -357,14 +581,24 @@ class Framework:
                     print 'Read branch %s' % branch_name
                     self.tree.SetBranchStatus(branch_name, 1);
 
+        # Update metadata.
+
+        filename = os.path.basename(input_file_name)
+        if not filename in self.parents:
+            self.parents.append({'file_name' : filename})
+
         # Done.
 
         return
 
 
-    # Close input file.
-
     def close_input(self):
+        #----------------------------------------------------------------------
+        # 
+        # Purpose: Close the currently open input file.
+        #
+        #----------------------------------------------------------------------
+
         if self.input_file is not None and self.input_file.IsOpen():
             self.input_file.Close()
             self.input_file = None
@@ -374,23 +608,48 @@ class Framework:
         return
 
 
-    # Close output file.
-
     def close(self):
+        #----------------------------------------------------------------------
+        # 
+        # Purpose: Close the output file.  Also generate metadata json file.
+        #
+        #----------------------------------------------------------------------
 
         if self.output_file is not None and self.output_file.IsOpen():
             self.output_file.Write()
             self.output_file.Close()
             self.output_file = None
 
+            # Generate sam metadata json file.
+
+            end_time = datetime.datetime.utcnow().replace(microsecond=0).isoformat()
+            self.metadata['end_time'] = end_time
+            self.metadata['first_event'] = self.first_event
+            self.metadata['last_event'] = self.last_event
+            self.metadata['event_count'] = self.event_count
+            self.metadata['parents'] = self.parents
+            json_name = self.output_file_name + '.json'
+            mf = open(json_name, 'w')
+            json.dump(self.metadata, mf, indent=2, sort_keys=True)
+            mf.write('\n')
+            mf.close()
+
         # Done.
 
         return
 
 
-    # Run framework (file and event loop).
-
     def run(self):
+        #----------------------------------------------------------------------
+        # 
+        # Purpose: Run the framework.  This function controls the main file loop.
+        #
+        #----------------------------------------------------------------------
+
+        # Call begin job analysis module functions.
+
+        for analyzer in self.analyzers:
+            analyzer.begin_job()
 
         # Loop over input files.
 
@@ -398,7 +657,7 @@ class Framework:
 
             # Open input file.
 
-            self.open_input(input_file_name)
+            self.open_input(input_file_name.strip())
 
             # Read entries.
 
@@ -419,11 +678,38 @@ class Framework:
                     pass
                 break
 
+        # End the current run and subrun.
+
+        if self.runnum != None:
+            self.end_run(self.runnum)
+            if self.subrunnum != None:
+                self.end_subrun(self.runnum, self.subrunnum)
+
+        # Call end job analysis module functions.
+        # Analysis modules can contribute metadata at this point.
+
+        for analyzer in self.analyzers:
+            md = analyzer.end_job()
+            if md != None:
+                for key in md:
+                    self.metadata[key] = md[key]
+
+        # Close output file.
+
+        self.close()
+
         # Done.
 
         return
 
 def main(argv):
+    #----------------------------------------------------------------------
+    # 
+    # Purpose: Main program.
+    #
+    # Arguments: argv - Command line arguments (sys.argv).
+    #
+    #----------------------------------------------------------------------
 
     # Parse command line.
 
@@ -478,15 +764,28 @@ def main(argv):
 
     n = 0
     input_iter = None
+
     if infile != '':
+
+        # Input from single file.
+
         n = n + 1
         input_iter = [infile]
+
     if inlist != '':
+
+        # Input from file list.
+
         n = n + 1
-        input_iter = inlist
+        input_iter = open(inlist)
+
     if prjurl != '':
+
+        # Input from sam.
+
         n = n + 1
         input_iter = sam_iter(prjurl, pid)
+
     if n == 0:
         print 'No input specified.'
         return 1
@@ -497,20 +796,14 @@ def main(argv):
     # Parse configuration.
 
     pset = fcl.make_pset(config)
-    tree_name = pset['input_tree']
-    modules = pset['modules']
 
     # Create framework object.
 
-    fwk = Framework(input_iter, outfile, modules, tree_name, nev, nskip)
+    fwk = Framework(pset, input_iter, outfile, nev, nskip)
 
     # Run.
 
     fwk.run()
-
-    # Close output file.
-
-    fwk.close()
 
 
 if __name__ == '__main__':

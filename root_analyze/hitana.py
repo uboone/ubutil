@@ -9,6 +9,7 @@
 #
 ###############################################################################
 import sys, os
+from root_analyze import RootAnalyze
 
 # Prevent root from printing garbage on initialization.
 if os.environ.has_key('TERM'):
@@ -22,32 +23,57 @@ import ROOT
 #ROOT.gErrorIgnoreLevel = ROOT.kError
 sys.argv = myargv
 
-# Factory function.
-
 def make(config):
+    #----------------------------------------------------------------------
+    #
+    # Purpose: Factory function.
+    #
+    # Arguments: config - FCL configuration.
+    #
+    # Returns: Instance of class AnalyzeHits.
+    #
+    #----------------------------------------------------------------------
+
     obj = AnalyzeHits()
     return obj
 
 # Analyze hit class
 
-class AnalyzeHits:
+class AnalyzeHits(RootAnalyze):
 
     def __init__(self):
-
-        # Done.
+        #----------------------------------------------------------------------
+        #
+        # Purpose: Constructor.
+        #
+        #----------------------------------------------------------------------
 
         return
 
 
-    # Return list of branches we want loaded.
-
     def branches(self, tree):
+        #----------------------------------------------------------------------
+        #
+        # Purpose: Return list of branches we want read for this tree.
+        #
+        # Arguments: tree - TTree object (ignored).
+        #
+        # Returns: List of hit-related branches.
+        #
+        #----------------------------------------------------------------------
+
         return ['no_hits', 'hit_*']
 
 
-    # Output file.
-
-    def output(self, output_file):
+    def open_output(self, output_file):
+        #----------------------------------------------------------------------
+        #
+        # Purpose: Add content to output file.  Add hit-related histograms.
+        #          Called by framework.
+        #
+        # Arguments: output_file - Open TFile.
+        #
+        #----------------------------------------------------------------------
 
         # Make output directory.
 
@@ -97,9 +123,23 @@ class AnalyzeHits:
         return
 
 
-    # Get a leaf associated with a branch (assume one leaf/branch).
-
     def getLeaf(self, tree, branch_name):
+        #----------------------------------------------------------------------
+        #
+        # Purpose: Utility function to return leaf information for a particular
+        #          branch.
+        #
+        # Arguments: branch name.
+        #
+        # Returns: Leaf (TLeaf).
+        #
+        # This function assumes one leaf/branch (true in case of analysis tree).
+        # The returned value is an instance of class TLeaf.  To get numeric 
+        # values, call TLeaf function GetValue(i), where i=array index or 0 for 
+        # scalar leaf.
+        #
+        #----------------------------------------------------------------------
+
         result = None
         br = tree.GetBranch(branch_name)
         leaves = br.GetListOfLeaves()
@@ -108,9 +148,14 @@ class AnalyzeHits:
         return result
 
 
-    # Analyze tree entry.
-
     def analyze(self, tree):
+        #----------------------------------------------------------------------
+        #
+        # Purpose: Analyze loaded tree (fill histograms).  Called by framework.
+        #
+        # Arguments: tree - Loaded tree.
+        #
+        #----------------------------------------------------------------------
 
         # Get leaves.
 
