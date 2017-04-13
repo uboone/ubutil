@@ -71,7 +71,7 @@
 #-----------------
 #
 # The analysis class should inherit from base class RootAnalyze.  Refer to the 
-# source file (RootAnalyze.py) for a detailed description of class functions that
+# source file (root_analyze.py) for a detailed description of class functions that
 # analysis classes can overload.  Analysis classes are not required to overload
 # any base class functions.  Most analysis classes will want to overload 
 # function "analyze," which is called for each ntuple entry (event).
@@ -173,7 +173,9 @@ def sam_iter(prjurl, pid):
 
             # Fetch the input file.
 
+            print 'Next file uri = %s' % url
             current_file = Ifdh.fetchInput(url)
+            print 'Transferred file = %s' % current_file
             Ifdh.updateFileStatus(prjurl, pid, os.path.basename(current_file), 'transferred')
 
             # Return the next file.
@@ -223,13 +225,20 @@ class Framework:
         self.nev = nev
         self.nskip = nskip
 
+        # FCL parameters.
+
+        self.tree_name = pset['input_tree']                  # Input tree name.
+        self.loop_over_entries = pset['loop_over_entries']   # Entry loop flag.
+        self.module_names = pset['modules']                  # Analysis modules.
+        self.chain = pset['chain']                           # Combine TTrees into one TChain?
+
         # Other class data members.
 
-        self.tree_name = pset['input_tree']   # Input tree name.
         self.output_file = None               # Output TFile object.
+        self.analyzers = []                   # Analyzer objects.
+        self.branch_names = []                # Branch names to load.
         self.input_file = None                # Currently open input TFile object.
         self.tree = None                      # Current input TTree.
-        self.analyzers = []                   # Analyzer objects.
         self.runnum = None                    # Current run number.
         self.subrunnum = None                 # Current subrun number.
         self.evnum = None                     # Current event number.
@@ -255,7 +264,7 @@ class Framework:
 
         # Import analysis modules and make analyzer objects.
 
-        for module_name in self.pset['modules']:
+        for module_name in self.module_names:
             print 'Importing module %s' % module_name
             fp, pathname, description = imp.find_module(module_name)
             module = imp.load_module(module_name, fp, pathname, description)
@@ -264,9 +273,14 @@ class Framework:
             self.analyzers.append(analyzer)
 
         # Call the open output function of each analyzer.
+        # Save list of branches to load.
 
         for analyzer in self.analyzers:
             analyzer.open_output(self.output_file)
+            for branch_name in analyzer.branches():
+                print 'Read branch %s' % branch_name
+                self.branch_names.append(branch_name)
+
 
         # Update metadata.
 
@@ -390,16 +404,22 @@ class Framework:
             analyzer.end_subrun(run, subrun)
 
 
-    def read(self):
+    def read(self, tree):
         #----------------------------------------------------------------------
         # 
-        # Purpose: Load and process all entries in the current tree (the event 
+        # Purpose: Load and process all entries in the input tree (the event 
         #          loop).  This function calls "analyze" functions provided by
         #          analysis modules, as well as begin/end run and begin/end subrun.
         #
+        # Arguments: tree - TTree object.
+        #
         #----------------------------------------------------------------------
 
-        entries = self.tree.GetEntriesFast()
+        entries = 0
+        if tree.InheritsFrom('TChain'):
+            entries = tree.GetEntries()
+        else:
+            entries = tree.GetEntriesFast()
 
         for jentry in xrange(entries):
 
@@ -416,13 +436,13 @@ class Framework:
 
             # Make sure tree is loaded.
 
-            ientry = self.tree.LoadTree( jentry )
+            ientry = tree.LoadTree( jentry )
             if ientry < 0:
                 break
     
             # Load next entry into memory.
 
-            nb = self.tree.GetEntry( jentry )
+            nb = tree.GetEntry( jentry )
             if nb <= 0:
                 continue
 
@@ -440,7 +460,7 @@ class Framework:
             newevent = None
 
             for analyzer in self.analyzers:
-                info = analyzer.event_info(self.tree)
+                info = analyzer.event_info(tree)
                 if newrun == None and info != None and len(info) >= 1 and info[0] != None:
                     newrun = info[0]
                 if newsubrun == None and info != None and len(info) >= 2 and info[1] != None:
@@ -484,7 +504,7 @@ class Framework:
             # Call analyze function for each analyzer.
 
             for analyzer in self.analyzers:
-                analyzer.analyze(self.tree)            
+                analyzer.analyze_entry(self.tree)            
 
             # Decrement event count.
 
@@ -512,40 +532,54 @@ class Framework:
         #
         #----------------------------------------------------------------------
 
-        result = None
+        # First try a plain "Get".
 
-        # Loop over keys from this directory.
-        # Look for
-        # a) TTrees with the correct name.
-        # b) Subdirectories.
+        obj = dir.Get(self.tree_name)
+        if obj and obj.InheritsFrom('TTree'):
+            return obj
+
+        # Plain Get didn't work.  Recursively descend into subdirectories.
 
         keys = dir.GetListOfKeys()
-        subdirs = []
         for key in keys:
             cl = ROOT.TClass(key.GetClassName())
-
-            # Is this the correct tree?
-
-            if cl.InheritsFrom('TTree') and key.GetName() == self.tree_name:
-                result = dir.Get(key.GetName())
-                break
 
             # Is this a subdirectory?
 
             if cl.InheritsFrom('TDirectory'):
-                subdirs.append(key.GetName())
+                subdir = dir.Get(key.GetName())
+                obj = self.find_tree(subdir)
+                if obj and obj.InheritsFrom('TTree'):
+                    return obj
 
-        # If we didn't find the right tree in this directory, search subdirectories.
+        # If we fall out of loop, search failed.
 
-        if result == None:
-            for subdir in subdirs:
-                result = self.find_tree(dir.Get(subdir))
-                if result != None:
-                    break
+        return None
+
+
+    def set_branch_statuses(self, tree):
+        #----------------------------------------------------------------------
+        # 
+        # Purpose: Set branch statuses for tree or chain.
+        #
+        # Arguments: tree - TTree object.
+        #
+        #----------------------------------------------------------------------
+        
+        tree.SetBranchStatus("*",0);
+        for branch_name in self.branch_names:
+            tree.SetBranchStatus(branch_name, 1);
+
+        # Print list of activated branches for this tree.
+
+        print 'List of activated branches:'
+        for branch in tree.GetListOfBranches():
+            if tree.GetBranchStatus(branch.GetName()):
+                print '  %s' % branch.GetName()
 
         # Done
 
-        return result
+        return
 
 
     def open_input(self, input_file_name):
@@ -568,24 +602,17 @@ class Framework:
         # Get input tree.
 
         self.tree = self.find_tree(self.input_file)
-        if self.tree == None:
-            print 'Unable to find tree %s.' % self.tree_name
+        if self.tree != None:
 
-        # Set branch statuses.
+            # Tree successfully located.
+
+            self.set_branch_statuses(self.tree)
 
         else:
-            self.tree.SetBranchStatus("*",0);
-            for analyzer in self.analyzers:
-                branch_names = analyzer.branches(self.tree)
-                for branch_name in branch_names:
-                    print 'Read branch %s' % branch_name
-                    self.tree.SetBranchStatus(branch_name, 1);
 
-        # Update metadata.
+            # Failed to locate tree.
 
-        filename = os.path.basename(input_file_name)
-        if not filename in self.parents:
-            self.parents.append({'file_name' : filename})
+            print 'Unable to find tree %s.' % self.tree_name
 
         # Done.
 
@@ -652,31 +679,74 @@ class Framework:
             analyzer.begin_job()
 
         # Loop over input files.
+        # In this loop we either
+        # a) Load and process trees individually, or
+        # b) Prepare a TChain to be processed after the loop is finished.
 
-        for input_file_name in self.input_file_names:
+        tchain = None
+        if self.chain:
+            tchain = ROOT.TChain(self.tree_name)
 
-            # Open input file.
+        for line in self.input_file_names:
+            input_file_name = line.strip()
 
-            self.open_input(input_file_name.strip())
+            # Update metadata.
+
+            filename = os.path.basename(input_file_name)
+            if not filename in self.parents:
+                self.parents.append({'file_name' : filename})
+
+            # Open input file, or add to TChain.
+
+            if self.chain:
+
+                print 'Add file to TChain: %s' % input_file_name
+                tchain.AddFile(input_file_name)
+
+            else:
+                self.open_input(input_file_name)
+
+                if self.tree != None:
+
+                    # Call analyzer hooks to analyze the whole tree.
+
+                    for analyzer in self.analyzers:
+                        analyzer.analyze_tree(self.tree)
+
+                    # Read entries.
+
+                    if self.loop_over_entries:
+                        self.read(self.tree)
+
+                # Close input file.
+
+                self.close_input()
+                if self.done:
+
+                    # In case of premature break, invoke the file iterator one 
+                    # more time to change sam status to consumed.
+
+                    try:
+                        self.input_file_names.next()
+                    except:
+                        pass
+                    break
+
+        # Do additional chain processing here.
+
+        if tchain != None:
+
+            # Call analyzer hooks to analyze the whole tree.
+
+            for analyzer in self.analyzers:
+                analyzer.analyze_tree(tchain)
 
             # Read entries.
 
-            if self.tree != None:
-                self.read()
+            if self.loop_over_entries:
+                self.read(tchain)
 
-            # Close input file.
 
-            self.close_input()
-            if self.done:
-
-                # In case of premature break, invoke the file iterator one 
-                # more time to change sam status to consumed.
-
-                try:
-                    self.input_file_names.next()
-                except:
-                    pass
-                break
 
         # End the current run and subrun.
 
@@ -796,6 +866,13 @@ def main(argv):
     # Parse configuration.
 
     pset = fcl.make_pset(config)
+
+    # Add default parameters.
+
+    if not pset.has_key('loop_over_entries'):
+        pset['loop_over_entries'] = True
+    if not pset.has_key('chain'):
+        pset['chain'] = False
 
     # Create framework object.
 

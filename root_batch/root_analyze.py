@@ -16,13 +16,11 @@
 
 class RootAnalyze:
 
-    def branches(self, tree):
+    def branches(self):
         #----------------------------------------------------------------------
         #
         # Purpose: Specify which branches should be loaded from this TTree.
-        #          Called by the framework each time a new TTree is read.
-        #
-        # Arguments: tree - Newly read TTree object.
+        #          Called once by the framework at initialization.
         #
         # Returns: List or tuple of branch names that should be loaded.
         #
@@ -68,7 +66,22 @@ class RootAnalyze:
 
         return
 
-    def analyze(self, tree):
+    def analyze_tree(self, tree):
+        #----------------------------------------------------------------------
+        #
+        # Purpose: Called by the framework each time a new TTree is read.  This
+        #          function is provided for modules that do their own loop over
+        #          tree entries.
+        #
+        # Arguments: tree - A loaded TTree object.
+        #
+        # Returns: None
+        #
+        #----------------------------------------------------------------------
+
+        return
+
+    def analyze_entry(self, tree):
         #----------------------------------------------------------------------
         #
         # Purpose: Called by the framework for each TTree entry.
@@ -148,4 +161,3 @@ class RootAnalyze:
         #----------------------------------------------------------------------
 
         return
-

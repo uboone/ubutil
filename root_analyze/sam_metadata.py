@@ -89,12 +89,10 @@ class SamMetadata(RootAnalyze):
         return
 
 
-    def branches(self, tree):
+    def branches(self):
         #----------------------------------------------------------------------
         #
         # Purpose: Return list of branches we want read for this tree, namely, none.
-        #
-        # Arguments: tree - TTree object (ignored).
         #
         # Returns: Empty list.
         #

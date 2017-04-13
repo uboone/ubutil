@@ -51,12 +51,10 @@ class AnalyzeHits(RootAnalyze):
         return
 
 
-    def branches(self, tree):
+    def branches(self):
         #----------------------------------------------------------------------
         #
         # Purpose: Return list of branches we want read for this tree.
-        #
-        # Arguments: tree - TTree object (ignored).
         #
         # Returns: List of hit-related branches.
         #
@@ -148,7 +146,7 @@ class AnalyzeHits(RootAnalyze):
         return result
 
 
-    def analyze(self, tree):
+    def analyze_entry(self, tree):
         #----------------------------------------------------------------------
         #
         # Purpose: Analyze loaded tree (fill histograms).  Called by framework.
