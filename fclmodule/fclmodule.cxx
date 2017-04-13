@@ -71,11 +71,11 @@ PyObject* convert_atom(const std::string& atom)
 
   // Check for boolean.
 
-  if(lcatom == std::string("true")) {
+  if(lcatom == std::string("true") || lcatom == std::string("\"true\"")) {
     pyval = Py_True;
     Py_INCREF(pyval);
   }
-  else if(lcatom == std::string("false")) {
+  else if(lcatom == std::string("false") || lcatom == std::string("\"false\"")) {
     pyval = Py_False;
     Py_INCREF(pyval);
   }
@@ -320,7 +320,10 @@ static std::string format(PyObject* obj, unsigned int pos, unsigned int indent, 
 	 << format(value, indent + keymaxlen + 7, indent+2, maxlen);
       sep = ',';
     }
-    ss << '\n' << std::setw(indent+1) << std::right << '}';
+    if(n == 0)
+      ss << "{}";
+    else
+      ss << '\n' << std::setw(indent+1) << std::right << '}';
 
     Py_DECREF(keys);
 
@@ -331,17 +334,23 @@ static std::string format(PyObject* obj, unsigned int pos, unsigned int indent, 
     // Sequence printing handled here.
     // Break lines only when position exceeds maxlen.
 
-    char open_seq = '(';
-    char close_seq = ')';
+    char open_seq = 0;
+    char close_seq = 0;
+    int n = 0;
     if(PyList_Check(obj)) {
       open_seq = '[';
       close_seq = ']';
+      n = PyList_Size(obj);
     }
+    else {
+      open_seq = '(';
+      close_seq = ')';
+      n = PyTuple_Size(obj);
+    } 
 
     // Loop over elements of this sequence.
 
     std::string sep(1, open_seq);
-    int n = PyList_Size(obj);
     unsigned int break_indent = pos+1;
     for(int i=0; i<n; ++i) {
       ss << sep;
@@ -388,6 +397,8 @@ static std::string format(PyObject* obj, unsigned int pos, unsigned int indent, 
 
     // Close sequence.
 
+    if(n == 0)
+      ss << open_seq;
     ss << close_seq;
   }
 
