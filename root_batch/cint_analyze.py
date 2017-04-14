@@ -54,11 +54,14 @@ class CintAnalyze(RootAnalyze):
         #                Use ".C" for interpreted cint.
         #                Use ".C+" for compiled cint.
         #
-        # TreeFunction - Name of c++ function in the cint macro that should be
+        # AnalyzeTree  - Name of c++ function in the cint macro that should be
         #                called to analyze an entire TTree or TChain.  This
         #                function should take a single argument of type TTree*.
         #                This function can do rooty things like setting branch
         #                addresses and statuses, and looping over tree entries.
+        #
+        # AnalyzeEntry - Name of c++ function in the cint macro that should be
+        #                called to analyze one entry from a TTree or TChain.
         #
         # HistDir      - Make the specified diretory in the output file.
         #
@@ -66,7 +69,12 @@ class CintAnalyze(RootAnalyze):
 
         mypset = pset['modules']['cint_analyze']
         self.cint_macro = mypset['CintMacro']
-        self.analyze_tree_function = mypset['TreeFunction']
+        self.analyze_tree_function = None
+        if mypset.has_key('AnalyzeTree'):
+            self.analyze_tree_function = mypset['AnalyzeTree']
+        self.analyze_entry_function = None
+        if mypset.has_key('AnalyzeEntry'):
+            self.analyze_entry_function = mypset['AnalyzeEntry']
         self.hist_dir = None
         if mypset.has_key('HistDir'):
             self.hist_dir = mypset['HistDir']
@@ -111,19 +119,47 @@ class CintAnalyze(RootAnalyze):
         #          function is provided for modules that do their own loop over
         #          tree entries.
         #
+        # Arguments: tree - A TTree object.
+        #
+        # Returns: None
+        #
+        #----------------------------------------------------------------------
+
+        if self.analyze_tree_function:
+
+            # Find the tree function in the ROOT namespace.
+
+            try:
+                func = getattr(ROOT, self.analyze_tree_function)
+            except:
+                print 'No callable function %s in module ROOT' % self.analyze_tree_function
+                sys.exit(1)
+
+            self.topdir.cd()
+            func(tree)
+
+
+    def analyze_entry(self, tree):
+        #----------------------------------------------------------------------
+        #
+        # Purpose: Called by the framework each time an entry is loaded in a 
+        #          TTree.
+        #
         # Arguments: tree - A loaded TTree object.
         #
         # Returns: None
         #
         #----------------------------------------------------------------------
 
-        # Find the tree function in the ROOT namespace.
+        if self.analyze_entry_function:
 
-        try:
-            func = getattr(ROOT, self.analyze_tree_function)
-        except:
-            print 'No callable function %s in module ROOT' % self.analyze_tree_function
-            sys.exit(1)
+            # Find the tree function in the ROOT namespace.
 
-        self.topdir.cd()
-        func(tree)
+            try:
+                func = getattr(ROOT, self.analyze_entry_function)
+            except:
+                print 'No callable function %s in module ROOT' % self.analyze_entry_function
+                sys.exit(1)
+
+            self.topdir.cd()
+            func(tree)
