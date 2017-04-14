@@ -65,19 +65,29 @@ class CintAnalyze(RootAnalyze):
         #
         # HistDir      - Make the specified diretory in the output file.
         #
+        # LoadAllBranches - Activate all branches if true.  Otherwise don't
+        #                   activate any branches (cint macro can still activate).
+        #
         #----------------------------------------------------------------------
 
         mypset = pset['modules']['cint_analyze']
         self.cint_macro = mypset['CintMacro']
+
         self.analyze_tree_function = None
         if mypset.has_key('AnalyzeTree'):
             self.analyze_tree_function = mypset['AnalyzeTree']
+
         self.analyze_entry_function = None
         if mypset.has_key('AnalyzeEntry'):
             self.analyze_entry_function = mypset['AnalyzeEntry']
+
         self.hist_dir = None
         if mypset.has_key('HistDir'):
             self.hist_dir = mypset['HistDir']
+
+        self.load_all_branches = False
+        if mypset.has_key('LoadAllBranches'):
+            self.load_all_branches = mypset['LoadAllBranches']
 
         # Load the macro.
         # If successful, the top level symbols in the cint macro will be added
@@ -91,6 +101,26 @@ class CintAnalyze(RootAnalyze):
             sys.exit(1)
 
         return
+
+
+    def branches(self):
+        #----------------------------------------------------------------------
+        #
+        # Purpose: Specify which branches should be loaded from this TTree.
+        #          Called once by the framework at initialization.
+        #
+        # Returns: List or tuple of branch names that should be loaded.
+        #
+        # The returned list of branch names can include wildcards.  This 
+        # base class provides a default implementation that returns ['*']
+        # to load all branches.
+        #
+        #----------------------------------------------------------------------
+
+        result = []
+        if self.load_all_branches:
+            result = ['*']
+        return result
 
 
     def open_output(self, tfile):
