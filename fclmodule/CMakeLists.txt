@@ -6,7 +6,6 @@ set( CMAKE_SHARED_LIBRARY_PREFIX "" )
 art_make( LIBRARY_NAME fclmodule 
 	  LIB_LIBRARIES ${FHICLCPP}
 	  		cetlib
-			cetlib_except
 	  		${PYTHON} )
 
 install_source()
