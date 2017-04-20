@@ -23,11 +23,17 @@
 // The function reads the fcl file and returns the expanded parameter set
 // in the form of a python dictionary.
 //
+// 2.  Function pretty(pset)
+//
+// Generate a prettified string corresponding to a parameter set dictionary.
+// String is valid fcl code.
+//
 // Example:
 //
 // #! /usr/bin/env python
 // import fcl
 // pset = fcl.make_pset('myfile.fcl')
+// print fcl.pretty(pset)
 //
 //
 //----------------------------------------------------------------------
@@ -310,7 +316,7 @@ void PythonDictConverter::add_object(key_t const& key, PyObject* pyobj)
 static std::string format(PyObject* obj, unsigned int pos, unsigned int indent, unsigned int maxlen)
 //
 // Purpose: Convert a python object to a prettified string.  The resulting string
-//          is suppsed to be valid python code.
+//          is suppsed to be valid fcl code.
 //
 // Arguments: obj    - Object to be formatted.
 //            pos    - Current character position (number of characters printed
@@ -336,9 +342,9 @@ static std::string format(PyObject* obj, unsigned int pos, unsigned int indent, 
 
   if(PyString_Check(obj)) {
 
-    // String objects, add single quotes, but don't do any other formatting.
+    // String objects, add double quotes, but don't do any other formatting.
 
-    ss << "'" << PyString_AsString(obj) << "'";
+    ss << "\"" << PyString_AsString(obj) << "\"";
   }
 
   else if(PyDict_Check(obj)) {
@@ -360,24 +366,27 @@ static std::string format(PyObject* obj, unsigned int pos, unsigned int indent, 
 	keymaxlen = keylen;
     }
 
+    // Print enclosing braces, but not for outermost table (i.e. the whole parameter set).
+
+    bool outer = (pos == 0 && indent == 0);
+    if(!outer && n != 0)
+      ss << "{\n";
+
     // Second pass, loop over keys and values and convert them to strings.
 
-    char sep = '{';
     for(int i=0; i<n; ++i) {
       PyObject* key = PyList_GetItem(keys, i);
       PyObject* value = PyDict_GetItem(obj, key);
       const char* ks = PyString_AsString(key);
-      std::string ksquote = std::string("'") + std::string(ks) + std::string("'");
-      ss << sep << '\n'
-	 << std::setw(indent+2) << ""
-	 << std::setw(keymaxlen+2) << std::left << ksquote << " : "
-	 << format(value, indent + keymaxlen + 7, indent+2, maxlen);
-      sep = ',';
+      ss << std::setw(indent) << ""
+	 << std::setw(keymaxlen) << std::left << ks << " : "
+	 << format(value, indent + keymaxlen + 3, indent+2, maxlen)
+	 << '\n';
     }
     if(n == 0)
       ss << "{}";
-    else
-      ss << '\n' << std::setw(indent+1) << std::right << '}';
+    else if(!outer)
+      ss << std::setw(indent-1) << std::right << '}';
 
     Py_DECREF(keys);
 
@@ -461,7 +470,15 @@ static std::string format(PyObject* obj, unsigned int pos, unsigned int indent, 
     // Last resort, use python's string representation.
 
     PyObject* pystr = PyObject_Str(obj);
-    ss << PyString_AsString(pystr);
+    std::string s(PyString_AsString(pystr));
+
+    // Print booleans in lower case instead of python default case.
+
+    if(s == std::string("True"))
+      s = "true";
+    else if(s == std::string("False"))
+      s = "false";
+    ss << s;
   }
 
   // Done.
