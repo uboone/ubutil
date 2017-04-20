@@ -147,14 +147,9 @@ void PythonDictConverter::enter_sequence(key_t const& key, any_t const& any)
 //            any - Object
 //
 {
-  // Get length of sequence.
+  // Make a new empty python list for this sequence.
 
-  const std::vector<any_t>& anyvec = boost::any_cast<const std::vector<any_t>&>(any);
-  unsigned int n = anyvec.size();
-
-  // Make a new python list of the required size.
-
-  PyObject* seq = PyList_New(n);
+  PyObject* seq = PyList_New(0);
 
   // Insert the list into the current parent container.
 
@@ -299,30 +294,10 @@ void PythonDictConverter::add_object(key_t const& key, PyObject* pyobj)
   }
   else if(PyList_Check(parent)) {
 
-    // Lists handled here.
+    // Append object to list.
 
-    if(PyList_Size(parent) == 0)
-      throw cet::exception("fclmodule") << "Parent list is empty." << std::endl;
-
-    // Find the first uninitialized list entry (do binary search).
-
-    unsigned int low = 0;
-    unsigned int high = PyList_Size(parent)-1;
-    if(PyList_GetItem(parent, 0) == 0)
-      high = 0;
-    if(PyList_GetItem(parent, high) != 0)
-      throw cet::exception("fclmodule") << "Parent list has no free entries." << std::endl;
-    while (high-low > 1) {
-      unsigned int mid = (low + high)/2;
-      if(PyList_GetItem(parent, mid) == 0)
-	high = mid;
-      else
-	low = mid;
-    }
-
-    // Insert object into list at the appropriate position.
-
-    PyList_SetItem(parent, high, pyobj);
+    PyList_Append(parent, pyobj);
+    Py_DECREF(pyobj);
   }
   else {
 
