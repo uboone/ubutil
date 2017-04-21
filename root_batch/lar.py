@@ -103,6 +103,10 @@ sys.argv = myargv
 
 Ifdh = None
 
+# Transferred files.
+
+transferred_files = set()
+
 
 def help():
     #----------------------------------------------------------------------
@@ -127,13 +131,15 @@ def help():
                 print
 
 
-def sam_iter(prjurl, pid):
+def sam_iter(prjurl, pid, cleanup=True):
     #----------------------------------------------------------------------
     #
     # Purpose: A sam generator.
     #
-    # Arguments: prjurl - Project url.
-    #            pid    - Process id.
+    # Arguments: prjurl  - Project url.
+    #            pid     - Process id.
+    #            cleanup - If true, delete local copies each time a file 
+    #                      is marked "consumed."
     #
     # Returns: A sam iterator.
     #
@@ -149,9 +155,10 @@ def sam_iter(prjurl, pid):
     #
     #----------------------------------------------------------------------
 
+    global Ifdh, transferred_files
+
     # Initialize ifdh object, if not already done.
 
-    global Ifdh
     if Ifdh == None:
         import ifdh
         Ifdh = ifdh.ifdh()
@@ -164,19 +171,36 @@ def sam_iter(prjurl, pid):
         # Release most recent file, if any.
 
         if current_file:
-            Ifdh.updateFileStatus(prjurl, pid, os.path.basename(current_file), 'consumed')
+            sam_clean(prjurl, pid, cleanup=cleanup)
 
         # Get next file.
 
         url = Ifdh.getNextFile(prjurl, pid)
         if url:
 
+            print 'Delivered file = %s' % url
+
             # Fetch the input file.
 
-            print 'Next file uri = %s' % url
-            current_file = Ifdh.fetchInput(url)
+            ok = False
+            try:
+                current_file = Ifdh.fetchInput(url)
+                ok = True
+            except:
+                ok = False
+
+            # If transfer failed.  Update file status to "skipped."
+
+            if not ok:
+                print 'Skipped file = %s' % url
+                Ifdh.updateFileStatus(prjurl, pid, os.path.basename(url), 'skipped')
+                continue
+
+            # Transfer succeeded.  Update file status to "transferred."
+
             print 'Transferred file = %s' % current_file
             Ifdh.updateFileStatus(prjurl, pid, os.path.basename(current_file), 'transferred')
+            transferred_files.add(os.path.basename(current_file))
 
             # Return the next file.
 
@@ -187,6 +211,39 @@ def sam_iter(prjurl, pid):
             # Stop iteration.
 
             return
+
+
+def sam_clean(prjurl, pid, cleanup=True):
+    #----------------------------------------------------------------------
+    #
+    # Purpose: Clean up transferred files.  Update status of transferred
+    #          files to "consumed", and call "ifdh cleanup" to delete local
+    #          copies of transferred files.
+    #
+    # Arguments: prjurl  - Project url.
+    #            pid     - Process id.
+    #            cleanup - Delete temp files by calling "ifdh cleanup."
+    #
+    #----------------------------------------------------------------------
+
+    global Ifdh, transferred_files
+
+    # Update file statuses of transferred files to consumed.
+
+    while len(transferred_files) > 0:
+        transferred_file = transferred_files.pop()
+        print 'Consumed file = %s' % transferred_file
+        Ifdh.updateFileStatus(prjurl, pid, transferred_file, 'consumed')
+
+    # Delete local copies.
+
+    if cleanup:
+        print 'Clean up local copies of transferred files.'
+        Ifdh.cleanup()
+
+    # Done.
+
+    return  
 
 
 # Framework class
@@ -722,14 +779,6 @@ class Framework:
 
                 self.close_input()
                 if self.done:
-
-                    # In case of premature break, invoke the file iterator one 
-                    # more time to change sam status to consumed.
-
-                    try:
-                        self.input_file_names.next()
-                    except:
-                        pass
                     break
 
         # Do additional chain processing here.
@@ -745,8 +794,6 @@ class Framework:
 
             if self.loop_over_entries:
                 self.read(tchain)
-
-
 
         # End the current run and subrun.
 
@@ -827,6 +874,17 @@ def main(argv):
             print 'Unknown option %s' % args[0]
             return 1
 
+    # Parse configuration.
+
+    pset = fcl.make_pset(config)
+
+    # Add default parameters.
+
+    if not pset.has_key('loop_over_entries'):
+        pset['loop_over_entries'] = True
+    if not pset.has_key('chain'):
+        pset['chain'] = False
+
     # Validate arguments.
 
     # Exactly one of infile, inlist, or prjurl must be specified.
@@ -854,7 +912,7 @@ def main(argv):
         # Input from sam.
 
         n = n + 1
-        input_iter = sam_iter(prjurl, pid)
+        input_iter = sam_iter(prjurl, pid, cleanup=not pset['chain'])
 
     if n == 0:
         print 'No input specified.'
@@ -863,17 +921,6 @@ def main(argv):
         print 'More than one input specified.'
         return 1
 
-    # Parse configuration.
-
-    pset = fcl.make_pset(config)
-
-    # Add default parameters.
-
-    if not pset.has_key('loop_over_entries'):
-        pset['loop_over_entries'] = True
-    if not pset.has_key('chain'):
-        pset['chain'] = False
-
     # Create framework object.
 
     fwk = Framework(pset, input_iter, outfile, nev, nskip)
@@ -881,6 +928,14 @@ def main(argv):
     # Run.
 
     fwk.run()
+
+    # Sam final cleanup.
+
+    sam_clean(prjurl, pid, cleanup=True)
+
+    # Done
+
+    return 0
 
 
 if __name__ == '__main__':
