@@ -931,7 +931,8 @@ def main(argv):
 
     # Sam final cleanup.
 
-    sam_clean(prjurl, pid, cleanup=True)
+    if prjurl != '':
+        sam_clean(prjurl, pid, cleanup=True)
 
     # Done
 
