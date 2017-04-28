@@ -23,11 +23,17 @@
 // The function reads the fcl file and returns the expanded parameter set
 // in the form of a python dictionary.
 //
+// 2.  Function pretty(pset)
+//
+// Generate a prettified string corresponding to a parameter set dictionary.
+// String is valid fcl code.
+//
 // Example:
 //
 // #! /usr/bin/env python
 // import fcl
 // pset = fcl.make_pset('myfile.fcl')
+// print fcl.pretty(pset)
 //
 //
 //----------------------------------------------------------------------
@@ -37,31 +43,142 @@
 #include <iomanip>
 #include <sstream>
 #include "cetlib/search_path.h"
+
+// Walk interface is private.
+
+#define private public
 #include "fhiclcpp/ParameterSet.h"
+#undef private
+
 #include "fhiclcpp/ParameterSetRegistry.h"
 #include "fhiclcpp/make_ParameterSet.h"
 
-// Forward declarations.
+// Define a parameter set walker class
 
-PyObject* convert_any(const boost::any& any);
+class PythonDictConverter : public fhicl::detail::ParameterSetWalker
+{
+public:
 
-PyObject* convert_atom(const std::string& atom)
+  using key_t = std::string;
+  using any_t = boost::any;
+
+  // Public methods.
+
+  PythonDictConverter();
+  PyObject* result() const;     // Result is python dictionary.
+
+private:
+
+  // Base class overrides.
+
+  void enter_table    (key_t const& key, any_t const& any);
+  void enter_sequence (key_t const& key, any_t const& any);
+  void atom           (key_t const& key, any_t const& any);
+  void exit_table     (key_t const& key, any_t const& any);
+  void exit_sequence  (key_t const& key, any_t const& any);
+
+  // Local private methods.
+
+  void add_object(key_t const& key, PyObject* pyobj);   // Add object to current parent.
+
+  // Data members.
+
+  // Result stack.
+  // _stack[0] is the entire parameter set (a python dictionary).
+  // _stack.back() is the current parent container that is being filled
+  // (a python dictionary or list).
+
+  std::vector<PyObject*> _stack;
+};
+
+PythonDictConverter::PythonDictConverter()
 //
-// Purpose: Convert a string representing an atomic value to a python object.
-//          The type of the returned object is one of: bool, int, float, or 
-//          string.  The type is chosen based on the string content.  In
-//          principle, fhicl also support type complex.  We don't handle 
-//          complex in this function (complex atomic values will be returned
-//          as strings).
-//
-// Arguments: atom - A string reprsenting an atomic value.
-//
-// Return value: Python object pointer.
+// Purpose: Constructor.
 //
 {
-  // Return value.
+  // Initialize result stack with an empty python dictionary.
+  // This dictionary will represent the parameter set.
 
+  _stack.emplace_back(PyDict_New());
+}
+
+PyObject* PythonDictConverter::result() const
+//
+// Purpose: Return result.  When this method is called, the result stack
+//          should contain exactly one object, and this object should be a
+//          python dictionary.
+//
+// Returns: Python dictionary.
+//
+{
+   // Do consistency checks.
+
+  if(_stack.size() != 1)
+    throw cet::exception("fclmodule") << "Result stack has wrong size: "
+				      << _stack.size() << std::endl;
+  if(!PyDict_Check(_stack[0]))
+    throw cet::exception("fclmodule") << "Result stack has wrong type." << std::endl;
+
+  // Everything OK.
+
+  return _stack[0];
+}
+
+void PythonDictConverter::enter_table(key_t const& key, any_t const& any)
+//
+// Purpose: Convert table.
+//
+// Arguments: key - Key of this object.
+//            any - Object
+//
+{
+  // Make a new empty python dictionary for this table.
+
+  PyObject* dict = PyDict_New();
+
+  // Insert this dictionary into the current parent container.
+
+  add_object(key, dict);
+
+  // Make the newly created python dictionary the current parent container.
+
+  _stack.emplace_back(dict);
+}
+
+void PythonDictConverter::enter_sequence(key_t const& key, any_t const& any)
+//
+// Purpose: Convert sequence.
+//
+// Arguments: key - Key of this object.
+//            any - Object
+//
+{
+  // Make a new empty python list for this sequence.
+
+  PyObject* seq = PyList_New(0);
+
+  // Insert the list into the current parent container.
+
+  add_object(key, seq);
+
+  // Make the newly created python dictionary the current parent container.
+
+  _stack.emplace_back(seq);
+}
+
+void PythonDictConverter::atom(key_t const& key, any_t const& any)
+//
+// Purpose: Convert atom.
+//
+// Arguments: key - Key of this object.
+//            any - Object
+//
+{
   PyObject* pyval = 0;
+
+  // Extract atom as string.
+
+  const std::string& atom = boost::any_cast<const std::string&>(any);
 
   // Get lower case version of argument string.
 
@@ -113,150 +230,93 @@ PyObject* convert_atom(const std::string& atom)
   if(pyval == 0)
     pyval = PyString_FromString(atom.c_str());
 
-  // Done.
+  // Done converting atom to python.
+  // Add python object to parent container.
 
-  return pyval;
+  add_object(key, pyval);
 }
 
-PyObject* convert_pset(const fhicl::ParameterSet& pset)
+void PythonDictConverter::exit_table(key_t const& key, any_t const& any)
 //
-// Purpose: Convert a parameter set to a python dictionary.
-//
-// Arguments: pset - Parameter set.
-//
-// Return value: Python dictionary pointer.
+// Purpose: Close parent table.
 //
 {
-  // Make an empty python dictionary that will be our result.
+  // Do consistency checks.
 
-  PyObject* pydict = PyDict_New();
+  if(_stack.size() < 2)
+    throw cet::exception("fclmodule") << "Result stack has wrong size: "
+				      << _stack.size() << std::endl;
+  if(!PyDict_Check(_stack.back()))
+    throw cet::exception("fclmodule") << "Result stack has wrong type." << std::endl;
 
-  // Pry open the parameter set.
+  // Pop the current parent (this table) off the result stack.
 
-  const std::map<std::string, boost::any>& anymap = 
-    reinterpret_cast<const std::map<std::string, boost::any>&>(pset);
-
-  // Loop over items in parameter set.
-
-  for(const auto& entry : anymap) {
-    const std::string& key = entry.first;
-    const boost::any& any = entry.second;
-    PyObject* pyval = convert_any(any);
-
-    // Done converting key.
-
-    if(pyval != 0) {
-
-      // Conversion was successful.  Insert value into dictionary.
-
-      PyDict_SetItemString(pydict, key.c_str(), pyval);
-      Py_DECREF(pyval);
-    }
-    else {
-
-      // Abort.
-
-      Py_DECREF(pydict);
-      pydict = 0;
-      break;
-    }
-  }
-
-  // Done.
-
-  return pydict;
+  _stack.pop_back();
 }
 
-PyObject* convert_seq(const std::vector<boost::any>& seq)
+void PythonDictConverter::exit_sequence(key_t const& key, any_t const& any)
 //
-// Purpose: Convert a sequence to a python list.
+// Purpose: Close current sequence.
 //
-// Arguments: seq - Sequence.
-//
-// Return value: Python list pointer.
+// Arguments: key - Key of this object.
+//            any - Object
 //
 {
-  // Make a python list that will be our return value.
+  // Do consistency checks.
 
-  PyObject* pylist = PyList_New(seq.size());
-  for(unsigned int i=0; i<seq.size(); ++i) {
+  if(_stack.size() < 2)
+    throw cet::exception("fclmodule") << "Result stack has wrong size: "
+				      << _stack.size() << std::endl;
+  if(!PyList_Check(_stack.back()))
+    throw cet::exception("fclmodule") << "Result stack has wrong type." << std::endl;
 
-    // Convert element.
+  // Pop the current parent (this sequence) off the result stack.
 
-    PyObject* pyele = convert_any(seq[i]);
-    if(pyele != 0) {
-
-      // Element conversion was successful.  Insert element into list.
-
-      PyList_SetItem(pylist, i, pyele);
-    }
-    else {
-
-      // Abort.
-
-      Py_DECREF(pylist);
-      pylist = 0;
-    }
-  }
-
-  // Done.
-
-  return pylist;
+  _stack.pop_back();
 }
 
-PyObject* convert_any(const boost::any& any)
+void PythonDictConverter::add_object(key_t const& key, PyObject* pyobj)
 //
-// Purpose: Convert a boost::any to a python object.
+// Purpose: Add object to the current parent container.  The parent object
+//          can be either a python dictionary or a python list.  The key
+//          argument is only used if the parent is a dictionary.
 //
-// Arguments: any - Boost::any object.
-//
-// Return value: Python object pointer.
+// Arguments: key   - Key of object in parent.
+//            pyobj - Python object.
 //
 {
-  // Return value.
+  // Get the current parent object.
 
-  PyObject* pyval = 0;
+  if(_stack.size() == 0)
+    throw cet::exception("fclmodule") << "No parent object." << std::endl;
+  PyObject* parent = _stack.back();
 
-  if(any.type() == typeid(std::string)) {
+  if(PyDict_Check(parent)) {
 
-    // Atomic types.
+    // Insert object into dicionary.
 
-    const std::string& atom = boost::any_cast<const std::string&>(any);
-    pyval = convert_atom(atom);
+    PyDict_SetItemString(parent, key.c_str(), pyobj);
+    Py_DECREF(pyobj);
   }
-  else if(any.type() == typeid(std::vector<boost::any>)) {
+  else if(PyList_Check(parent)) {
 
-    // Sequences.
+    // Append object to list.
 
-    const std::vector<boost::any>& anyvec = boost::any_cast<const std::vector<boost::any>&>(any);
-    pyval = convert_seq(anyvec);
-  }
-  else if(any.type() == typeid(fhicl::ParameterSetID)) {
-
-    // Parameter sets.
-
-    const fhicl::ParameterSetID& id = boost::any_cast<const fhicl::ParameterSetID&>(any);
-    const fhicl::ParameterSet& pset = fhicl::ParameterSetRegistry::get(id);
-    pyval = convert_pset(pset);
+    PyList_Append(parent, pyobj);
+    Py_DECREF(pyobj);
   }
   else {
 
-    // Unknown type.
-    // Shouldn't happen.
+    // Oops.
 
-    std::string msg = std::string("Failed to convert object of type ") + any.type().name();
-    PyErr_SetString(PyExc_ValueError, msg.c_str());
+    throw cet::exception("fclmodule") << "Parent object is not dictionary or list." << std::endl;
   }
-
-  // Done.
-
-  return pyval;
 }
 
 static std::string format(PyObject* obj, unsigned int pos, unsigned int indent, unsigned int maxlen)
 //
 // Purpose: Convert a python object to a prettified string.  The resulting string
-//          is suppsed to be valid python code.
+//          is suppsed to be valid fcl code.
 //
 // Arguments: obj    - Object to be formatted.
 //            pos    - Current character position (number of characters printed
@@ -282,9 +342,9 @@ static std::string format(PyObject* obj, unsigned int pos, unsigned int indent, 
 
   if(PyString_Check(obj)) {
 
-    // String objects, add single quotes, but don't do any other formatting.
+    // String objects, add double quotes, but don't do any other formatting.
 
-    ss << "'" << PyString_AsString(obj) << "'";
+    ss << "\"" << PyString_AsString(obj) << "\"";
   }
 
   else if(PyDict_Check(obj)) {
@@ -306,24 +366,27 @@ static std::string format(PyObject* obj, unsigned int pos, unsigned int indent, 
 	keymaxlen = keylen;
     }
 
+    // Print enclosing braces, but not for outermost table (i.e. the whole parameter set).
+
+    bool outer = (pos == 0 && indent == 0);
+    if(!outer && n != 0)
+      ss << "{\n";
+
     // Second pass, loop over keys and values and convert them to strings.
 
-    char sep = '{';
     for(int i=0; i<n; ++i) {
       PyObject* key = PyList_GetItem(keys, i);
       PyObject* value = PyDict_GetItem(obj, key);
       const char* ks = PyString_AsString(key);
-      std::string ksquote = std::string("'") + std::string(ks) + std::string("'");
-      ss << sep << '\n'
-	 << std::setw(indent+2) << ""
-	 << std::setw(keymaxlen+2) << std::left << ksquote << " : "
-	 << format(value, indent + keymaxlen + 7, indent+2, maxlen);
-      sep = ',';
+      ss << std::setw(indent) << ""
+	 << std::setw(keymaxlen) << std::left << ks << " : "
+	 << format(value, indent + keymaxlen + 3, indent+2, maxlen)
+	 << '\n';
     }
     if(n == 0)
       ss << "{}";
-    else
-      ss << '\n' << std::setw(indent+1) << std::right << '}';
+    else if(!outer)
+      ss << std::setw(indent-1) << std::right << '}';
 
     Py_DECREF(keys);
 
@@ -407,7 +470,15 @@ static std::string format(PyObject* obj, unsigned int pos, unsigned int indent, 
     // Last resort, use python's string representation.
 
     PyObject* pystr = PyObject_Str(obj);
-    ss << PyString_AsString(pystr);
+    std::string s(PyString_AsString(pystr));
+
+    // Print booleans in lower case instead of python default case.
+
+    if(s == std::string("True"))
+      s = "true";
+    else if(s == std::string("False"))
+      s = "false";
+    ss << s;
   }
 
   // Done.
@@ -440,7 +511,9 @@ static PyObject* make_pset(PyObject* self, PyObject *args)
   cet::filepath_lookup maker(pathvar);
   try {
     fhicl::make_ParameterSet(fclstr, maker, pset);
-    result = convert_pset(pset);
+    PythonDictConverter converter;
+    pset.walk_(converter);
+    result = converter.result();
   }
   catch(cet::exception& e) {
     PyErr_SetString(PyExc_IOError, e.what());
