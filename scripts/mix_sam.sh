@@ -32,18 +32,6 @@ if [ x$MIX_PROJECT = x ]; then
   exit 1
 fi
 
-if [ x$MIX_DEFNAME != x ]; then
-
-      echo "Starting project $MIX_PROJECT using sam dataset definition $MIX_DEFNAME"
-      ifdh startProject $MIX_PROJECT $SAM_STATION $MIX_DEFNAME $SAM_USER $SAM_GROUP
-      if [ $? -eq 0 ]; then
-        echo "Start project succeeded."
-      else
-        echo "Start projet failed."
-        exit 1
-      fi
-fi
-
 if [ x$UBOONECODE_VERSION = x ]; then
   echo "Variable UBOONECODE_VERSION not defined."
   exit 1

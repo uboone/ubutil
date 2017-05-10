@@ -25,7 +25,7 @@ defaultqual e9
 #
 incdir  -
 fcldir  -
-libdir  -
+libdir  product_dir    python
 bindir  product_dir    bin
 
 # table fragment to set various environment variables.
@@ -43,7 +43,7 @@ table_fragment_end
 
 product          version
 art             v1_17_07
-larbatch        v01_23_07
+larbatch        v01_32_00
 pycurl          -		-	optional
 
 cetbuildtools	v4_19_04	-	only_for_build
