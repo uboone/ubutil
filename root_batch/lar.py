@@ -288,6 +288,7 @@ class Framework:
         self.loop_over_entries = pset['loop_over_entries']   # Entry loop flag.
         self.module_names = pset['modules']                  # Analysis modules.
         self.chain = pset['chain']                           # Combine TTrees into one TChain?
+        self.dump_every = pset['dump_every']                 # Generate output every N entries.
 
         # Other class data members.
 
@@ -486,11 +487,6 @@ class Framework:
                 self.nskip -= 1
                 continue
 
-            # Keep user from getting bored.
-
-            if jentry%10 == 0:
-                print jentry,"/",entries
-
             # Make sure tree is loaded.
 
             ientry = tree.LoadTree( jentry )
@@ -529,6 +525,18 @@ class Framework:
 
                 if newrun != None and newsubrun != None and newevent != None:
                     break
+
+            # Keep user from getting bored.
+
+            if jentry % self.dump_every == 0:
+                print 'Entry = %d/ %d' % (jentry, entries),
+                if newrun != None:
+                    print ', run=%d' % newrun,
+                if newsubrun != None:
+                    print ', subrun=%d' % newsubrun,
+                if newevent != None:
+                    print ', event=%d' % newevent,
+                print
 
             # Check for new run.
 
@@ -884,6 +892,8 @@ def main(argv):
         pset['loop_over_entries'] = True
     if not pset.has_key('chain'):
         pset['chain'] = False
+    if not pset.has_key('dump_every'):
+        pset['dump_every'] = 10
 
     # Validate arguments.
 
@@ -931,7 +941,8 @@ def main(argv):
 
     # Sam final cleanup.
 
-    sam_clean(prjurl, pid, cleanup=True)
+    if prjurl != '':
+        sam_clean(prjurl, pid, cleanup=True)
 
     # Done
 
