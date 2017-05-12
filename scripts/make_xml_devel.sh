@@ -193,7 +193,7 @@ done
 
 # Get qualifier.
 
-qual=e10
+qual=e14
 
 # Delete existing xml files.
 
