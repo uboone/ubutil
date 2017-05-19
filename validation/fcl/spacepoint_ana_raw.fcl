@@ -46,12 +46,12 @@ physics:
   }
 
   analyzers:{
-    spacepoint: @local::standard_spacepointana
+    spacepointana: @local::standard_spacepointana
   }
 
  reco: [ wcNoiseFilter, caldata, gaushit ]
  #reco: [ digitfilter, caldata, gaushit ]
- ana:  [ spacepoint ]
+ ana:  [ spacepointana ]
 
  trigger_paths: [ reco ]
  end_paths:     [ ana ]  
@@ -60,7 +60,7 @@ physics:
 services.DetectorClocksService.InheritClockConfig:           false
 services.DetectorClocksService.TriggerOffsetTPC:             -400
 
-#services.SignalShapingServiceMicroBooNE.FieldResponseFVersion: [ "v3.11", "v3.11"]
+#services.SignalShapingServiceMicroBooNE.FieldResponseFVersion: [ "v3.15", "v3.15"]
 #services.SignalShapingServiceMicroBooNE.YZdependentResponse: true
 #services.SignalShapingServiceMicroBooNE.datadrivenResponse: true
 #services.SignalShapingServiceMicroBooNE.IncludeMisconfiguredU: false
@@ -70,15 +70,14 @@ services.DetectorClocksService.TriggerOffsetTPC:             -400
 #services.SignalShapingServiceMicroBooNE.FieldRespAmpVec:  [ 0.555, 0.447, 1.46 ]
 #services.SignalShapingServiceMicroBooNE.CalibResponseTOffset: [0.0, 2.0, 0.0]
 
-physics.analyzers.spacepoint.UseMC: false
-physics.analyzers.spacepoint.UseClusterHits: false
-physics.analyzers.spacepoint.HitModuleLabel: "gaushit"
-physics.analyzers.spacepoint.SpacePointAlgDefault.EnableW: true
-physics.analyzers.spacepoint.SpacePointAlgDefault.MinViews: 3
-physics.analyzers.spacepoint.SpacePointAlgTime.EnableW: true
-physics.analyzers.spacepoint.SpacePointAlgTime.MinViews: 3
-physics.analyzers.spacepoint.SpacePointAlgTime.MaxDT: 20.
-physics.analyzers.spacepoint.SpacePointAlgSep.EnableW: true
-physics.analyzers.spacepoint.SpacePointAlgSep.MinViews: 3
-physics.analyzers.spacepoint.SpacePointAlgSep.MaxS: 2.
-
+physics.analyzers.spacepointana.UseMC: false
+physics.analyzers.spacepointana.UseClusterHits: false
+physics.analyzers.spacepointana.HitModuleLabel: "gaushit"
+physics.analyzers.spacepointana.SpacepointAlgDefault.EnableW: true
+physics.analyzers.spacepointana.SpacepointAlgDefault.MinViews: 3
+physics.analyzers.spacepointana.SpacepointAlgTime.EnableW: true
+physics.analyzers.spacepointana.SpacepointAlgTime.MinViews: 3
+physics.analyzers.spacepointana.SpacepointAlgTime.MaxDT: 20.
+physics.analyzers.spacepointana.SpacepointAlgSep.EnableW: true
+physics.analyzers.spacepointana.SpacepointAlgSep.MinViews: 3
+physics.analyzers.spacepointana.SpacePointAlgSep.MaxS: 2.
