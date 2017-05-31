@@ -39,8 +39,8 @@ physics:
 {
 
   producers:{
-    wcNoiseFilter:                  @local::microboone_wirecellnoisefilter
-    #digitfilter:                    @local::microboone_rawdigitfilter
+    #wcNoiseFilter:                  @local::microboone_wirecellnoisefilter
+    digitfilter:                    @local::microboone_rawdigitfilter
     caldata:                        @local::microboone_calroi
     gaushit:                        @local::microboone_gaushitfinder
   }
@@ -49,8 +49,8 @@ physics:
     spacepointana: @local::standard_spacepointana
   }
 
- reco: [ wcNoiseFilter, caldata, gaushit ]
- #reco: [ digitfilter, caldata, gaushit ]
+ #reco: [ wcNoiseFilter, caldata, gaushit ]
+ reco: [ digitfilter, caldata, gaushit ]
  ana:  [ spacepointana ]
 
  trigger_paths: [ reco ]
@@ -70,14 +70,29 @@ services.DetectorClocksService.TriggerOffsetTPC:             -400
 #services.SignalShapingServiceMicroBooNE.FieldRespAmpVec:  [ 0.555, 0.447, 1.46 ]
 #services.SignalShapingServiceMicroBooNE.CalibResponseTOffset: [0.0, 2.0, 0.0]
 
+physics.producers.digitfilter.TruncateTicks:                        true
+
+physics.producers.caldata.DigitModuleLabel:                         "digitfilter"
+physics.producers.caldata.Threshold:                                [0, 0, 0]  # Not what you think...
+physics.producers.caldata.NumSigma:                                 [9, 9, 9]  # Closer to what you think...
+physics.producers.caldata.DodQdxCalib:                              false
+
+physics.producers.gaushit.CalDataModuleLabel:                       "caldata"
+physics.producers.gaushit.MinSig:                                   [2.6, 3.4, 3.4]
+physics.producers.gaushit.MinWidth:                                 [1.0, 1.0, 1.0]
+physics.producers.gaushit.LongMaxHits:                              [ 25, 25, 25]
+physics.producers.gaushit.MaxMultiHit:                              4
+physics.producers.gaushit.TryNplus1Fits:                            false
+physics.producers.gaushit.Chi2NDF:                                  50.
+
 physics.analyzers.spacepointana.UseMC: false
 physics.analyzers.spacepointana.UseClusterHits: false
 physics.analyzers.spacepointana.HitModuleLabel: "gaushit"
-physics.analyzers.spacepointana.SpacepointAlgDefault.EnableW: true
-physics.analyzers.spacepointana.SpacepointAlgDefault.MinViews: 3
-physics.analyzers.spacepointana.SpacepointAlgTime.EnableW: true
-physics.analyzers.spacepointana.SpacepointAlgTime.MinViews: 3
-physics.analyzers.spacepointana.SpacepointAlgTime.MaxDT: 20.
-physics.analyzers.spacepointana.SpacepointAlgSep.EnableW: true
-physics.analyzers.spacepointana.SpacepointAlgSep.MinViews: 3
+physics.analyzers.spacepointana.SpacePointAlgDefault.EnableW: true
+physics.analyzers.spacepointana.SpacePointAlgDefault.MinViews: 3
+physics.analyzers.spacepointana.SpacePointAlgTime.EnableW: true
+physics.analyzers.spacepointana.SpacePointAlgTime.MinViews: 3
+physics.analyzers.spacepointana.SpacePointAlgTime.MaxDT: 20.
+physics.analyzers.spacepointana.SpacePointAlgSep.EnableW: true
+physics.analyzers.spacepointana.SpacePointAlgSep.MinViews: 3
 physics.analyzers.spacepointana.SpacePointAlgSep.MaxS: 2.
