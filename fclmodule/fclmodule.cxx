@@ -44,18 +44,17 @@
 #include <sstream>
 #include "cetlib/search_path.h"
 
-// Walk interface is private.
+// Walk interface now public.
 
-#define private public
 #include "fhiclcpp/ParameterSet.h"
-#undef private
+#include "fhiclcpp/ParameterSetWalker.h"
 
 #include "fhiclcpp/ParameterSetRegistry.h"
 #include "fhiclcpp/make_ParameterSet.h"
 
 // Define a parameter set walker class
 
-class PythonDictConverter : public fhicl::detail::ParameterSetWalker
+class PythonDictConverter : public fhicl::ParameterSetWalker
 {
 public:
 
@@ -512,7 +511,7 @@ static PyObject* make_pset(PyObject* self, PyObject *args)
   try {
     fhicl::make_ParameterSet(fclstr, maker, pset);
     PythonDictConverter converter;
-    pset.walk_(converter);
+    pset.walk(converter);
     result = converter.result();
   }
   catch(cet::exception& e) {
