@@ -1,7 +1,7 @@
 #! /usr/bin/env python
 ###############################################################################
 #
-# Name: hit.py
+# Name: hitana.py
 # 
 # Purpose: Book and fill hit analysis tree histograms.
 #
