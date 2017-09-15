@@ -17,7 +17,7 @@
 
 # Import stuff.
 
-import sys, os
+import sys, os, json
 
 # Import ROOT (hide command line arguments).
 
@@ -153,6 +153,19 @@ def get_subruns(inputfile):
                         subrun = tfs.EvalInstance64()
                         run_subrun = (run, subrun)
                         if run_subrun not in result:
+                            result.append(run_subrun)
+
+        # If previous section didn't find anything, try extracting
+        # from associated .json file.
+
+        if len(result) == 0:
+            jsonfile = '%s.json' % inputfile
+            if os.path.exists(jsonfile):
+                md = json.load(open(jsonfile))
+                if md.has_key('runs'):
+                    for ele in md['runs']:
+                        if len(ele) >= 2:
+                            run_subrun = (ele[0], ele[1])
                             result.append(run_subrun)
 
     else:
