@@ -3,18 +3,16 @@
 
 set FERMIAPP_LARSOFT_DIR = "/grid/fermiapp/products/larsoft/"
 set FERMIOSG_LARSOFT_DIR = "/cvmfs/fermilab.opensciencegrid.org/products/larsoft/"
-set OASIS_LARSOFT_DIR = "/cvmfs/oasis.opensciencegrid.org/fermilab/products/larsoft/"
 
 set FERMIAPP_UBOONE_DIR = "/grid/fermiapp/products/uboone/"
 set FERMIOSG_UBOONE_DIR = "/cvmfs/uboone.opensciencegrid.org/products/"
-set OASIS_UBOONE_DIR = "/cvmfs/oasis.opensciencegrid.org/microboone/products/"
 
 set UBOONE_BLUEARC_DATA = "/uboone/data/"
 
 # Set up ups for LArSoft
 # Sourcing this setup will add larsoft and common to $PRODUCTS
 
-foreach dir ( $FERMIAPP_LARSOFT_DIR $FERMIOSG_LARSOFT_DIR $OASIS_LARSOFT_DIR )
+foreach dir ( $FERMIOSG_LARSOFT_DIR $FERMIAPP_LARSOFT_DIR )
   if ( -f $dir/setup ) then
     echo "Setting up larsoft UPS area... ${dir}"
     set prod_db = $dir
@@ -29,7 +27,7 @@ end
 
 # Set up ups for uBooNE
 
-foreach dir ( $FERMIAPP_UBOONE_DIR $FERMIOSG_UBOONE_DIR $OASIS_UBOONE_DIR )
+foreach dir ( $FERMIOSG_UBOONE_DIR $FERMIAPP_UBOONE_DIR )
   if ( -f $dir/setup ) then
     echo "Setting up uboone UPS area... ${dir}"
     set prod_db = $dir
