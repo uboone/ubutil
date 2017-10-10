@@ -99,10 +99,10 @@ def get_setup_script_path():
     if os.environ.has_key('UBUTIL_DIR'):
         UBUTIL_DIR=os.environ['UBUTIL_DIR'] + '/bin/'
 
-    if os.path.isfile(FERMIAPP_DIR+"setup_uboone.sh"):
-        setup_script = FERMIAPP_DIR+"setup_uboone.sh"
-    elif os.path.isfile(CVMFS_DIR+"setup_uboone.sh"):
+    if os.path.isfile(CVMFS_DIR+"setup_uboone.sh"):
         setup_script = CVMFS_DIR+"setup_uboone.sh"
+    elif os.path.isfile(FERMIAPP_DIR+"setup_uboone.sh"):
+        setup_script = FERMIAPP_DIR+"setup_uboone.sh"
     elif UBUTIL_DIR != '' and os.path.isfile(UBUTIL_DIR+"setup_uboone.sh"):
         setup_script = UBUTIL_DIR+"setup_uboone.sh"
     else:
