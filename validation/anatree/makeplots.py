@@ -767,6 +767,7 @@ def plotflash(infile):
     infiles = infile.split(",")
     myfile = {}
     innames = []
+    flashalgs = []
     datasets = []
     canno_flashes = {}
     nplotsno_flashes = {}
@@ -799,19 +800,35 @@ def plotflash(infile):
                 for j in list2:
                     if j.GetClassName() == 'TDirectoryFile':
                         dataset = '%s'%j.GetName()
-                        if dataset not in datasets:
-                            datasets.append(dataset)
+                        #if dataset not in datasets: # Commented out to facilitate hack below
+                        #    datasets.append(dataset) # Commented out to facilitate hack below
                         gDirectory.cd(dataset)
                         list3 = gDirectory.GetListOfKeys()
-                        plot1d(dataset,'hno_flashes',inname,canno_flashes,legno_flashes,nplotsno_flashes,list3)
-                        plot1d(dataset,'hflash_time',inname,canflash_time,legflash_time,nplotsflash_time,list3)
-                        plot1d(dataset,'hflash_pe',inname,canflash_pe,legflash_pe,nplotsflash_pe,list3)
-                        plot1d(dataset,'hflash_ycenter',inname,canflash_ycenter,legflash_ycenter,nplotsflash_ycenter,list3)
-                        plot1d(dataset,'hflash_zcenter',inname,canflash_zcenter,legflash_zcenter,nplotsflash_zcenter,list3)
+                        # Get all flash algorithm names
+                        if len(flashalgs) == 0:
+                            for k in list3:
+                                name = k.GetName()
+                                flashalg = name[name.rfind(dataset)+len(dataset):]
+                                if flashalg not in flashalgs:
+                                    flashalgs.append(flashalg)
+                                # This is a bit of a hack -- rename datasets to be dataset+flashalg.
+                                # e.g. "singlemusimpleFlashBeam" instead of "singlemu"
+                                # This should trick savecanvas1d into working properly and also allowing
+                                # for multiple choices of flash reconstruction algorithm
+                                if dataset+flashalg not in datasets:
+                                    datasets.append(dataset+flashalg)
+                        # Loop over all flash algorithms and make plots
+                        for f in flashalgs:
+                            plot1d(dataset+f,'hno_flashes',inname,canno_flashes,legno_flashes,nplotsno_flashes,list3)
+                            plot1d(dataset+f,'hflash_time',inname,canflash_time,legflash_time,nplotsflash_time,list3)
+                            plot1d(dataset+f,'hflash_pe',inname,canflash_pe,legflash_pe,nplotsflash_pe,list3)
+                            plot1d(dataset+f,'hflash_ycenter',inname,canflash_ycenter,legflash_ycenter,nplotsflash_ycenter,list3)
+                            plot1d(dataset+f,'hflash_zcenter',inname,canflash_zcenter,legflash_zcenter,nplotsflash_zcenter,list3)
                         gDirectory.cd('..')
     if not os.path.exists('flash'):
     	os.makedirs('flash')
-    os.chdir('flash')	
+    os.chdir('flash')
+    # Save plots
     savecanvas1d(datasets,canno_flashes,legno_flashes,'no_flashes')
     savecanvas1d(datasets,canflash_time,legflash_time,'flash_time')
     savecanvas1d(datasets,canflash_pe,legflash_pe,'flash_pe')
