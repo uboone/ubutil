@@ -57,11 +57,11 @@ fi
 
  # Detsim (optical + tpc).
 
- detsimfcl=standard_detsim_ddr_uboone.fcl
+ detsimfcl=standard_detsim_uboone.fcl
 
  # Reco 1
 
- reco1fcl=reco_uboone_mcc8_driver_ddr_stage1.fcl
+ reco1fcl=reco_uboone_mcc8_driver_stage1.fcl
 
  # Reco 2
 
