@@ -295,7 +295,7 @@ cat <<EOF > $xml
   <!-- Larsoft information -->
   <larsoft>
     <tag>&release;</tag>
-    <qual>e10:prof</qual>
+    <qual>e14:prof</qual>
   </larsoft>
 
   <!-- Validate on worker -->
@@ -347,9 +347,9 @@ cat <<EOF > $xml
 <!-- Production Project -->
 
 <!DOCTYPE project [
-<!ENTITY relsim "v06_26_01">
-<!ENTITY relreco1 "v06_26_01_01">
-<!ENTITY relreco2 "v06_26_01_01">
+<!ENTITY relsim "$rs">
+<!ENTITY relreco1 "$rr1">
+<!ENTITY relreco2 "$rr2">
 <!ENTITY file_type "mc">
 <!ENTITY run_type "physics">
 <!ENTITY name "prodgenie_bnb_nu_cosmic_uboone">
@@ -375,7 +375,7 @@ cat <<EOF > $xml
   <!-- Larsoft information -->
   <larsoft>
     <tag>&relsim;</tag>
-    <qual>e10:prof</qual>
+    <qual>e14:prof</qual>
   </larsoft>
   
   <check>1</check>
@@ -384,8 +384,8 @@ cat <<EOF > $xml
 
   <stage name="sim">
     <fcl>prodgenie_bnb_nu_cosmic_uboone.fcl</fcl>
-    <fcl>standard_g4_spacecharge_uboone.fcl</fcl>
-    <fcl>standard_detsim_uboone.fcl</fcl>
+    <fcl>$g4fcl</fcl>
+    <fcl>$detsimfcl</fcl>
     <outdir>/pnfs/uboone/scratch/users/${userdir}/&tag;/&relsim;/sim/&name;</outdir>
     <logdir>/pnfs/uboone/scratch/users/${userdir}/&tag;/&relsim;/sim/&name;</logdir>
     <workdir>/pnfs/uboone/scratch/users/${userdir}/work/&tag;/&relsim;/sim/&name;</workdir>
@@ -421,7 +421,7 @@ cat <<EOF > $xml
   <!-- Larsoft information -->
   <larsoft>
     <tag>&relreco1;</tag>
-    <qual>e10:prof</qual>
+    <qual>e14:prof</qual>
   </larsoft>
 
   <check>1</check>
@@ -429,8 +429,8 @@ cat <<EOF > $xml
   <!-- Project stages -->
 
   <stage name="reco">
-    <fcl>reco_uboone_mcc8_driver_stage1.fcl</fcl>
-    <fcl>reco_uboone_mcc8_driver_stage2.fcl</fcl>
+    <fcl>$reco1fcl</fcl>
+    <fcl>$reco2fcl</fcl>
     <outdir>/pnfs/uboone/scratch/users/${userdir}/&tag;/&relreco1;/reco/&name;</outdir>
     <logdir>/pnfs/uboone/scratch/users/${userdir}/&tag;/&relreco1;/reco/&name;</logdir>
     <workdir>/pnfs/uboone/scratch/users/${userdir}/work/&tag;/&relreco1;/reco/&name;</workdir>
@@ -468,7 +468,7 @@ cat <<EOF > $xml
   <!-- Larsoft information -->
   <larsoft>
     <tag>&relreco2;</tag>
-    <qual>e10:prof</qual>
+    <qual>e14:prof</qual>
   </larsoft>
 
   <check>0</check>
