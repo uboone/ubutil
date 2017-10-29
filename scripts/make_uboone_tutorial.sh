@@ -42,6 +42,7 @@ if [ -z "$UBOONECODE_VERSION" ]; then
    exit 1
 fi    
 
+cp /uboone/data/users/uboonepro/tutorial/Makefile . 
 
  # Make xml file.
 
@@ -155,6 +156,7 @@ cat <<EOF > $xml
     <workdir>/pnfs/uboone/scratch/users/${userbase}/work/&tag;/&relsim;/detsim/&name;</workdir>
     <numjobs>$njob2</numjobs>
     <datatier>detector-simulated</datatier>
+    <memory>4000</memory>
     <defname>&name;_&tag;_detsim</defname>
   </stage>
 
@@ -195,6 +197,7 @@ cat <<EOF > $xml
     <workdir>/pnfs/uboone/scratch/users/${userbase}/work/&tag;/&relreco1;/reco1/&name;</workdir>
     <numjobs>$njob2</numjobs>
     <datatier>reconstructed-2d</datatier>
+    <memory>4000</memory>
     <defname>&name;_&tag;_reco1</defname>
   </stage>
 
@@ -230,11 +233,12 @@ cat <<EOF > $xml
 
   <stage name="reco2">
     <fcl>$reco2fcl</fcl>
-    <outdir>/pnfs/uboone/scratch/${userdir}/&tag;/&relreco2;/reco2/&name;</outdir>
+    <outdir>/pnfs/uboone/scratch/users/${userdir}/&tag;/&relreco2;/reco2/&name;</outdir>
     <logdir>/pnfs/uboone/scratch/users/${userbase}/&tag;/&relreco2;/reco2/&name;</logdir>
     <workdir>/pnfs/uboone/scratch/users/${userbase}/work/&tag;/&relreco2;/reco2/&name;</workdir>
     <numjobs>$njob2</numjobs>
     <datatier>reconstructed-3d</datatier>
+    <memory>4000</memory>
     <defname>&name;_&tag;_reco2</defname>
   </stage>
 
@@ -311,6 +315,7 @@ cat <<EOF > $xml
     <workdir>/pnfs/uboone/scratch/users/${userdir}/work/&tag;/reco1/&release;/&name;</workdir>
     <numjobs>33</numjobs>
     <datatier>reconstructed-2d</datatier>
+    <memory>4000</memory>
     <maxfilesperjob>1</maxfilesperjob>
     <jobsub>--expected-lifetime=long</jobsub>
     <jobsub_start>--expected-lifetime=short</jobsub_start>
@@ -323,6 +328,7 @@ cat <<EOF > $xml
     <workdir>/pnfs/uboone/scratch/users/${userdir}/work/&tag;/reco2/&release;/&name;</workdir>
     <numjobs>33</numjobs>
     <datatier>reconstructed</datatier>
+    <memory>4000</memory>
     <maxfilesperjob>1</maxfilesperjob>
     <jobsub>--expected-lifetime=long</jobsub>
   </stage>
@@ -499,5 +505,102 @@ cat <<EOF > $xml
 </project>
 
 </job>
+
+EOF
+
+cat << EOF > demo_ReadEvent.cc
+
+/*************************************************************
+ * 
+ * demo_ReadEvent program
+ * 
+ * This is a simple demonstration of reading a LArSoft file 
+ * and printing out the run and event numbers. You can also
+ * put the event numbers into a histogram!
+ *
+ * Wesley Ketchum (wketchum@fnal.gov), Aug28, 2016
+ * 
+ *************************************************************/
+
+
+//some standard C++ includes
+#include <iostream>
+#include <stdlib.h>
+#include <string>
+#include <vector>
+
+//some ROOT includes
+#include "TInterpreter.h"
+#include "TROOT.h"
+#include "TH1F.h"
+#include "TFile.h"
+
+//"art" includes (canvas, and gallery)
+#include "canvas/Utilities/InputTag.h"
+#include "gallery/Event.h"
+#include "gallery/ValidHandle.h"
+#include "canvas/Persistency/Common/FindMany.h"
+#include "canvas/Persistency/Common/FindOne.h"
+
+#include "lardataobj/RecoBase/Track.h"
+
+//convenient for us! let's not bother with art and std namespaces!
+using namespace art;
+using namespace std;
+
+int main(){
+  
+  //Let's make a histogram to store event numbers.
+  //I ran this before, so I know my event range. You can adjust this for your file!
+
+  //note, because I'm in my standalone code now, I'm not going to make this a pointer
+  //so I can have nice clean memory
+  TH1F h_events("h_events","Event Numbers;event;N_{events} / bin",50,0,50); 
+  
+  //We specify our files in a list of file names!
+  //Note: multiple files allowed. Just separate by comma.
+  //  vector<string> filenames { "MyInputFile_1.root" };
+  vector<string> filenames { "path_to_your_file" }; //Change this to the full path of your muon reco2 file
+  
+  InputTag track_tag { "pandoraCosmic" };
+
+  //ok, now for the event loop! Here's how it works.
+  //
+  //gallery has these built-in iterator things.
+  //
+  //You declare an event with a list of file names. Then, you
+  //move to the next event by using the "next()" function.
+  //Do that until you are "atEnd()".
+  //
+  //In a for loop, that looks like this:
+
+  for (gallery::Event ev(filenames) ; !ev.atEnd(); ev.next()) {
+
+    //to get run and event info, you use this "eventAuxillary()" object.
+    cout << "Processing "
+	 << "Run " << ev.eventAuxiliary().run() << ", "
+	 << "Event " << ev.eventAuxiliary().event() << endl;
+
+    // Track Handle Information in the loop.
+    auto const& track_handle = ev.getValidHandle<vector<recob::Track>>(track_tag);
+    auto const& track_vec(*track_handle);	 
+
+    //ok, then we can fill our histogram!
+    h_events.Fill(ev.eventAuxiliary().event());
+    
+    for (size_t i_t = 0, size_track = track_handle->size(); i_t != size_track; ++i_t) {
+       double track_length = track_vec.at(i_t).Length();
+       cout << track_length << endl;
+    }
+
+  } //end loop over events!
+
+
+  //and ... write to file!
+  TFile f_output("demo_ReadEvent_output.root","RECREATE");
+  h_events.Write();
+  f_output.Close();
+  
+}
 
 EOF
