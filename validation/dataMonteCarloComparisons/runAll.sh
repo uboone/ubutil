@@ -2,7 +2,7 @@
 
 # remember to use setup.sh to modify your input files and specify your options
 
-source setup.sh
+source setup.sh $1 $2 $3 $4 $5 $6
 
 # appends trailing backslash to OUTDIR in case where it's not included
 [ "${OUTDIR: -1}" != "/" ] && OUTDIR=${OUTDIR}/
