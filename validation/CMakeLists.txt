@@ -1,4 +1,4 @@
-add_subdirectory(oldValidationScripts)
+#add_subdirectory(oldValidationScripts)
 add_subdirectory(dataMonteCarloComparisons)
 add_subdirectory(truthMonteCarloComparisions)
 

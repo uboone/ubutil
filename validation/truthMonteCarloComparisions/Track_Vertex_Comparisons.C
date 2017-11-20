@@ -54,6 +54,7 @@ void TrackComparisons_MC( TTree* tree, std::vector<TH1D> &hvector, std::string t
    Float_t         EndY[kMaxGeant];
    Float_t         EndZ[kMaxGeant];
    Float_t         real_StartX[kMaxGeant];
+   Float_t         real_StartX_nosc[kMaxGeant];
    Float_t         real_StartY[kMaxGeant];
    Float_t         real_StartZ[kMaxGeant];
    Float_t         real_EndX[kMaxGeant];
@@ -115,6 +116,7 @@ void TrackComparisons_MC( TTree* tree, std::vector<TH1D> &hvector, std::string t
    tree -> SetBranchAddress("EndPointy_tpcAV", EndY);
    tree -> SetBranchAddress("EndPointz_tpcAV", EndZ);
    tree -> SetBranchAddress("StartPointx", real_StartX);
+   tree -> SetBranchAddress("StartPointx", real_StartX_nosc);
    tree -> SetBranchAddress("StartPointy", real_StartY);
    tree -> SetBranchAddress("StartPointz", real_StartZ);
    tree -> SetBranchAddress("EndPointx", real_EndX);
@@ -135,6 +137,7 @@ void TrackComparisons_MC( TTree* tree, std::vector<TH1D> &hvector, std::string t
    tree -> SetBranchAddress("sp_charge_corrected_EndPointy_tpcAV", EndY);
    tree -> SetBranchAddress("sp_charge_corrected_EndPointz_tpcAV", EndZ);
    tree -> SetBranchAddress("sp_charge_corrected_StartPointx", real_StartX);
+   tree -> SetBranchAddress("StartPointx", real_StartX_nosc);
    tree -> SetBranchAddress("sp_charge_corrected_StartPointy", real_StartY);
    tree -> SetBranchAddress("sp_charge_corrected_StartPointz", real_StartZ);
    tree -> SetBranchAddress("sp_charge_corrected_EndPointx", real_EndX);
@@ -172,6 +175,10 @@ void TrackComparisons_MC( TTree* tree, std::vector<TH1D> &hvector, std::string t
    TH1D *hntrue = new TH1D(histoname.c_str(), "Number of true primary tracks per event; # True tracks;", 50, 0, 50);
    histoname = "hstartx_" + version;
    TH1D *hstartx = new TH1D(histoname.c_str(), "Track start X position; x [cm];", 100, -200, 500);
+   histoname = "hstartx_true_" + version;
+   TH1D *hstartx_true = new TH1D(histoname.c_str(), "Track start X position (true); x [cm];", 100, -200, 500);
+   histoname = "hstartx_true_nosc_" + version;
+   TH1D *hstartx_true_nosc = new TH1D(histoname.c_str(), "Track start X position (true, no space charge correction); x [cm];", 100, -200, 500);
    histoname = "hstarty_" + version;
    TH1D *hstarty = new TH1D(histoname.c_str(), "Track start Y position; y [cm];", 100, -150, 150);
    histoname = "hstartz_" + version;
@@ -302,6 +309,11 @@ void TrackComparisons_MC( TTree* tree, std::vector<TH1D> &hvector, std::string t
 		  	hresoendx -> Fill(trkendx[recoTracks]-EndX[j]);
 		  	hresoendy -> Fill(trkendy[recoTracks]-EndY[j]);
 		  	hresoendz -> Fill(trkendz[recoTracks]-EndZ[j]);
+
+			if (real_StartX[j]>0 && real_StartX[j]<256.35){
+			  hstartx_true -> Fill(real_StartX[j]);
+			  hstartx_true_nosc -> Fill(real_StartX_nosc[i]);
+			}
 		 	
 			//if ( inFV( real_StartX[j], real_StartY[j], real_StartZ[j] ) && inFV( real_EndX[j], real_EndY[j], real_EndZ[j] ) ) { //contained tracks
 			if ( inFV( trkstartx[recoTracks], trkstarty[recoTracks], trkstartz[recoTracks] ) && inFV( trkendx[recoTracks], trkendy[recoTracks], trkendz[recoTracks] ) ) { //contained tracks
@@ -365,6 +377,8 @@ void TrackComparisons_MC( TTree* tree, std::vector<TH1D> &hvector, std::string t
 
    hvector.push_back(*hnreco);
    hvector.push_back(*hstartx);
+   hvector.push_back(*hstartx_true);
+   hvector.push_back(*hstartx_true_nosc);
    hvector.push_back(*hstarty);
    hvector.push_back(*hstartz);
    hvector.push_back(*hendx);
