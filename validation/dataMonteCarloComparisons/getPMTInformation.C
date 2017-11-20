@@ -261,8 +261,8 @@ void getPMTInformation(TString file1name, TString file1_dataormc, TString file1_
         pt2->Draw("same");
 
 
-        TString saveString = Form(outDir+fileName+".eps");
-        c1->SaveAs(saveString, "eps"); 
+        TString saveString = Form(outDir+fileName+".png");
+        c1->SaveAs(saveString, "png"); 
 
         hFile1->Write();
         hFile2->Write();
@@ -272,7 +272,7 @@ void getPMTInformation(TString file1name, TString file1_dataormc, TString file1_
           if (chisqv >= chisqNotifierCut/100.0){
 
             std::ofstream highChisqFile;
-            highChisqFile.open("highChisqPlots.list", std::ios_base::app);
+            highChisqFile.open("highChisqPlots.txt", std::ios_base::app);
             highChisqFile << saveString << "\n";
             highChisqFile.close();
 

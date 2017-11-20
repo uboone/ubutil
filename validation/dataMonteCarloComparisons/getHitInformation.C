@@ -283,7 +283,7 @@ void getHitInformation(TString file1name, TString file1_dataormc, TString file1_
     }
     std::cout << saveString << std::endl;
 
-    c1->SaveAs(saveString+".eps", "eps"); 
+    c1->SaveAs(saveString+".png", "png"); 
 
     hFile1->Write();
     hFile2->Write();
@@ -297,7 +297,7 @@ void getHitInformation(TString file1name, TString file1_dataormc, TString file1_
       if (chisqv >= chisqNotifierCut/100.0){
 
         std::ofstream highChisqFile;
-        highChisqFile.open("highChisqPlots.list", std::ios_base::app);
+        highChisqFile.open("highChisqPlots.txt", std::ios_base::app);
         highChisqFile << saveString << "\n";
         highChisqFile.close();
 

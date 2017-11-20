@@ -222,8 +222,8 @@ void getPMTFracInformation(TString file1name, TString file1_dataormc, TString fi
       pt2->Draw("same");
 
 
-      TString saveString = Form(outDir+fileName+".eps");
-      c1->SaveAs(saveString, "eps"); 
+      TString saveString = Form(outDir+fileName+".png");
+      c1->SaveAs(saveString, "png"); 
 
       f_output.cd();
       hFile1->Write();
@@ -235,7 +235,7 @@ void getPMTFracInformation(TString file1name, TString file1_dataormc, TString fi
         if (chisqv >= chisqNotifierCut/100.0){
 
           std::ofstream highChisqFile;
-          highChisqFile.open("highChisqPlots.list", std::ios_base::app);
+          highChisqFile.open("highChisqPlots.txt", std::ios_base::app);
           highChisqFile << saveString << "\n";
           highChisqFile.close();
 
