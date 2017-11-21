@@ -1,1 +1,1 @@
-install_scripts()
+install_scripts(LIST calculateChiSqDistance.C getCalorimetryInformation.C getFlashInformation.C getHitInformation.C getMax.C getNBins.C getNflsInformation.C getPMTFracInformation.C getPMTInformation.C getShowerInformation.C getTrackInformation.C setLegend.C setStyle.C setStyleRatio.C)
