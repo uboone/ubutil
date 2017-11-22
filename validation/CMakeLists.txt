@@ -1,4 +1,5 @@
-add_subdirectory(anatree)
-add_subdirectory(fcl)
+#add_subdirectory(oldValidationScripts)
+add_subdirectory(dataMonteCarloComparisons)
+add_subdirectory(truthMonteCarloComparisions)
 
 
