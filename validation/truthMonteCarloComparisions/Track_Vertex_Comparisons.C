@@ -1,4 +1,5 @@
 #include <iostream>
+#include <fstream>
 #include <string>
 #include <algorithm>
 #include "TH1.h"
@@ -14,6 +15,8 @@ float FVz = 1036.8; //AV dimensions
 float borderx = 10.; //cut
 float bordery = 20.; //cut
 float borderz = 10.; //cut
+
+int chisqNotifierCut = 9999999;
 
 //This function returns if a 3D point is within the fiducial volume
 bool inFV(Double_t x, Double_t y, Double_t z) {
@@ -71,11 +74,16 @@ void TrackComparisons_MC( TTree* tree, std::vector<TH1D> &hvector, std::string t
    Float_t         Py[kMaxGeant];
    Float_t         Pz[kMaxGeant];
 
-      const int maxtruth = 10;
+   const int maxtruth = 10;
    Int_t           mcevts_truth;               //number of neutrino interactions in the spill
    Float_t         nuvtxx_truth[maxtruth];    //neutrino vertex x in cm
    Float_t         nuvtxy_truth[maxtruth];    //neutrino vertex y in cm
    Float_t         nuvtxz_truth[maxtruth];    //neutrino vertex z in cm
+
+   const int maxgenie = 70;
+   Int_t           genie_no_primaries; 
+   Int_t           genie_primaries_pdg[maxgenie];
+   Int_t           genie_status_code[maxgenie];
 
    std::string branch_name = "ntracks_" + tracking_algorithm;
    tree -> SetBranchAddress(branch_name.c_str(), &ntracks);
@@ -165,6 +173,9 @@ void TrackComparisons_MC( TTree* tree, std::vector<TH1D> &hvector, std::string t
    //tree -> SetBranchAddress("Pz", Pz);
    tree -> SetBranchAddress("status", status);
    tree -> SetBranchAddress("Mother", Mother);
+   tree -> SetBranchAddress("genie_no_primaries", &genie_no_primaries); 
+   tree -> SetBranchAddress("genie_primaries_pdg", genie_primaries_pdg);
+   tree -> SetBranchAddress("genie_status_code", genie_status_code);
 
    long Size = tree -> GetEntries();
    cout << "Number of events in the tree is: " << Size << endl;
@@ -206,9 +217,9 @@ void TrackComparisons_MC( TTree* tree, std::vector<TH1D> &hvector, std::string t
    histoname = "hlresrange_" + version;
    TH1D *hlresrange = new TH1D(histoname.c_str(), "Track length range reco - track length range MC; l [cm];", 100, -50, 50);
    histoname = "hresstart_" + version;
-   TH1D *hresstart = new TH1D(histoname.c_str(), "Track start resolution; R [cm];", 100, 0, 100);
+   TH1D *hresstart = new TH1D(histoname.c_str(), "Track start resolution; R [cm];", 25, 0, 50);
    histoname = "hresend_" + version;
-   TH1D *hresend = new TH1D(histoname.c_str(), "Track end resolution; R [cm];", 100, 0, 100);
+   TH1D *hresend = new TH1D(histoname.c_str(), "Track end resolution; R [cm];", 25, 0, 50);
    histoname = "hresostartx_" + version;
    TH1D *hresostartx = new TH1D(histoname.c_str(),"Startx reco - Startx MC; R [cm];", 2000, -20, 20); 
    histoname = "hresostarty_" + version;
@@ -236,7 +247,7 @@ void TrackComparisons_MC( TTree* tree, std::vector<TH1D> &hvector, std::string t
    histoname = "hpidpida_muon_" + version;
    TH1D *hpidpida_muon = new TH1D(histoname.c_str(),"PIDA for all reco muons; PIDA;", 100, 0, 30);  
    histoname = "hvertres_" + version;
-   TH1D *hvertres = new TH1D(histoname.c_str(),"Vertex resolution; Vertex position - true vertex (cm);", 200, 0, 20); 
+   TH1D *hvertres = new TH1D(histoname.c_str(),"Vertex resolution; Vertex position - true vertex (cm);", 50, 0, 20); 
    histoname = "hvertresx_" + version;
    TH1D *hvertresx = new TH1D(histoname.c_str(),"Vertex resolution in x; Vertex position - true vertex in x (cm);", 200, -10, 10); 
    histoname = "hvertresy_" + version;
@@ -245,6 +256,8 @@ void TrackComparisons_MC( TTree* tree, std::vector<TH1D> &hvector, std::string t
    TH1D *hvertresz = new TH1D(histoname.c_str(),"Vertex resolution in z; Vertex position - true verted in z (cm);", 200, -10, 10); 
    histoname = "htrkstart_" + version;
    TH1D *hvertdist = new TH1D(histoname.c_str(),"Closest track start to reco vertex; Closest track start (cm);", 100, 0, 20); 
+   histoname = "hnprotons_" + version;
+   TH1D *hnprotons = new TH1D(histoname.c_str(),"Proton multiplicity; Number of protons;", 7, -0.5, 6.5); 
        
    int mutrue = 0;
    double d = 0;
@@ -372,117 +385,195 @@ void TrackComparisons_MC( TTree* tree, std::vector<TH1D> &hvector, std::string t
 	  if(dtmin < 10000) hvertdist -> Fill(dtmin);
 	} //end loop over reco vertices
 	if(distmin < 10000) hvertres -> Fill(distmin);
+
+	// Proton multiplicity (from GENIE)
+	int nProtons = 0;
+	for (int GENIEpar=0; GENIEpar<genie_no_primaries; GENIEpar++){ // loop over GENIE particles in event
+	  if (genie_primaries_pdg[GENIEpar] == 2212 && genie_status_code[GENIEpar] == 1){ // if trackable proton
+	    nProtons++;
+	  }
+	} // end loop over GENIE particles
+	hnprotons->Fill(nProtons);
 	
    } //end loop on events
 
-   hvector.push_back(*hnreco);
-   hvector.push_back(*hstartx);
-   hvector.push_back(*hstartx_true);
-   hvector.push_back(*hstartx_true_nosc);
-   hvector.push_back(*hstarty);
-   hvector.push_back(*hstartz);
-   hvector.push_back(*hendx);
-   hvector.push_back(*hendy);
-   hvector.push_back(*hendz);
-   hvector.push_back(*hlreco);
-   hvector.push_back(*hlmc);
-   hvector.push_back(*hldiff);
-   hvector.push_back(*hldiffmc);
-   hvector.push_back(*hlres);
-   hvector.push_back(*hresostartx);
-   hvector.push_back(*hresostarty);
-   hvector.push_back(*hresostartz);
-   hvector.push_back(*hresoendx);
-   hvector.push_back(*hresoendy);
-   hvector.push_back(*hresoendz);
-   hvector.push_back(*hresomom_range);
-   hvector.push_back(*hresomom_chi2);
-   hvector.push_back(*hresomom_llhd);
-   hvector.push_back(*hresomom_contained_chi2);
-   hvector.push_back(*hresomom_contained_llhd);
-   hvector.push_back(*hpidpida_total);
-   hvector.push_back(*hvertres);
-   hvector.push_back(*hvertresx);
-   hvector.push_back(*hvertresy);
-   hvector.push_back(*hvertresz);
-   hvector.push_back(*hvertdist);
-   if (short_long == "long") {
-   hvector.push_back(*hlrange);
-   hvector.push_back(*hlresrange);
-   hvector.push_back(*hlrangemc);
-   hvector.push_back(*hntrue);
-   hvector.push_back(*hpidpida_muon);
+   // Only make reduced set of plots for CI
    hvector.push_back(*hresstart);
    hvector.push_back(*hresend);
+   hvector.push_back(*hvertres);
+   hvector.push_back(*hnprotons);
+   if (short_long == "long") { // Full set of plots 
+     hvector.push_back(*hnreco);
+     hvector.push_back(*hstartx);
+     hvector.push_back(*hstartx_true);
+     hvector.push_back(*hstartx_true_nosc);
+     hvector.push_back(*hstarty);
+     hvector.push_back(*hstartz);
+     hvector.push_back(*hendx);
+     hvector.push_back(*hendy);
+     hvector.push_back(*hendz);
+     hvector.push_back(*hlreco);
+     hvector.push_back(*hlmc);
+     hvector.push_back(*hldiff);
+     hvector.push_back(*hldiffmc);
+     hvector.push_back(*hlres);
+     hvector.push_back(*hresostartx);
+     hvector.push_back(*hresostarty);
+     hvector.push_back(*hresostartz);
+     hvector.push_back(*hresoendx);
+     hvector.push_back(*hresoendy);
+     hvector.push_back(*hresoendz);
+     hvector.push_back(*hresomom_range);
+     hvector.push_back(*hresomom_chi2);
+     hvector.push_back(*hresomom_llhd);
+     hvector.push_back(*hresomom_contained_chi2);
+     hvector.push_back(*hresomom_contained_llhd);
+     hvector.push_back(*hpidpida_total);
+     hvector.push_back(*hvertresx);
+     hvector.push_back(*hvertresy);
+     hvector.push_back(*hvertresz);
+     hvector.push_back(*hvertdist);
+     hvector.push_back(*hlrange);
+     hvector.push_back(*hlresrange);
+     hvector.push_back(*hlrangemc);
+     hvector.push_back(*hntrue);
+     hvector.push_back(*hpidpida_muon);
    }
    
    } //end function
+
+double calculateChiSqDistance(TH1D O, TH1D E){
+
+    double chisq = 0;
+    for (int i = 1; i < O.GetNbinsX()+1; i++){
+
+        double O_i = O.GetBinContent(i);
+        double E_i = E.GetBinContent(i);
+        double O_ierr = O.GetBinError(i);
+        double E_ierr = E.GetBinError(i);
+
+        if (O_i == 0 && E_i == 0){
+            chisq += 0;
+        }
+        else{
+            chisq += std::pow(O_i - E_i,2)/(std::sqrt(std::pow(O_ierr,2) + std::pow(E_ierr,2)));
+        }
+
+    }
+
+    return chisq;
+
+}
    
-void DrawHistos ( std::vector<TH1D> hvector , std::string outdir, std::string tag, std::string algorithm ) {
-	std::string cmd;
-	cmd = "mkdir " + outdir;
-	system(cmd.c_str());
-	std::string outroot = outdir + "/MCcomparison_" + tag + "_" + algorithm + ".root";
-	TFile outfile (outroot.c_str(), "recreate");
-	for (unsigned i=0; i<hvector.size(); i++) {
-	TCanvas c1;
-	hvector[i].SetLineWidth(2);
-	hvector[i].Sumw2();
-	hvector[i].Draw();
-	outfile.cd();
-	hvector[i].Write();
-	std::string outname = outdir + "/" + string(hvector[i].GetName()) + "_" + tag + "_" + algorithm + ".pdf";
-	c1.Print(outname.c_str(), "pdf");
-	}
-	outfile.Close();
+void DrawHistos ( std::vector<TH1D> hvector , std::string tag, std::string algorithm ) {
+  std::string outroot = "MCcomparison_" + tag + "_" + algorithm + ".root";
+  TFile outfile (outroot.c_str(), "recreate");
+
+  std::string outname = string("MCplots_" + tag + "_" + algorithm + ".pdf");
+
+  for (unsigned i=0; i<hvector.size(); i++) {
+    TCanvas c1;
+    hvector[i].SetLineWidth(2);
+    hvector[i].Sumw2();
+    hvector[i].Draw("hist e0");
+    outfile.cd();
+    hvector[i].Write();
+    std::string outname_print;
+    if (i == 0){
+      outname_print = string(outname + "(");
+    }
+    else if (i == hvector.size()-1){
+      outname_print = string(outname + ")");
+    }
+    else{
+      outname_print = string(outname);
+    }
+    c1.Print(outname_print.c_str(),"pdf");
+  }
+  outfile.Close();
 }
 	
-void DrawComparison( std::vector<TH1D> vector1, std::vector<TH1D> vector2, std::string tag1, std::string tag2, std::string outdir, std::string algorithm ) {
+void DrawComparison( std::vector<TH1D> vector1, std::vector<TH1D> vector2, std::string tag1, std::string tag2, std::string algorithm ) {
 	if (vector1.size() != vector2.size() ) { std::cout << "Error! Different size in vec1 and vec2. " << std::endl; exit(-1); }
-	std::string cmd;
-	cmd = "mkdir " + outdir;
-	system(cmd.c_str());
-	std::string outroot = outdir + "/MCcomparison_" + tag1 + "_" + tag2 + "_" + algorithm + ".root";
+	std::string outroot = "MCcomparison_" + tag1 + "_" + tag2 + "_" + algorithm + ".root";
 	TFile outfile (outroot.c_str(), "recreate");
+
+	
+	std::string outname = string("MCcomparison_" + tag1 + "_" + tag2 + "_" + algorithm + ".pdf");
+	
 	for (unsigned i=0; i<vector1.size(); i++) {
 	TCanvas c1;
 	vector1[i].SetLineWidth(2);
 	vector1[i].SetStats(0);
 	vector1[i].Sumw2();
-	vector1[i].DrawNormalized();
+	vector1[i].DrawNormalized("hist e0");
 	vector2[i].SetLineWidth(2);
 	vector2[i].SetLineColor(2);
 	vector2[i].SetStats(0);
 	vector2[i].Sumw2();
-	vector2[i].DrawNormalized("same");
+	vector2[i].DrawNormalized("hist e0 same");
 	c1.SetName( string(vector1[i].GetName()).substr(0, string(vector1[i].GetName()).size() - tag1.size() -1 ).c_str() );
 	c1.SetTitle( string(vector1[i].GetName()).substr(0, string(vector1[i].GetName()).size() - tag1.size() -1).c_str() );
-	TLegend *legend = new TLegend(0.55, 0.8, 0.89, 0.89);
+
+	// Calculate chi2 between two plots and put in format for legend
+	double chisqv = calculateChiSqDistance(vector1[i], vector2[i]);
+	TString chisq = Form("#chi^{2}: %g", chisqv);
+	int nBins = std::max(vector1[i].GetNbinsX(), vector2[i].GetNbinsX());
+	TString NDF = Form("No. Bins: %i", nBins);
+	double chisqNDF = chisqv/(double)nBins;
+	TString chisqNDFstr = Form("#chi^{2}/No. bins: %g", chisqNDF);
+
+	// If chisq is large, print to file
+	if (chisqNDF >= chisqNotifierCut/100.0){
+	  std::ofstream highChisqFile;
+	  highChisqFile.open("highChisqPlots.txt", std::ios_base::app);
+	  highChisqFile << c1.GetName() << " (" << algorithm << ")" <<  "\n";
+	  highChisqFile.close();
+	}
+	
+	// Make legend
+	TLegend *legend = new TLegend(0.55, 0.68, 0.89, 0.89);
         legend->AddEntry( vector1[i].GetName(), tag1.c_str(),"l");
         legend->AddEntry( vector2[i].GetName(), tag2.c_str(),"l");
+	legend->AddEntry((TObject*)0, chisq, "");
+	legend->AddEntry((TObject*)0, NDF, "");
+	legend->AddEntry((TObject*)0, chisqNDFstr, "");
 	legend->SetLineWidth(0);
 	legend->Draw();
 
 	outfile.cd();
 	c1.Write();
-	std::string outname = outdir + "/comparison_" + string(c1.GetName()) + "_" + tag1 + "_" + tag2 + "_" + algorithm + ".pdf";
-	c1.Print(outname.c_str(), "pdf");
+
+	std::string outname_print;
+	if (i == 0){
+	  outname_print = string(outname+"(");
 	}
+	else if (i == vector1.size()-1){
+	  outname_print = string(outname + ")");
+	}
+	else{
+	  outname_print = string(outname);
+	}
+	
+	c1.Print(outname_print.c_str(),"pdf");
+	}
+						       
 	outfile.Close();
 }
 
 int main ( int argc, char** argv ) {
 
-	if ( argc != 4 && argc != 6 ) {
-		std::cout << "Usage: ./track_comparison anatree1.root tag1 <optional: anatree2.root tag2> short/long" << std::endl;
-		std::cout << "ex1. ./track_comparison file1.root MCC8.3 file2.root MCC8.4 short" << std::endl;
+	if ( argc != 4 && argc != 7 ) {
+		std::cout << "Usage: ./track_comparison anatree1.root tag1 <optional: anatree2.root tag2 chi2cut*100> short/long" << std::endl;
+		std::cout << "ex1. ./track_comparison file1.root MCC8.3 file2.root MCC8.4 300 short" << std::endl;
 		std::cout << "ex2. ./track_comparison file1.root MCC8.3 long" << std::endl;
 		std::cout << "\"long\" will produce and save more (redundant) histograms for deeper analysis." << std::endl;
+		std::cout << "\"chi2cut*100\" defines a 'bad' chi2 -- any comparison plots with chi2/nbins>(chi2cut*100/100) will have their names written to file to remind you to check them" << std::endl;
 		return -1;
 	}
 	
 	bool comparison = false;
-	if (argc == 6) comparison = true;
+	if (argc == 7) comparison = true;
 	
 	std::string file1_s ( argv[1] );
 	std::string tag1 ( argv[2] );
@@ -491,7 +582,11 @@ int main ( int argc, char** argv ) {
 	if (comparison) {
 		file2_s = string(argv[3]);
 		tag2 = string(argv[4]);
-		short_long = string (argv[5]);
+		short_long = string (argv[6]);
+		
+		std::string chisqNotifierCut_str (argv[5]);
+		chisqNotifierCut = std::atoi(chisqNotifierCut_str.c_str());
+		std::cout << "Notifying about any comparison plots with chi2/no. bins > " << chisqNotifierCut/100.0 << std::endl;
 	}
 
 	if ( short_long != "short" && short_long!="long") {
@@ -537,22 +632,26 @@ int main ( int argc, char** argv ) {
 	}
 
 	for (unsigned algorithms = 0; algorithms < algorithm.size(); algorithms++) {
-	std::vector<TH1D> vector1;
-	TrackComparisons_MC ( tree1, vector1, algorithm[ algorithms ], tag1, short_long );
-	std::string outdir = "output_" + tag1 + "_" + algorithm[ algorithms ];
-	DrawHistos( vector1, outdir, tag1, algorithm[ algorithms ]);
-
-	if (!comparison) continue;
-		
-	std::vector<TH1D> vector2;
-	file2->cd();
-	TrackComparisons_MC ( tree2, vector2, algorithm[ algorithms ], tag2, short_long );
-	outdir = "output_" + tag2 + "_" + algorithm[ algorithms ];
-	DrawHistos( vector2, outdir, tag2, algorithm[ algorithms ] );
-
-	outdir = "output_comparison_" + tag1 + "_" + tag2 + "_" + algorithm[ algorithms ];
-	DrawComparison( vector1, vector2, tag1, tag2, outdir, algorithm[ algorithms ] );
-	
+	  std::vector<TH1D> vector1;
+	  TrackComparisons_MC ( tree1, vector1, algorithm[ algorithms ], tag1, short_long );
+	  // In "long" mode, draw both sets of histograms separately as well as the comparison
+	  // Also do this if you're not doing a comparison
+	  if (short_long == "long" || !comparison){
+	    DrawHistos( vector1, tag1, algorithm[ algorithms ]);
+	  }
+	  
+	  if (!comparison) continue;
+	  
+	  std::vector<TH1D> vector2;
+	  file2->cd();
+	  TrackComparisons_MC ( tree2, vector2, algorithm[ algorithms ], tag2, short_long );
+	  // In "long" mode, draw both sets of histograms separately as well as the comparison
+	  if (short_long == "long"){ 
+	    DrawHistos( vector2, tag2, algorithm[ algorithms ] );
+	  }
+	  
+	  DrawComparison( vector1, vector2, tag1, tag2, algorithm[ algorithms ] );
+	  
 	}
 
 	return 0;
