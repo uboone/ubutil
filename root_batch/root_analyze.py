@@ -116,6 +116,28 @@ class RootAnalyze:
 
         return
 
+    def open_input(self, input_file):
+        #----------------------------------------------------------------------
+        #
+        # Purpose: Called by the framework each time a new input file is opened.
+        #
+        # Arguments: input_file - An open TFile.
+        #
+        #----------------------------------------------------------------------
+
+        return
+
+    def close_input(self, input_file):
+        #----------------------------------------------------------------------
+        #
+        # Purpose: Called by the framework just before an input file is closed.
+        #
+        # Arguments: input_file - An open TFile.
+        #
+        #----------------------------------------------------------------------
+
+        return
+
     def begin_run(self, run):
         #----------------------------------------------------------------------
         #
