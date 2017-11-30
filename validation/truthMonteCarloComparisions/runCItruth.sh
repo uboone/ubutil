@@ -26,28 +26,15 @@
 # ------------------------------------------------------------------------------------- #
     
 
-# First up: Track_Vertex_Comparisons.C
-# This is a slight misnomer because it also includes proton multiplicity from GENIE
-# (truth only)
-#g++ $(root-config --cflags --glibs) Track_Vertex_Comparisons.C -o Track_Vertex_Comparisons
+g++ $(root-config --cflags --glibs) truthMonteCarloComparisonsScript.C -o truthMonteCarloComparisons
 
-#if [ -z "$4" ]; then
-#    ./Track_Vertex_Comparisons ${1} ${2} ${3}
-#else
-#    echo CMD: ./Track_Vertex_Comparisons ${1} ${2} ${3} ${4} "100" ${5}
-#    ./Track_Vertex_Comparisons ${1} ${2} ${3} ${4} "100" ${5}
-#fi
-#    
-#rm Track_Vertex_Comparisons
-
-
-# Next: Track Efficiency
-g++ $(root-config --cflags --glibs) TrackEfficiency.C -o TrackEfficiency
-
-echo CMD: ./TrackEfficiency ${1} ${2} ${5} ${3} ${4} "100" "./" "pandoraNu"
-./TrackEfficiency ${1} ${2} ${5} ${3} ${4} "100" "./" "pandoraNu"
-
-rm TrackEfficiency
+if [ -z "$4" ]; then
+    ./truthMonteCarloComparisons ${1} ${2} ${3}
+else
+    ./truthMonteCarloComparisons ${1} ${2} ${3} ${4} "100" ${5}
+fi
+    
+rm truthMonteCarloComparisons
 
 
 
