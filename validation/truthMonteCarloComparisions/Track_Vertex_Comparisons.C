@@ -2,11 +2,13 @@
 #include <fstream>
 #include <string>
 #include <algorithm>
+#include <cassert>
 #include "TH1.h"
 #include "TTree.h"
 #include "TFile.h"
 #include "TCanvas.h"
 #include "TLegend.h"
+#include "TMath.h"
 using namespace std;
    
 float FVx = 256.35; //AV dimensions
@@ -24,7 +26,58 @@ bool inFV(Double_t x, Double_t y, Double_t z) {
 	else return false;
 }
 
-void TrackComparisons_MC( TTree* tree, std::vector<TH1D> &hvector, std::string tracking_algorithm, std::string version, std::string short_long ) {
+
+
+// ------- Function to generate efficiency histograms from reco/true histograms -------- //
+
+TH1D* effcalc(TH1D* hreco, TH1D* htrue, TString label){
+  // Check that reco and true histograms have the same binning (well - same number of bins...)
+  assert(hreco->GetNbinsX() == htrue->GetNbinsX());
+
+  // Make a new histogram to store efficiencies
+  TH1D *heff = (TH1D*)(hreco->Clone());
+  heff->Reset();
+  heff->SetTitle(label);
+  std::string heffname = std::string("heff");
+  heffname += std::string(std::string(heff->GetName()).substr(5, string(heff->GetName()).size()).c_str());
+  heff->SetName(heffname.c_str());
+
+  // Loop over all bins, including underflow and overflow
+  // Set bin in efficiency histogram to be reco/true
+  for (int ibin=0; ibin<hreco->GetNbinsX(); ibin++){
+    float reco_bc = hreco->GetBinContent(ibin);
+    float true_bc = htrue->GetBinContent(ibin);
+
+    // Don't divide by zero!
+    if (true_bc == 0){
+      heff->SetBinContent(ibin, 0.);
+      heff->SetBinError(ibin, 0.);
+    }
+    else {
+      float eff_bc = reco_bc/true_bc;
+      if (eff_bc < 0){ eff_bc = 0; }
+      if (eff_bc > 1){ eff_bc = 1; }
+
+      float err = TMath::Sqrt(eff_bc * (1.-eff_bc)/true_bc);
+      
+      heff->SetBinContent(ibin, eff_bc);
+      heff->SetBinError(ibin, err);
+    }
+  }
+  heff->SetMinimum(0.);
+  heff->SetMaximum(1.05);
+  heff->SetMarkerStyle(20);
+
+  return heff;
+}
+
+
+
+
+
+// ------- Function to make all of the plots -------- //
+
+void FillPlots_MC( TTree* tree, std::vector<TH1D> &hvector, std::string tracking_algorithm, std::string version, std::string short_long ) {
 
    const int kMaxTracks = 5000;
    Short_t         ntracks;
@@ -73,6 +126,10 @@ void TrackComparisons_MC( TTree* tree, std::vector<TH1D> &hvector, std::string t
    Float_t         Px[kMaxGeant];
    Float_t         Py[kMaxGeant];
    Float_t         Pz[kMaxGeant];
+   Float_t         theta[kMaxGeant];
+   Float_t         theta_xz[kMaxGeant];
+   Float_t         theta_yz[kMaxGeant];
+   Float_t         phi[kMaxGeant];
 
    const int maxtruth = 10;
    Int_t           mcevts_truth;               //number of neutrino interactions in the spill
@@ -85,41 +142,62 @@ void TrackComparisons_MC( TTree* tree, std::vector<TH1D> &hvector, std::string t
    Int_t           genie_primaries_pdg[maxgenie];
    Int_t           genie_status_code[maxgenie];
 
+   // Initialise only the branches we want (makes it run faster)
+   // and set branch addresses
+   tree -> SetBranchStatus("*",0);
    std::string branch_name = "ntracks_" + tracking_algorithm;
+   tree -> SetBranchStatus(branch_name.c_str(),1);
    tree -> SetBranchAddress(branch_name.c_str(), &ntracks);
    branch_name = "trkstartx_" + tracking_algorithm;
+   tree -> SetBranchStatus(branch_name.c_str(),1);
    tree -> SetBranchAddress(branch_name.c_str(), trkstartx);
    branch_name = "trkendx_" + tracking_algorithm;
+   tree -> SetBranchStatus(branch_name.c_str(),1);
    tree -> SetBranchAddress(branch_name.c_str(), trkendx);
    branch_name = "trkstarty_" + tracking_algorithm;
+   tree -> SetBranchStatus(branch_name.c_str(),1);
    tree -> SetBranchAddress(branch_name.c_str(), trkstarty);
    branch_name = "trkendy_" + tracking_algorithm;
+   tree -> SetBranchStatus(branch_name.c_str(),1);
    tree -> SetBranchAddress(branch_name.c_str(), trkendy);
    branch_name = "trkstartz_" + tracking_algorithm;
+   tree -> SetBranchStatus(branch_name.c_str(),1);
    tree -> SetBranchAddress(branch_name.c_str(), trkstartz);
    branch_name = "trkendz_" + tracking_algorithm;
+   tree -> SetBranchStatus(branch_name.c_str(),1);
    tree -> SetBranchAddress(branch_name.c_str(), trkendz);
    branch_name = "trklen_" + tracking_algorithm;
+   tree -> SetBranchStatus(branch_name.c_str(),1);
    tree -> SetBranchAddress(branch_name.c_str(), trklength);
    branch_name = "trkg4id_" + tracking_algorithm;
+   tree -> SetBranchStatus(branch_name.c_str(),1);
    tree -> SetBranchAddress(branch_name.c_str(), trkg4id);
    branch_name = "trkmomrange_" + tracking_algorithm;
+   tree -> SetBranchStatus(branch_name.c_str(),1);
    tree -> SetBranchAddress(branch_name.c_str(), trkmomrange);
    branch_name = "trkmommschi2_" + tracking_algorithm;
+   tree -> SetBranchStatus(branch_name.c_str(),1);
    tree -> SetBranchAddress(branch_name.c_str(), trkmommschi2);
    branch_name = "trkmommsllhd_" + tracking_algorithm;
+   tree -> SetBranchStatus(branch_name.c_str(),1);
    tree -> SetBranchAddress(branch_name.c_str(), trkmommsllhd);
    branch_name = "trkpidpida_" + tracking_algorithm;
+   tree -> SetBranchStatus(branch_name.c_str(),1);
    tree -> SetBranchAddress(branch_name.c_str(), trkpidpida);
    branch_name = "trkpidbestplane_" + tracking_algorithm;
+   tree -> SetBranchStatus(branch_name.c_str(),1);
    tree -> SetBranchAddress(branch_name.c_str(), trkpidbestplane);
    
+   tree -> SetBranchStatus("geant_list_size",1);
    tree -> SetBranchAddress("geant_list_size", &geant_list_size);
+   tree -> SetBranchStatus("TrackId",1);
    tree -> SetBranchAddress("TrackId", TrackId);
    if (version == "mcc7" || version == "MCC7") {
+   tree -> SetBranchStatus("StartPoint*",1);
    tree -> SetBranchAddress("StartPointx_tpcAV", StartX);
    tree -> SetBranchAddress("StartPointy_tpcAV", StartY);
    tree -> SetBranchAddress("StartPointz_tpcAV", StartZ);
+   tree -> SetBranchStatus("EndPoint*",1);
    tree -> SetBranchAddress("EndPointx_tpcAV", EndX);
    tree -> SetBranchAddress("EndPointy_tpcAV", EndY);
    tree -> SetBranchAddress("EndPointz_tpcAV", EndZ);
@@ -130,6 +208,7 @@ void TrackComparisons_MC( TTree* tree, std::vector<TH1D> &hvector, std::string t
    tree -> SetBranchAddress("EndPointx", real_EndX);
    tree -> SetBranchAddress("EndPointy", real_EndY);
    tree -> SetBranchAddress("EndPointz", real_EndZ);
+   tree -> SetBranchStatus("nuvtx*",1);
    tree -> SetBranchAddress("nuvtxx_truth", nuvtxx_truth);
    tree -> SetBranchAddress("nuvtxy_truth", nuvtxy_truth);
    tree -> SetBranchAddress("nuvtxz_truth", nuvtxz_truth);
@@ -138,6 +217,7 @@ void TrackComparisons_MC( TTree* tree, std::vector<TH1D> &hvector, std::string t
    tree -> SetBranchAddress("nuvtxy", nuvtxy);
    tree -> SetBranchAddress("nuvtxz", nuvtxz);
    } else {
+   tree -> SetBranchStatus("sp_charge_corrected*",1);
    tree -> SetBranchAddress("sp_charge_corrected_StartPointx_tpcAV", StartX);
    tree -> SetBranchAddress("sp_charge_corrected_StartPointy_tpcAV", StartY);
    tree -> SetBranchAddress("sp_charge_corrected_StartPointz_tpcAV", StartZ);
@@ -145,6 +225,7 @@ void TrackComparisons_MC( TTree* tree, std::vector<TH1D> &hvector, std::string t
    tree -> SetBranchAddress("sp_charge_corrected_EndPointy_tpcAV", EndY);
    tree -> SetBranchAddress("sp_charge_corrected_EndPointz_tpcAV", EndZ);
    tree -> SetBranchAddress("sp_charge_corrected_StartPointx", real_StartX);
+   tree -> SetBranchStatus("StartPointx",1);
    tree -> SetBranchAddress("StartPointx", real_StartX_nosc);
    tree -> SetBranchAddress("sp_charge_corrected_StartPointy", real_StartY);
    tree -> SetBranchAddress("sp_charge_corrected_StartPointz", real_StartZ);
@@ -155,27 +236,52 @@ void TrackComparisons_MC( TTree* tree, std::vector<TH1D> &hvector, std::string t
    tree -> SetBranchAddress("sp_charge_corrected_nuvtxy_truth", nuvtxy_truth);
    tree -> SetBranchAddress("sp_charge_corrected_nuvtxz_truth", nuvtxz_truth);
    branch_name = "nnuvtx_" + tracking_algorithm;
+   tree -> SetBranchStatus(branch_name.c_str(),1);
    tree -> SetBranchAddress(branch_name.c_str(), &nnuvtx);
    branch_name = "nuvtxx_" + tracking_algorithm;
+   tree -> SetBranchStatus(branch_name.c_str(),1);
    tree -> SetBranchAddress(branch_name.c_str(), &nuvtxx);
    branch_name = "nuvtxy_" + tracking_algorithm;
+   tree -> SetBranchStatus(branch_name.c_str(),1);
    tree -> SetBranchAddress(branch_name.c_str(), &nuvtxy);
    branch_name = "nuvtxz_" + tracking_algorithm;
+   tree -> SetBranchStatus(branch_name.c_str(),1);
    tree -> SetBranchAddress(branch_name.c_str(), &nuvtxz);
    }
+   tree -> SetBranchStatus("mcevts_truth",1);
    tree -> SetBranchAddress("mcevts_truth", &mcevts_truth);
+   tree -> SetBranchStatus("origin",1);
    tree -> SetBranchAddress("origin", origin);
+   tree -> SetBranchStatus("pdg",1);
    tree -> SetBranchAddress("pdg", pdg);
+   tree -> SetBranchStatus("pathlen_drifted",1);
    tree -> SetBranchAddress("pathlen_drifted", pathlen);
+   tree -> SetBranchStatus("P",1);
    tree -> SetBranchAddress("P", P);
+   //tree -> SetBranchStatus("Px",1);
    //tree -> SetBranchAddress("Px", Px);
+   //tree -> SetBranchStatus("Py",1);
    //tree -> SetBranchAddress("Py", Py);
+   //tree -> SetBranchStatus("Pz",1);
    //tree -> SetBranchAddress("Pz", Pz);
+   tree -> SetBranchStatus("status",1);
    tree -> SetBranchAddress("status", status);
+   tree -> SetBranchStatus("Mother",1);
    tree -> SetBranchAddress("Mother", Mother);
+   tree -> SetBranchStatus("genie_no_primaries",1);
    tree -> SetBranchAddress("genie_no_primaries", &genie_no_primaries); 
+   tree -> SetBranchStatus("genie_primaries_pdg",1);
    tree -> SetBranchAddress("genie_primaries_pdg", genie_primaries_pdg);
+   tree -> SetBranchStatus("genie_status_code",1);
    tree -> SetBranchAddress("genie_status_code", genie_status_code);
+   tree -> SetBranchStatus("theta",1);
+   tree -> SetBranchAddress("theta", &theta);
+   tree -> SetBranchStatus("phi",1);
+   tree -> SetBranchAddress("phi", &phi);
+   tree -> SetBranchStatus("theta_xz",1);
+   tree -> SetBranchAddress("theta_xz", &theta_xz);
+   tree -> SetBranchStatus("theta_yz",1);
+   tree -> SetBranchAddress("theta_yz", &theta_yz);
 
    long Size = tree -> GetEntries();
    cout << "Number of events in the tree is: " << Size << endl;
@@ -258,7 +364,48 @@ void TrackComparisons_MC( TTree* tree, std::vector<TH1D> &hvector, std::string t
    TH1D *hvertdist = new TH1D(histoname.c_str(),"Closest track start to reco vertex; Closest track start (cm);", 100, 0, 20); 
    histoname = "hnprotons_" + version;
    TH1D *hnprotons = new TH1D(histoname.c_str(),"Proton multiplicity; Number of protons;", 7, -0.5, 6.5); 
-       
+
+   // Define track efficiency truth histograms
+   histoname = "htrue_mclen_" + version;
+   TH1D *htrue_mclen = new TH1D(histoname.c_str(),"True Length", 60, 0, 1200);
+   histoname = "htrue_mcpdg_" + version;
+   TH1D *htrue_mcpdg = new TH1D(histoname.c_str(),"True PDG", 20, 0, 5000);
+   histoname = "htrue_mctheta_" + version;
+   TH1D *htrue_mctheta = new TH1D(histoname.c_str(),"True Theta", 20, 0, 180);
+   histoname = "htrue_mcphi_" + version;
+   TH1D *htrue_mcphi = new TH1D(histoname.c_str(),"True Phi", 20, -180, 180);
+   histoname = "htrue_mcthetaxz_" + version;
+   TH1D *htrue_mcthetaxz = new TH1D(histoname.c_str(),"True ThetaXZ", 20, -180, 180);
+   histoname = "htrue_mcthetayz_" + version;
+   TH1D *htrue_mcthetayz = new TH1D(histoname.c_str(),"True ThetaYZ", 20, -180, 180);
+   histoname = "htrue_mcmom_" + version;
+   TH1D *htrue_mcmom = new TH1D(histoname.c_str(),"True Momentum", 20, 0, 2.2);
+
+   // Define track efficiency reco histograms
+   histoname = "hreco_mclen_" + version;
+   TH1D *hreco_mclen = new TH1D(histoname.c_str(),"Reco Length", 60, 0, 1200);
+   histoname = "hreco_mcpdg_" + version;
+   TH1D *hreco_mcpdg = new TH1D(histoname.c_str(),"Reco PDG", 20, 0, 5000);
+   histoname = "hreco_mctheta_" + version;
+   TH1D *hreco_mctheta = new TH1D(histoname.c_str(),"Reco Theta", 20, 0, 180);
+   histoname = "hreco_mcphi_" + version;
+   TH1D *hreco_mcphi = new TH1D(histoname.c_str(),"Reco Phi", 20, -180, 180);
+   histoname = "hreco_mcthetaxz_" + version;
+   TH1D *hreco_mcthetaxz = new TH1D(histoname.c_str(),"Reco ThetaXZ", 20, -180, 180);
+   histoname = "hreco_mcthetayz_" + version;
+   TH1D *hreco_mcthetayz = new TH1D(histoname.c_str(),"Reco ThetaYZ", 20, -180, 180);
+   histoname = "hreco_mcmom_" + version;
+   TH1D *hreco_mcmom = new TH1D(histoname.c_str(),"Reco Momentum", 20, 0, 2.2);
+
+   // Define track efficiency histograms
+  TH1D* heff_mclen;
+  TH1D* heff_mcpdg;
+  TH1D* heff_mctheta;
+  TH1D* heff_mcphi;
+  TH1D* heff_mcthetaxz;
+  TH1D* heff_mcthetayz;
+  TH1D* heff_mcmom;
+   
    int mutrue = 0;
    double d = 0;
    double dmc = 0;
@@ -352,14 +499,42 @@ void TrackComparisons_MC( TTree* tree, std::vector<TH1D> &hvector, std::string t
                  	 } else {
                      		hresstart -> Fill(d2);
                      		d2 = sqrt( pow(EndX[j] - trkstartx[recoTracks],2 ) +pow(EndY[j] - trkstarty[recoTracks],2) +pow(EndZ[j] - trkstartz[recoTracks],2));
-                     		hresend -> Fill(d2);
+                     		hresend -> Fill(d2);	
                   	}
-               	}
+
+			// Add an entry for this matched reco track to reco histogram
+			// Only do this for mu, charged pi, charged K, p
+			if (abs(pdg[j]) == 13 || abs(pdg[j]) == 211 || abs(pdg[j]) == 321 || abs(pdg[j]) == 2212){
+			  hreco_mclen->Fill(pathlen[j]);
+			  hreco_mcpdg->Fill(pdg[j]);
+			  hreco_mctheta->Fill(theta[j]*180/3.142);
+			  hreco_mcphi->Fill(phi[j]*180/3.142);
+			  hreco_mcthetaxz->Fill(theta_xz[j]*180/3.142);
+			  hreco_mcthetayz->Fill(theta_yz[j]*180/3.142);
+			  hreco_mcmom->Fill(P[j]);
+			  }
+			
+               	} // end-if j is the proper index for the mc particle to be used for this track
                } //end loop on MC particles
       		is_first=false;
             } //end loop on reco tracks
+   
       	hntrue -> Fill(mutrue);
-
+		
+	// Loop over all true geant particles in event and add entries for all tracks to true histogram
+	for (int igeant=0; igeant<geant_list_size; igeant++){
+	  // Only do this for mu, charged pi, charged K, p
+	  if (abs(pdg[igeant]) == 13 || abs(pdg[igeant]) == 211 || abs(pdg[igeant]) == 321 || abs(pdg[igeant]) == 2212){
+	    htrue_mclen->Fill(pathlen[igeant]);
+	    htrue_mcpdg->Fill(pdg[igeant]);
+	    htrue_mctheta->Fill(theta[igeant]*180/3.142);
+	    htrue_mcphi->Fill(phi[igeant]*180/3.142);
+	    htrue_mcthetaxz->Fill(theta_xz[igeant]*180/3.142);
+	    htrue_mcthetayz->Fill(theta_yz[igeant]*180/3.142);
+	    htrue_mcmom->Fill(P[igeant]);
+	  }
+	}
+			
 	// Vertex information
 	double distmin = 10000;
 	double dist = 0;
@@ -397,11 +572,30 @@ void TrackComparisons_MC( TTree* tree, std::vector<TH1D> &hvector, std::string t
 	
    } //end loop on events
 
+   // Make efficiency histograms
+   heff_mclen = effcalc(hreco_mclen, htrue_mclen, TString("Tracking Efficiency; True Track Length (cm); Efficiency"));
+   heff_mcpdg = effcalc(hreco_mcpdg, htrue_mcpdg, TString("Tracking Efficiency; True PDG Code; Efficiency"));
+   heff_mctheta = effcalc(hreco_mctheta, htrue_mctheta, TString("Tracking Efficiency; True #theta (degrees); Efficiency"));
+   heff_mcphi = effcalc(hreco_mcphi, htrue_mcphi, TString("Tracking Efficiency; True #phi (degrees); Efficiency"));
+   heff_mcthetaxz = effcalc(hreco_mcthetaxz, htrue_mcthetaxz, TString("Tracking Efficiency; True #theta_{xz} (degrees); Efficiency"));
+   heff_mcthetayz = effcalc(hreco_mcthetayz, htrue_mcthetayz, TString("Tracking Efficiency; True #theta_{yz}; Efficiency"));
+   heff_mcmom = effcalc(hreco_mcmom, htrue_mcmom, TString("Tracking Efficiency; True Momentum (GeV); Efficiency"));
+
    // Only make reduced set of plots for CI
    hvector.push_back(*hresstart);
    hvector.push_back(*hresend);
-   hvector.push_back(*hvertres);
    hvector.push_back(*hnprotons);
+   // Note: for now, nuvtxx/nuvtxy/nuvtxz are only available in analysistree from pandoraNu
+   // So only make these plots for pandoraNu!
+   if (tracking_algorithm == "pandoraNu"){
+     hvector.push_back(*hvertres);
+   }
+   // Note 2: seems like efficiency plots only really make sense (or more accurately: we only really
+   // understand them) for pandoraCosmic
+   // So only make these plots for pandoraCosmic!
+   if (tracking_algorithm == "pandoraCosmic"){
+     hvector.push_back(*heff_mclen);
+   }
    if (short_long == "long") { // Full set of plots 
      hvector.push_back(*hnreco);
      hvector.push_back(*hstartx);
@@ -429,18 +623,49 @@ void TrackComparisons_MC( TTree* tree, std::vector<TH1D> &hvector, std::string t
      hvector.push_back(*hresomom_contained_chi2);
      hvector.push_back(*hresomom_contained_llhd);
      hvector.push_back(*hpidpida_total);
-     hvector.push_back(*hvertresx);
-     hvector.push_back(*hvertresy);
-     hvector.push_back(*hvertresz);
-     hvector.push_back(*hvertdist);
      hvector.push_back(*hlrange);
      hvector.push_back(*hlresrange);
      hvector.push_back(*hlrangemc);
      hvector.push_back(*hntrue);
      hvector.push_back(*hpidpida_muon);
+     // Note: for now, nuvtxx/nuvtxy/nuvtxz are only available in analysistree from pandoraNu
+     // So only make these plots for pandoraNu!
+     if (tracking_algorithm == "pandoraNu"){
+       hvector.push_back(*hvertresx);
+       hvector.push_back(*hvertresy);
+       hvector.push_back(*hvertresz);
+       hvector.push_back(*hvertdist);
+     }
+     // Note 2: seems like efficiency plots only really make sense (or more accurately: we only really
+     // understand them) for pandoraCosmic
+     // So only make these plots for pandoraCosmic!
+     if (tracking_algorithm == "pandoraCosmic"){
+       hvector.push_back(*hreco_mclen);
+       hvector.push_back(*htrue_mclen);
+       hvector.push_back(*heff_mcpdg);
+       hvector.push_back(*hreco_mcpdg);
+       hvector.push_back(*htrue_mcpdg);
+       hvector.push_back(*heff_mctheta);
+       hvector.push_back(*hreco_mctheta);
+       hvector.push_back(*htrue_mctheta);
+       hvector.push_back(*heff_mcphi);
+       hvector.push_back(*hreco_mcphi);
+       hvector.push_back(*htrue_mcphi);
+       hvector.push_back(*heff_mcthetaxz);
+       hvector.push_back(*hreco_mcthetaxz);
+       hvector.push_back(*htrue_mcthetaxz);
+       hvector.push_back(*heff_mcthetayz);
+       hvector.push_back(*hreco_mcthetayz);
+       hvector.push_back(*htrue_mcthetayz);
+       hvector.push_back(*heff_mcmom);
+       hvector.push_back(*hreco_mcmom);
+       hvector.push_back(*htrue_mcmom);
+     }
    }
-   
-   } //end function
+} //end function
+
+
+// ------- Function to calculate chi2 between two histograms -------- //
 
 double calculateChiSqDistance(TH1D O, TH1D E){
 
@@ -464,7 +689,9 @@ double calculateChiSqDistance(TH1D O, TH1D E){
     return chisq;
 
 }
-   
+
+// ------- Function to draw histograms (not comparison: one MC version only) -------- //
+
 void DrawHistos ( std::vector<TH1D> hvector , std::string tag, std::string algorithm ) {
   std::string outroot = "MCcomparison_" + tag + "_" + algorithm + ".root";
   TFile outfile (outroot.c_str(), "recreate");
@@ -492,6 +719,8 @@ void DrawHistos ( std::vector<TH1D> hvector , std::string tag, std::string algor
   }
   outfile.Close();
 }
+
+// ------- Function to draw comparison histograms -------- //
 	
 void DrawComparison( std::vector<TH1D> vector1, std::vector<TH1D> vector2, std::string tag1, std::string tag2, std::string algorithm ) {
 	if (vector1.size() != vector2.size() ) { std::cout << "Error! Different size in vec1 and vec2. " << std::endl; exit(-1); }
@@ -506,7 +735,12 @@ void DrawComparison( std::vector<TH1D> vector1, std::vector<TH1D> vector2, std::
 	vector1[i].SetLineWidth(2);
 	vector1[i].SetStats(0);
 	vector1[i].Sumw2();
-	vector1[i].DrawNormalized("hist e0");
+	if(string(vector1[i].GetName()).Contains("eff")){ // Don't normalise efficiency histograms (they're already normalised!)
+	  vector1[i].Draw("hist e0");
+	}
+	else{
+	  vector1[i].DrawNormalized("hist e0");
+	}
 	vector2[i].SetLineWidth(2);
 	vector2[i].SetLineColor(2);
 	vector2[i].SetStats(0);
@@ -560,6 +794,13 @@ void DrawComparison( std::vector<TH1D> vector1, std::vector<TH1D> vector2, std::
 						       
 	outfile.Close();
 }
+
+
+
+
+// ------------------------------ //
+// ------- Main function -------- //
+// ------------------------------ //
 
 int main ( int argc, char** argv ) {
 
@@ -625,15 +866,15 @@ int main ( int argc, char** argv ) {
 	}
 
 	std::vector<std::string> algorithm = { "pandoraNu" , "pandoraCosmic" };
-	if ( short_long == "long" ) {
+	/*if ( short_long == "long" ) {
 		algorithm.push_back ( "pandoraNuKHit" );
 		algorithm.push_back ( "pandoraCosmicKHit" );
 		algorithm.push_back ( "pandoraNuKalmanTrack" );
-	}
+		}*/
 
 	for (unsigned algorithms = 0; algorithms < algorithm.size(); algorithms++) {
 	  std::vector<TH1D> vector1;
-	  TrackComparisons_MC ( tree1, vector1, algorithm[ algorithms ], tag1, short_long );
+	  FillPlots_MC ( tree1, vector1, algorithm[ algorithms ], tag1, short_long );
 	  // In "long" mode, draw both sets of histograms separately as well as the comparison
 	  // Also do this if you're not doing a comparison
 	  if (short_long == "long" || !comparison){
@@ -644,7 +885,7 @@ int main ( int argc, char** argv ) {
 	  
 	  std::vector<TH1D> vector2;
 	  file2->cd();
-	  TrackComparisons_MC ( tree2, vector2, algorithm[ algorithms ], tag2, short_long );
+	  FillPlots_MC ( tree2, vector2, algorithm[ algorithms ], tag2, short_long );
 	  // In "long" mode, draw both sets of histograms separately as well as the comparison
 	  if (short_long == "long"){ 
 	    DrawHistos( vector2, tag2, algorithm[ algorithms ] );
