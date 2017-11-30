@@ -60,7 +60,7 @@ TH1F* effcalc(TH1F* hreco, TH1F* htrue, TString label){
 
 // ------------- Function to generate efficiecny histograms for a single tree --------------- //
 
-std::vector<TH1F*> MakeEffPlots(TString infile, std::vector< std::string > algoNames)
+std::vector<TH1F*> MakeEffPlots(TString infile, std::vector< std::string > algoNames, TString short_long)
 {
   TChain *fChain = new TChain("analysistree/anatree");
   fChain->Add(infile);
@@ -246,7 +246,7 @@ std::vector<TH1F*> MakeEffPlots(TString infile, std::vector< std::string > algoN
 	int apdg = abs(pdg[igeant]);
 	if (inTPCActive[igeant] == 1){
 	  if (apdg == 13 || apdg == 211 || apdg == 321 || apdg == 2212){ // If mu, pi, K+/-, or p
-	    if (Eng[igeant]>=0.001*Mass[igeant]+minKE){ // Why?
+	    if (Eng[igeant]>=0.001*Mass[igeant]+minKE){ // Cuts out small scatter particles, only look at particles that have a decent amount of energy and go a decent length
 
 	      mclen_true->Fill(pathlen[igeant]);
 	      mcpdg_true->Fill(pdg[igeant]);
@@ -283,9 +283,9 @@ std::vector<TH1F*> MakeEffPlots(TString infile, std::vector< std::string > algoN
 	      int apdg = abs(pdg[igeant]);
 	      if (inTPCActive[igeant] == 1){
 		if (apdg == 13 || apdg == 211 || apdg == 321 || apdg == 2212){ // If mu, pi, K+/-, or p
-		  if (Eng[igeant]>=0.001*Mass[igeant]+minKE){ // Why?
+		  if (Eng[igeant]>=0.001*Mass[igeant]+minKE){ // Cuts out all the small scatter particles etc, only look at particles that have a decent amount of energy and go a decent length
 
-		    // Calculate reconstructed start and end angle (I think)
+		    // Calculate angle between true and reco track at start and end
 		    double num = ((trkstartdcosx_array[i_alg][itrack]*Px[igeant])+(trkstartdcosy_array[i_alg][itrack]*Py[igeant])+(trkstartdcosz_array[i_alg][itrack]*Pz[igeant]));
 		    double cosangle = num/P[igeant];
 		    if (cosangle > 1){ cosangle = 1.; }
@@ -298,7 +298,7 @@ std::vector<TH1F*> MakeEffPlots(TString infile, std::vector< std::string > algoN
 		    if (cosoangle < -1){ cosoangle = -1.; }
 		    double oangle = TMath::ACos(cosoangle)*180.0/TMath::Pi();
 
-		    if ((abs(angle)<=10) || (abs(180-angle)<=10) || (abs(oangle)<=10) || (abs(180-oangle)<=10)){ // If small angles -- why?
+		    if ((abs(angle)<=10) || (abs(180-angle)<=10) || (abs(oangle)<=10) || (abs(180-oangle)<=10)){ // If small angles -- confirms you've got the right track
 		      // Do start point matching
 		      double mcstartx = StartPointx_tpcAV[igeant];
 		      double mcstarty = StartPointy_tpcAV[igeant];
@@ -317,8 +317,8 @@ std::vector<TH1F*> MakeEffPlots(TString infile, std::vector< std::string > algoN
 		      double pmatch2 = TMath::Sqrt(pow(mcstartx-trkendx,2)+pow(mcstarty-trkendy,2)+pow(mcstartz-trkendz,2));
 		      double minstart = std::min(pmatch1, pmatch2);
 
-		      if (minstart <= 5) { // If reco track starts or ends within 5cm of true start/end -- why?
-			if (trklen_array[i_alg][itrack] >= 0.5*pathlen[igeant]){ // Why?
+		      if (minstart <= 5) { // If reco track starts or ends within 5cm of true start/end -- confirms you've got the right track
+			//if (trklen_array[i_alg][itrack] >= 0.5*pathlen[igeant]){ // Cut out broken tracks (not entirely sure we want this - removes tracks from numerator (reco) but not denominator (truth))
 			  // Fill reco histograms
 			  mclen_reco[i_alg]->Fill(pathlen[igeant]);
 			  mcpdg_reco[i_alg]->Fill(pdg[igeant]);
@@ -327,7 +327,7 @@ std::vector<TH1F*> MakeEffPlots(TString infile, std::vector< std::string > algoN
 			  mcthetaxz_reco[i_alg]->Fill(theta_xz[igeant]*180.0/TMath::Pi());
 			  mcthetayz_reco[i_alg]->Fill(theta_yz[igeant]*180.0/TMath::Pi());
 			  mcmom_reco[i_alg]->Fill(P[igeant]);
-			}
+			  //}
 		      }
 		    }
 		    
@@ -345,13 +345,13 @@ std::vector<TH1F*> MakeEffPlots(TString infile, std::vector< std::string > algoN
 
   // Now all our histograms have been filled, make efficiency histograms!
   for (int i_alg=0; i_alg < n_algos; i_alg++){
-    mclen_eff[i_alg] = effcalc(mclen_reco[i_alg], mclen_true, TString("Tracking Efficiecny: "+algoNames[i_alg]+"; Track Length (cm); Efficiency"));
-    mcpdg_eff[i_alg] = effcalc(mcpdg_reco[i_alg], mcpdg_true, TString("Tracking Efficiecny: "+algoNames[i_alg]+"; PDG Code; Efficiency"));
-    mctheta_eff[i_alg] = effcalc(mctheta_reco[i_alg], mctheta_true, TString("Tracking Efficiecny: "+algoNames[i_alg]+"; #theta (degrees); Efficiency"));
-    mcphi_eff[i_alg] = effcalc(mcphi_reco[i_alg], mcphi_true, TString("Tracking Efficiecny: "+algoNames[i_alg]+"; #phi (degrees); Efficiency"));
-    mcthetaxz_eff[i_alg] = effcalc(mcthetaxz_reco[i_alg], mcthetaxz_true, TString("Tracking Efficiecny: "+algoNames[i_alg]+"; #theta_{xz} (degrees); Efficiency"));
-    mcthetayz_eff[i_alg] = effcalc(mcthetayz_reco[i_alg], mcthetayz_true, TString("Tracking Efficiecny: "+algoNames[i_alg]+"; #theta_{yz} (degrees); Efficiency"));
-    mcmom_eff[i_alg] = effcalc(mcmom_reco[i_alg], mcmom_true, TString("Tracking Efficiecny: "+algoNames[i_alg]+"; Momentum (GeV); Efficiency"));
+    mclen_eff[i_alg] = effcalc(mclen_reco[i_alg], mclen_true, TString("Tracking Efficiency: "+algoNames[i_alg]+"; Track Length (cm); Efficiency"));
+    mcpdg_eff[i_alg] = effcalc(mcpdg_reco[i_alg], mcpdg_true, TString("Tracking Efficiency: "+algoNames[i_alg]+"; PDG Code; Efficiency"));
+    mctheta_eff[i_alg] = effcalc(mctheta_reco[i_alg], mctheta_true, TString("Tracking Efficiency: "+algoNames[i_alg]+"; #theta (degrees); Efficiency"));
+    mcphi_eff[i_alg] = effcalc(mcphi_reco[i_alg], mcphi_true, TString("Tracking Efficiency: "+algoNames[i_alg]+"; #phi (degrees); Efficiency"));
+    mcthetaxz_eff[i_alg] = effcalc(mcthetaxz_reco[i_alg], mcthetaxz_true, TString("Tracking Efficiency: "+algoNames[i_alg]+"; #theta_{xz} (degrees); Efficiency"));
+    mcthetayz_eff[i_alg] = effcalc(mcthetayz_reco[i_alg], mcthetayz_true, TString("Tracking Efficiency: "+algoNames[i_alg]+"; #theta_{yz} (degrees); Efficiency"));
+    mcmom_eff[i_alg] = effcalc(mcmom_reco[i_alg], mcmom_true, TString("Tracking Efficiency: "+algoNames[i_alg]+"; Momentum (GeV); Efficiency"));
 
     mclen_eff[i_alg]->SetName(TString("mclen_eff_"+algoNames[i_alg]));
     mcpdg_eff[i_alg]->SetName(TString("mcpdg_eff_"+algoNames[i_alg]));
@@ -366,30 +366,17 @@ std::vector<TH1F*> MakeEffPlots(TString infile, std::vector< std::string > algoN
   // ------ Finally, return efficiency histograms ------- //
   std::vector<TH1F*> eff_hists;
   for (int i_alg=0; i_alg < n_algos; i_alg++){
+    // Only make reduced set of plots for CI
     eff_hists.push_back(mclen_eff[i_alg]);
-    eff_hists.push_back(mcpdg_eff[i_alg]);
-    eff_hists.push_back(mctheta_eff[i_alg]);
-    eff_hists.push_back(mcphi_eff[i_alg]);
-    eff_hists.push_back(mcthetaxz_eff[i_alg]);
-    eff_hists.push_back(mcthetayz_eff[i_alg]);
-    eff_hists.push_back(mcmom_eff[i_alg]);
-
-    /*eff_hists.push_back(mclen_reco[i_alg]);
-    eff_hists.push_back(mcpdg_reco[i_alg]);
-    eff_hists.push_back(mctheta_reco[i_alg]);
-    eff_hists.push_back(mcphi_reco[i_alg]);
-    eff_hists.push_back(mcthetaxz_reco[i_alg]);
-    eff_hists.push_back(mcthetayz_reco[i_alg]);
-    eff_hists.push_back(mcmom_reco[i_alg]);*/
+    if (short_long == "long"){ // Full set of plots
+      eff_hists.push_back(mcpdg_eff[i_alg]);
+      eff_hists.push_back(mctheta_eff[i_alg]);
+      eff_hists.push_back(mcphi_eff[i_alg]);
+      eff_hists.push_back(mcthetaxz_eff[i_alg]);
+      eff_hists.push_back(mcthetayz_eff[i_alg]);
+      eff_hists.push_back(mcmom_eff[i_alg]);
+    }
   }// Loop over reconstruction algorithms (i_alg)
-    
-  /*eff_hists.push_back(mclen_true);
-    eff_hists.push_back(mcpdg_true);
-    eff_hists.push_back(mctheta_true);
-    eff_hists.push_back(mcphi_true);
-    eff_hists.push_back(mcthetaxz_true);
-    eff_hists.push_back(mcthetayz_true);
-    eff_hists.push_back(mcmom_true);*/
 
   return eff_hists;
 }
