@@ -101,7 +101,7 @@ void FillPlots_MC( TTree* tree, std::vector<TH1D> &hvector, std::string tracking
    Float_t         nuvtxy[kMaxVertices];
    Float_t         nuvtxz[kMaxVertices];
 
-   const int kMaxGeant = 5000;
+   const int kMaxGeant = 10000;
    Int_t           geant_list_size;
    Float_t         StartX[kMaxGeant];
    Float_t         StartY[kMaxGeant];
@@ -418,7 +418,12 @@ void FillPlots_MC( TTree* tree, std::vector<TH1D> &hvector, std::string tracking
    for(long i = 0; i < Size; i++) {
    if (i!=0 && i%1000==0) std:: cout << "Processing " << i << "/" << Size << std::endl;
       tree -> GetEntry(i);
-      if (geant_list_size > kMaxGeant) std::cout << "Error: geant_list_size = " << geant_list_size << " is larger than kMaxGeant = " << kMaxGeant << std::endl;
+      
+      if (geant_list_size > kMaxGeant){
+	std::cout << "Error: geant_list_size = " << geant_list_size << " is larger than kMaxGeant = " << kMaxGeant << std::endl
+		  << "Skipping event" << std::endl;
+	continue;
+      }
 
    hnreco -> Fill(ntracks);
 
@@ -488,7 +493,6 @@ void FillPlots_MC( TTree* tree, std::vector<TH1D> &hvector, std::string tracking
 			hpidpida_muon -> Fill ( trkpidpida[recoTracks][trkpidbestplane[recoTracks]] );
 		  
                   	//calculate start point resolution
-			std::cout << "start res" << std::endl;
                   	d1 = sqrt( pow(StartX[j] - trkstartx[recoTracks], 2) + pow(StartY[j] - trkstarty[recoTracks],2) + pow(StartZ[j] - trkstartz[recoTracks], 2) );
                   	d2 = sqrt( pow(StartX[j] - trkendx[recoTracks], 2) + pow(StartY[j] - trkendy[recoTracks], 2) + pow(StartZ[j] - trkendz[recoTracks], 2) );
                   	if(d1 < d2) {
@@ -503,7 +507,6 @@ void FillPlots_MC( TTree* tree, std::vector<TH1D> &hvector, std::string tracking
 
 			// Add an entry for this matched reco track to reco histogram
 			// Only do this for mu, charged pi, charged K, p
-			std::cout << "eff" << std::endl;
 			if (abs(pdg[j]) == 13 || abs(pdg[j]) == 211 || abs(pdg[j]) == 321 || abs(pdg[j]) == 2212){
 			  hreco_mclen->Fill(pathlen[j]);
 			  hreco_mcpdg->Fill(pdg[j]);
@@ -868,11 +871,11 @@ int main ( int argc, char** argv ) {
 	}
 
 	std::vector<std::string> algorithm = { "pandoraNu" , "pandoraCosmic" };
-	/*if ( short_long == "long" ) {
+	if ( short_long == "long" ) {
 		algorithm.push_back ( "pandoraNuKHit" );
 		algorithm.push_back ( "pandoraCosmicKHit" );
 		algorithm.push_back ( "pandoraNuKalmanTrack" );
-		}*/
+		}
 
 	for (unsigned algorithms = 0; algorithms < algorithm.size(); algorithms++) {
 	  std::vector<TH1D> vector1;
