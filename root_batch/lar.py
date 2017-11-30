@@ -80,7 +80,7 @@
 #----------------
 #
 # process_name : "myprocess"         # Required by work flow.
-# input_tree : "anatree"             # Name of input TTree.
+# input_tree : "anatree"             # Name of input TTree (name or path).
 # modules : { module1 : config1
 #             module2 : config2 }
 #
@@ -284,9 +284,13 @@ class Framework:
 
         # FCL parameters.
 
-        self.tree_name = None
+        self.tree_names = []
         if pset.has_key('input_tree'):
-            self.tree_name = pset['input_tree']              # Input tree name.
+            tree_name = pset['input_tree']              # Input tree name(s).
+            if type(tree_name) == type([]):
+                self.tree_names = tree_name
+            else:
+                self.tree_names.append(tree_name)
         self.loop_over_entries = pset['loop_over_entries']   # Entry loop flag.
         self.module_names = pset['modules']                  # Analysis modules.
         self.chain = pset['chain']                           # Combine TTrees into one TChain?
@@ -298,7 +302,7 @@ class Framework:
         self.analyzers = []                   # Analyzer objects.
         self.branch_names = []                # Branch names to load.
         self.input_file = None                # Currently open input TFile object.
-        self.tree = None                      # Current input TTree.
+        self.trees = []                       # Current input TTrees.
         self.runnum = None                    # Current run number.
         self.subrunnum = None                 # Current subrun number.
         self.evnum = None                     # Current event number.
@@ -490,7 +494,7 @@ class Framework:
                 self.nskip -= 1
                 continue
 
-            # Make sure tree is loaded.
+            # Make sure tree is loaded (only relevant for TChains).
 
             ientry = tree.LoadTree( jentry )
             if ientry < 0:
@@ -572,7 +576,7 @@ class Framework:
             # Call analyze function for each analyzer.
 
             for analyzer in self.analyzers:
-                analyzer.analyze_entry(self.tree)            
+                analyzer.analyze_entry(tree)
 
             # Decrement event count.
 
@@ -587,25 +591,25 @@ class Framework:
         return
 
 
-    def find_tree(self, dir):
+    def find_tree(self, tree_name, dir):
         #----------------------------------------------------------------------
         # 
-        # Purpose: Find the input tree, as specified by class variable
-        #          self.tree_name, in the specified directory.  Also search
+        # Purpose: Find input tree in the specified directory.  Also search
         #          subdirectories.
         #
-        # Arguments: dir - Root directory (TDirectory).
+        # Arguments: tree_name - Tree name (name or path).
+        #            dir       - Root directory (TDirectory).
         #
         # Returns: Tree object (TTree) or None.
         #
         #----------------------------------------------------------------------
 
-        if self.tree_name == None:
+        if tree_name == None:
             return None
 
         # First try a plain "Get".
 
-        obj = dir.Get(self.tree_name)
+        obj = dir.Get(tree_name)
         if obj and obj.InheritsFrom('TTree'):
             return obj
 
@@ -619,7 +623,7 @@ class Framework:
 
             if cl.InheritsFrom('TDirectory'):
                 subdir = dir.Get(key.GetName())
-                obj = self.find_tree(subdir)
+                obj = self.find_tree(tree_name, subdir)
                 if obj and obj.InheritsFrom('TTree'):
                     return obj
 
@@ -675,20 +679,23 @@ class Framework:
         for analyzer in self.analyzers:
             analyzer.open_input(self.input_file)
 
-        # Get input tree.
+        # Get input trees.
 
-        self.tree = self.find_tree(self.input_file)
-        if self.tree != None:
+        self.trees = []
+        for tree_name in self.tree_names:
+            tree = self.find_tree(tree_name, self.input_file)
+            if tree != None:
 
-            # Tree successfully located.
+                # Tree successfully located.
 
-            self.set_branch_statuses(self.tree)
+                self.trees.append(tree)
+                self.set_branch_statuses(tree)
 
-        else:
+            else:
 
-            # Failed to locate tree.
+                # Failed to locate tree.
 
-            print 'Unable to find tree %s.' % self.tree_name
+                print 'Unable to find tree %s.' % tree_name
 
         # Done.
 
@@ -765,9 +772,10 @@ class Framework:
         # a) Load and process trees individually, or
         # b) Prepare a TChain to be processed after the loop is finished.
 
-        tchain = None
+        tchains = []
         if self.chain:
-            tchain = ROOT.TChain(self.tree_name)
+            for tree_name in self.tree_names:
+                tchains.append(ROOT.TChain(tree_name))
 
         for line in self.input_file_names:
             input_file_name = line.strip()
@@ -783,22 +791,23 @@ class Framework:
             if self.chain:
 
                 print 'Add file to TChain: %s' % input_file_name
-                tchain.AddFile(input_file_name)
+                for tchain in tchains:
+                    tchain.AddFile(input_file_name)
 
             else:
                 self.open_input(input_file_name)
 
-                if self.tree != None:
+                for tree in self.trees:
 
                     # Call analyzer hooks to analyze the whole tree.
 
                     for analyzer in self.analyzers:
-                        analyzer.analyze_tree(self.tree)
+                        analyzer.analyze_tree(tree)
 
                     # Read entries.
 
                     if self.loop_over_entries:
-                        self.read(self.tree)
+                        self.read(tree)
 
                 # Close input file.
 
@@ -808,7 +817,7 @@ class Framework:
 
         # Do additional chain processing here.
 
-        if tchain != None:
+        for tchain in tchains:
 
             # Call analyzer hooks to analyze the whole tree.
 
