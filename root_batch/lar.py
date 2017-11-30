@@ -284,7 +284,9 @@ class Framework:
 
         # FCL parameters.
 
-        self.tree_name = pset['input_tree']                  # Input tree name.
+        self.tree_name = None
+        if pset.has_key('input_tree'):
+            self.tree_name = pset['input_tree']              # Input tree name.
         self.loop_over_entries = pset['loop_over_entries']   # Entry loop flag.
         self.module_names = pset['modules']                  # Analysis modules.
         self.chain = pset['chain']                           # Combine TTrees into one TChain?
@@ -324,6 +326,7 @@ class Framework:
 
         for module_name in self.module_names:
             print 'Importing module %s' % module_name
+            sys.path.append('.')          # Make sure local directory is on import path.
             fp, pathname, description = imp.find_module(module_name)
             module = imp.load_module(module_name, fp, pathname, description)
             print 'Making analyzer object.'
@@ -597,6 +600,9 @@ class Framework:
         #
         #----------------------------------------------------------------------
 
+        if self.tree_name == None:
+            return None
+
         # First try a plain "Get".
 
         obj = dir.Get(self.tree_name)
@@ -664,6 +670,11 @@ class Framework:
             sys.exit(1)
         print 'Open successful.'
 
+        # Call open_input hook for each analyzer.
+
+        for analyzer in self.analyzers:
+            analyzer.open_input(self.input_file)
+
         # Get input tree.
 
         self.tree = self.find_tree(self.input_file)
@@ -692,6 +703,12 @@ class Framework:
         #----------------------------------------------------------------------
 
         if self.input_file is not None and self.input_file.IsOpen():
+
+            # Call close_input hook for each analyzer.
+
+            for analyzer in self.analyzers:
+                analyzer.close_input(self.input_file)
+
             self.input_file.Close()
             self.input_file = None
 
