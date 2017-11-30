@@ -26,12 +26,12 @@
 # ------------------------------------------------------------------------------------- #
     
 
-g++ $(root-config --cflags --glibs) truthMonteCarloComparisonsScript.C -o truthMonteCarloComparisons
+g++ $(root-config --cflags --glibs) ${UBUTIL_DIR}/bin/truthMonteCarloComparisonsScript.C -o truthMonteCarloComparisons
 
 if [ -z "$4" ]; then
     ./truthMonteCarloComparisons ${1} ${2} ${3}
 else
-    ./truthMonteCarloComparisons ${1} ${2} ${3} ${4} "100" ${5}
+    ./truthMonteCarloComparisons ${1} ${2} ${3} ${4} "300" ${5}
 fi
     
 rm truthMonteCarloComparisons

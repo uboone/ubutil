@@ -193,20 +193,29 @@ void FillPlots_MC( TTree* tree, std::vector<TH1D> &hvector, std::string tracking
    tree -> SetBranchStatus("TrackId",1);
    tree -> SetBranchAddress("TrackId", TrackId);
    if (version == "mcc7" || version == "MCC7") {
-   tree -> SetBranchStatus("StartPoint*",1);
+   tree -> SetBranchStatus("StartPointx_tpcAV",1);
    tree -> SetBranchAddress("StartPointx_tpcAV", StartX);
+   tree -> SetBranchStatus("StartPointy_tpcAV",1);
    tree -> SetBranchAddress("StartPointy_tpcAV", StartY);
+   tree -> SetBranchStatus("StartPointz_tpcAV",1);
    tree -> SetBranchAddress("StartPointz_tpcAV", StartZ);
-   tree -> SetBranchStatus("EndPoint*",1);
+   tree -> SetBranchStatus("EndPointx_tpcAV",1);
    tree -> SetBranchAddress("EndPointx_tpcAV", EndX);
+   tree -> SetBranchStatus("EndPointy_tpcAV",1);
    tree -> SetBranchAddress("EndPointy_tpcAV", EndY);
+   tree -> SetBranchStatus("EndPointz_tpcAV",1);
    tree -> SetBranchAddress("EndPointz_tpcAV", EndZ);
+   tree -> SetBranchStatus("StartPointx",1);
    tree -> SetBranchAddress("StartPointx", real_StartX);
-   tree -> SetBranchAddress("StartPointx", real_StartX_nosc);
+   tree -> SetBranchStatus("StartPointy",1);
    tree -> SetBranchAddress("StartPointy", real_StartY);
+   tree -> SetBranchStatus("StartPointz",1);
    tree -> SetBranchAddress("StartPointz", real_StartZ);
+   tree -> SetBranchStatus("EndPointx",1);
    tree -> SetBranchAddress("EndPointx", real_EndX);
+   tree -> SetBranchStatus("EndPointy",1);
    tree -> SetBranchAddress("EndPointy", real_EndY);
+   tree -> SetBranchStatus("EndPointz",1);
    tree -> SetBranchAddress("EndPointz", real_EndZ);
    tree -> SetBranchStatus("nuvtx*",1);
    tree -> SetBranchAddress("nuvtxx_truth", nuvtxx_truth);
@@ -225,8 +234,6 @@ void FillPlots_MC( TTree* tree, std::vector<TH1D> &hvector, std::string tracking
    tree -> SetBranchAddress("sp_charge_corrected_EndPointy_tpcAV", EndY);
    tree -> SetBranchAddress("sp_charge_corrected_EndPointz_tpcAV", EndZ);
    tree -> SetBranchAddress("sp_charge_corrected_StartPointx", real_StartX);
-   tree -> SetBranchStatus("StartPointx",1);
-   tree -> SetBranchAddress("StartPointx", real_StartX_nosc);
    tree -> SetBranchAddress("sp_charge_corrected_StartPointy", real_StartY);
    tree -> SetBranchAddress("sp_charge_corrected_StartPointz", real_StartZ);
    tree -> SetBranchAddress("sp_charge_corrected_EndPointx", real_EndX);
@@ -287,15 +294,11 @@ void FillPlots_MC( TTree* tree, std::vector<TH1D> &hvector, std::string tracking
    cout << "Number of events in the tree is: " << Size << endl;
 
    std::string histoname = "hnreco_" + version;
-   TH1D *hnreco = new TH1D(histoname.c_str(), "Number of reco tracks; Number of reco tracks;", 20, 0, 20);
+   TH1D *hnreco = new TH1D(histoname.c_str(), "Number of reco tracks; Number of reco tracks;", 30, 0, 30);
    histoname = "hntrue_" + version;
    TH1D *hntrue = new TH1D(histoname.c_str(), "Number of true primary tracks per event; # True tracks;", 50, 0, 50);
    histoname = "hstartx_" + version;
    TH1D *hstartx = new TH1D(histoname.c_str(), "Track start X position; x [cm];", 100, -200, 500);
-   histoname = "hstartx_true_" + version;
-   TH1D *hstartx_true = new TH1D(histoname.c_str(), "Track start X position (true); x [cm];", 100, -200, 500);
-   histoname = "hstartx_true_nosc_" + version;
-   TH1D *hstartx_true_nosc = new TH1D(histoname.c_str(), "Track start X position (true, no space charge correction); x [cm];", 100, -200, 500);
    histoname = "hstarty_" + version;
    TH1D *hstarty = new TH1D(histoname.c_str(), "Track start Y position; y [cm];", 100, -150, 150);
    histoname = "hstartz_" + version;
@@ -307,53 +310,53 @@ void FillPlots_MC( TTree* tree, std::vector<TH1D> &hvector, std::string tracking
    histoname = "hendz_" + version;
    TH1D *hendz = new TH1D(histoname.c_str(), "Track end Z position; z [cm];", 100, -500, 1500);
    histoname = "hlreco_" + version;
-   TH1D *hlreco = new TH1D(histoname.c_str(), "Track length Reco; l [cm];", 100, 0, 1000);
+   TH1D *hlreco = new TH1D(histoname.c_str(), "Track length Reco; Track length [cm];", 100, 0, 1000);
    histoname = "hlrange_" + version;
-   TH1D *hlrange = new TH1D(histoname.c_str(), "Track length Range; l [cm];", 100, 0, 1000);
+   TH1D *hlrange = new TH1D(histoname.c_str(), "Track length Range (start point - end point); Track range [cm];", 100, 0, 1000);
    histoname = "hlmc_" + version;
-   TH1D *hlmc = new TH1D(histoname.c_str(), "Track length True; l [cm];", 100, 0, 1000);
+   TH1D *hlmc = new TH1D(histoname.c_str(), "Track length True; Track length [cm];", 100, 0, 1000);
    histoname = "hlrangemc_" + version;
-   TH1D *hlrangemc = new TH1D(histoname.c_str(), "Track length Range True; l [cm];", 100, 0, 1000);
+   TH1D *hlrangemc = new TH1D(histoname.c_str(), "Track length Range True (start point - end point); Track range [cm];", 100, 0, 1000);
    histoname = "hldiff_" + version;
-   TH1D *hldiff = new TH1D(histoname.c_str(), "Track length - Track range (Reco); l [cm];", 200, -100, 100);
+   TH1D *hldiff = new TH1D(histoname.c_str(), "Track length - Track range (Reco); Track length - track range [cm];", 200, -100, 100);
    histoname = "hldiffmc_" + version;
-   TH1D *hldiffmc = new TH1D(histoname.c_str(), "Track length - Track range (True); l [cm];", 200, -100, 100);
+   TH1D *hldiffmc = new TH1D(histoname.c_str(), "Track length - Track range (True); Track length - track range [cm];", 200, -100, 100);
    histoname = "hlres_" + version;
-   TH1D *hlres = new TH1D(histoname.c_str(), "Track length reco - Track length MC; l [cm];", 100, -50, 50);
+   TH1D *hlres = new TH1D(histoname.c_str(), "Track length (Reco) - Track length (True); Track length reco - track length true  [cm];", 100, -50, 50);
    histoname = "hlresrange_" + version;
-   TH1D *hlresrange = new TH1D(histoname.c_str(), "Track length range reco - track length range MC; l [cm];", 100, -50, 50);
+   TH1D *hlresrange = new TH1D(histoname.c_str(), "Track length range (Reco) - track length range (True); Track range reco - track range true [cm];", 100, -50, 50);
    histoname = "hresstart_" + version;
-   TH1D *hresstart = new TH1D(histoname.c_str(), "Track start resolution; R [cm];", 25, 0, 50);
+   TH1D *hresstart = new TH1D(histoname.c_str(), "Track start resolution; Track start position (reco) - track start position (true) [cm];", 25, 0, 50);
    histoname = "hresend_" + version;
-   TH1D *hresend = new TH1D(histoname.c_str(), "Track end resolution; R [cm];", 25, 0, 50);
+   TH1D *hresend = new TH1D(histoname.c_str(), "Track end resolution; Track end position (reco) - track end position (true) [cm];", 25, 0, 50);
    histoname = "hresostartx_" + version;
-   TH1D *hresostartx = new TH1D(histoname.c_str(),"Startx reco - Startx MC; R [cm];", 2000, -20, 20); 
+   TH1D *hresostartx = new TH1D(histoname.c_str(),"Track start resolution (x); Track start x-position (reco) - Track start x-position (true) [cm];", 2000, -20, 20); 
    histoname = "hresostarty_" + version;
-   TH1D *hresostarty = new TH1D(histoname.c_str(),"Starty reco - Starty MC; R [cm];", 2000, -20, 20); 
+   TH1D *hresostarty = new TH1D(histoname.c_str(),"Track start resolution (y); Track start y-position (reco) - Track start y-position (true) R [cm];", 2000, -20, 20); 
    histoname = "hresostartz_" + version;
-   TH1D *hresostartz = new TH1D(histoname.c_str(),"Startz reco - Startz MC; R [cm];", 2000, -20, 20); 
+   TH1D *hresostartz = new TH1D(histoname.c_str(),"Track start resolution (z); Track start z-position (reco) - Track start z-position (true) [cm];", 2000, -20, 20); 
    histoname = "hresoendx_" + version;
-   TH1D *hresoendx = new TH1D(histoname.c_str(),"Endx reco - Endx MC; R [cm];", 2000, -20, 20); 
+   TH1D *hresoendx = new TH1D(histoname.c_str(),"Track end resolution (x); Track end x-position (reco) - Track end x-position (true) [cm];", 2000, -20, 20); 
    histoname = "hresoendy_" + version;
-   TH1D *hresoendy = new TH1D(histoname.c_str(),"Endy reco - Endy MC; R [cm];", 2000, -20, 20); 
+   TH1D *hresoendy = new TH1D(histoname.c_str(),"Track end resolution (y); Track end y-position (reco) - Track end y-position (true) [cm];", 2000, -20, 20); 
    histoname = "hresoendz_" + version;
-   TH1D *hresoendz = new TH1D(histoname.c_str(),"Endz reco - endz MC; R [cm];", 2000, -20, 20); 
+   TH1D *hresoendz = new TH1D(histoname.c_str(),"Track end resolution (z); Track end z-position (reco) - Track end z-position (true) [cm];", 2000, -20, 20); 
    histoname = "hresomomentum_range_" + version;
-   TH1D *hresomom_range = new TH1D(histoname.c_str(),"Momentum from range - momentum from MC; P [GeV/c];", 2000, -1, 1); 
+   TH1D *hresomom_range = new TH1D(histoname.c_str(),"Momentum from range - momentum from MC; #Delta P [GeV/c];", 2000, -1, 1); 
    histoname = "hresomomentum_chi2_" + version;
-   TH1D *hresomom_chi2 = new TH1D(histoname.c_str(),"Momentum from Chi2 MCS - momentum from MC; P [GeV/c];", 2000, -2, 2); 
+   TH1D *hresomom_chi2 = new TH1D(histoname.c_str(),"Momentum from Chi2 MCS - momentum from MC; #Delta P [GeV/c];", 2000, -2, 2); 
    histoname = "hresomomentum_llhd_" + version;
-   TH1D *hresomom_llhd = new TH1D(histoname.c_str(),"Momentum from LLHD MCS - momentum from MC; P [GeV/c];", 2000, -2, 2); 
+   TH1D *hresomom_llhd = new TH1D(histoname.c_str(),"Momentum from LLHD MCS - momentum from MC; #Delta P [GeV/c];", 2000, -2, 2); 
    histoname = "hresomomentum_contained_chi2_" + version;
-   TH1D *hresomom_contained_chi2 = new TH1D(histoname.c_str(),"Momentum from Chi2 MCS - momentum from MC for contained tracks; P [GeV/c];", 2000, -2, 2); 
+   TH1D *hresomom_contained_chi2 = new TH1D(histoname.c_str(),"Momentum from Chi2 MCS - momentum from MC for contained tracks; #Delta P [GeV/c];", 2000, -2, 2); 
    histoname = "hresomomentum__contained_llhd_" + version;
-   TH1D *hresomom_contained_llhd = new TH1D(histoname.c_str(),"Momentum from LLHD MCS - momentum from MC for contained tracks; P [GeV/c];", 2000, -2, 2); 
+   TH1D *hresomom_contained_llhd = new TH1D(histoname.c_str(),"Momentum from LLHD MCS - momentum from MC for contained tracks; #Delta P [GeV/c];", 2000, -2, 2); 
    histoname = "hpidpida_total_" + version;
    TH1D *hpidpida_total = new TH1D(histoname.c_str(),"PIDA for all reco tracks; PIDA;", 100, 0, 30); 
    histoname = "hpidpida_muon_" + version;
    TH1D *hpidpida_muon = new TH1D(histoname.c_str(),"PIDA for all reco muons; PIDA;", 100, 0, 30);  
    histoname = "hvertres_" + version;
-   TH1D *hvertres = new TH1D(histoname.c_str(),"Vertex resolution; Vertex position - true vertex (cm);", 50, 0, 20); 
+   TH1D *hvertres = new TH1D(histoname.c_str(),"Vertex resolution; Vertex position - true vertex (cm);", 20, 0, 10); 
    histoname = "hvertresx_" + version;
    TH1D *hvertresx = new TH1D(histoname.c_str(),"Vertex resolution in x; Vertex position - true vertex in x (cm);", 200, -10, 10); 
    histoname = "hvertresy_" + version;
@@ -415,7 +418,7 @@ void FillPlots_MC( TTree* tree, std::vector<TH1D> &hvector, std::string tracking
    for(long i = 0; i < Size; i++) {
    if (i!=0 && i%1000==0) std:: cout << "Processing " << i << "/" << Size << std::endl;
       tree -> GetEntry(i);
-
+      if (geant_list_size > kMaxGeant) std::cout << "Error: geant_list_size = " << geant_list_size << " is larger than kMaxGeant = " << kMaxGeant << std::endl;
 
    hnreco -> Fill(ntracks);
 
@@ -469,11 +472,6 @@ void FillPlots_MC( TTree* tree, std::vector<TH1D> &hvector, std::string tracking
 		  	hresoendx -> Fill(trkendx[recoTracks]-EndX[j]);
 		  	hresoendy -> Fill(trkendy[recoTracks]-EndY[j]);
 		  	hresoendz -> Fill(trkendz[recoTracks]-EndZ[j]);
-
-			if (real_StartX[j]>0 && real_StartX[j]<256.35){
-			  hstartx_true -> Fill(real_StartX[j]);
-			  hstartx_true_nosc -> Fill(real_StartX_nosc[i]);
-			}
 		 	
 			//if ( inFV( real_StartX[j], real_StartY[j], real_StartZ[j] ) && inFV( real_EndX[j], real_EndY[j], real_EndZ[j] ) ) { //contained tracks
 			if ( inFV( trkstartx[recoTracks], trkstarty[recoTracks], trkstartz[recoTracks] ) && inFV( trkendx[recoTracks], trkendy[recoTracks], trkendz[recoTracks] ) ) { //contained tracks
@@ -490,6 +488,7 @@ void FillPlots_MC( TTree* tree, std::vector<TH1D> &hvector, std::string tracking
 			hpidpida_muon -> Fill ( trkpidpida[recoTracks][trkpidbestplane[recoTracks]] );
 		  
                   	//calculate start point resolution
+			std::cout << "start res" << std::endl;
                   	d1 = sqrt( pow(StartX[j] - trkstartx[recoTracks], 2) + pow(StartY[j] - trkstarty[recoTracks],2) + pow(StartZ[j] - trkstartz[recoTracks], 2) );
                   	d2 = sqrt( pow(StartX[j] - trkendx[recoTracks], 2) + pow(StartY[j] - trkendy[recoTracks], 2) + pow(StartZ[j] - trkendz[recoTracks], 2) );
                   	if(d1 < d2) {
@@ -504,6 +503,7 @@ void FillPlots_MC( TTree* tree, std::vector<TH1D> &hvector, std::string tracking
 
 			// Add an entry for this matched reco track to reco histogram
 			// Only do this for mu, charged pi, charged K, p
+			std::cout << "eff" << std::endl;
 			if (abs(pdg[j]) == 13 || abs(pdg[j]) == 211 || abs(pdg[j]) == 321 || abs(pdg[j]) == 2212){
 			  hreco_mclen->Fill(pathlen[j]);
 			  hreco_mcpdg->Fill(pdg[j]);
@@ -599,8 +599,6 @@ void FillPlots_MC( TTree* tree, std::vector<TH1D> &hvector, std::string tracking
    if (short_long == "long") { // Full set of plots 
      hvector.push_back(*hnreco);
      hvector.push_back(*hstartx);
-     hvector.push_back(*hstartx_true);
-     hvector.push_back(*hstartx_true_nosc);
      hvector.push_back(*hstarty);
      hvector.push_back(*hstartz);
      hvector.push_back(*hendx);
@@ -677,13 +675,12 @@ double calculateChiSqDistance(TH1D O, TH1D E){
         double O_ierr = O.GetBinError(i);
         double E_ierr = E.GetBinError(i);
 
-        if (O_i == 0 && E_i == 0){
+        if ((O_i == 0 && E_i == 0) || (O_ierr == 0 && E_ierr == 0)){
             chisq += 0;
         }
         else{
             chisq += std::pow(O_i - E_i,2)/(std::sqrt(std::pow(O_ierr,2) + std::pow(E_ierr,2)));
         }
-
     }
 
     return chisq;
@@ -735,7 +732,7 @@ void DrawComparison( std::vector<TH1D> vector1, std::vector<TH1D> vector2, std::
 	vector1[i].SetLineWidth(2);
 	vector1[i].SetStats(0);
 	vector1[i].Sumw2();
-	if(string(vector1[i].GetName()).Contains("eff")){ // Don't normalise efficiency histograms (they're already normalised!)
+	if(string(vector1[i].GetName()).find("eff") != std::string::npos){ // Don't normalise efficiency histograms (they're already normalised!)
 	  vector1[i].Draw("hist e0");
 	}
 	else{
@@ -745,7 +742,12 @@ void DrawComparison( std::vector<TH1D> vector1, std::vector<TH1D> vector2, std::
 	vector2[i].SetLineColor(2);
 	vector2[i].SetStats(0);
 	vector2[i].Sumw2();
-	vector2[i].DrawNormalized("hist e0 same");
+	if(string(vector2[i].GetName()).find("eff") != std::string::npos){ // Don't normalise efficiency histograms (they're already normalised!)
+	  vector2[i].Draw("hist e0 same");
+	}
+	else{
+	  vector2[i].DrawNormalized("hist e0 same");
+	}
 	c1.SetName( string(vector1[i].GetName()).substr(0, string(vector1[i].GetName()).size() - tag1.size() -1 ).c_str() );
 	c1.SetTitle( string(vector1[i].GetName()).substr(0, string(vector1[i].GetName()).size() - tag1.size() -1).c_str() );
 
