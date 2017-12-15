@@ -27,7 +27,8 @@ export FILE2_DATAORMC=$5
 export FILE2_LABEL=$6
 
 # output dir
-export OUTDIR="."
+export OUTDIR="/uboone/data/users/alister1/dmctest/"
+#export OUTDIR="."
 #export OUTDIR="/pnfs/uboone/scratch/users/uboone/ci_validation/"
 
 # comparison type 0: area normalised 1: not area normalised
