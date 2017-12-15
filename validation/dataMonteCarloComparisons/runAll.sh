@@ -19,7 +19,7 @@ g++ -o getHitInformation getHitInformation.C `root-config --cflags --glibs`
 g++ -o getFlashInformation getFlashInformation.C `root-config --cflags --glibs`
 ./getFlashInformation "$FILE1" "$FILE1_DATAORMC" "$FILE1_LABEL" "$FILE2" "$FILE2_DATAORMC" "$FILE2_LABEL" "$OUTDIR" "$COMP_TYPE" "$PE_CUT" "$IS_CI" "$CHISQ_NOTIFIER" 
 
-if [ $PE_CUT -le 0 ]
+if [ $PE_CUT -gt 0 ]
 then
   echo "PE Cut is non-zero, re-running number-of-flashes with PE cut $PE_CUT"
   g++ -o getNflsInformation getNflsInformation.C `root-config --cflags --glibs`
