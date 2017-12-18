@@ -28,7 +28,7 @@ then
   ./getNflsInformation "$FILE1" "$FILE1_DATAORMC" "$FILE1_LABEL" "$FILE2" "$FILE2_DATAORMC" "$FILE2_LABEL" "$OUTDIR" "$COMP_TYPE" "$PE_CUT" "simpleFlashCosmic" 75 "$IS_CI" "$CHISQ_NOTIFIER" 
 fi
 g++ -o getCalorimetryInformation ${UBUTIL_DIR}/bin/getCalorimetryInformation.C `root-config --cflags --glibs`
-./getCalorimetryInformation "$FILE1" "$FILE1_DATAORMC" "$FILE1_LABEL" "$FILE2" "$FILE2_DATAORMC" "$FILE2_LABEL" "$OUTDIR" "$COMP_TYPE" "$PE_CUT" "$IS_CI" "$CHISQ_NOTIFIER" 
+./getCalorimetryInformation "$FILE1" "$FILE1_DATAORMC" "$FILE1_LABEL" "$FILE2" "$FILE2_DATAORMC" "$FILE2_LABEL" "$OUTDIR" "$COMP_TYPE" "$IS_CI" "$CHISQ_NOTIFIER" 
 
 #g++ -o getPMTInformation getPMTInformation.C `root-config --cflags --glibs`
 #./getPMTInformation "$FILE1" "$FILE1_DATAORMC" "$FILE1_LABEL" "$FILE2" "$FILE2_DATAORMC" "$FILE2_LABEL" "$OUTDIR" "$COMP_TYPE" "$PE_CUT" "$THRESHOLD" "$CHISQ_NOTIFIER" 

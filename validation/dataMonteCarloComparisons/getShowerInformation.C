@@ -117,7 +117,7 @@ void getShowerInformation(TString file1name, TString file1_dataormc, TString fil
 
     for (int j = 0; j < showerPlotNames.size(); j++) {
 
-      if (algoNames[i] == "pandoraCosmic" && trackPlotNames[j] == "nshowers"){
+      if (algoNames[i] == "pandoraCosmic" && showerPlotNames[j] == "nshowers"){
 
         showerPlotValues[j] = {100,0,100};
 
