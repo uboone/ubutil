@@ -57,15 +57,15 @@ void getTrackInformation(TString file1name, TString file1_dataormc, TString file
     trackPlotNames = {
       "ntracks",
       "trklen",
-      "trkthetaxz",
-      "trkthetayz"
+      "trktheta",
+      "trkphi"
     };
 
     trackPlotValues = {
-      /*ntracks*/     {30.0, 0, 30.0},
+      /*ntracks*/     {30.0, 0.0, 30.0},
       /*trklen*/      {50.0, 0.0, 700.0},
-      /*trkthetaxz*/  {50.0, -3.3, 3.3},
-      /*trkthetayz*/  {50.0, -3.3, 3.3}
+      /*trktheta*/  {50.0, 0.0, 3.3},
+      /*trkphi*/  {50.0, -3.3, 3.3}
     };
 
 

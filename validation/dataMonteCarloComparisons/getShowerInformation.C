@@ -53,12 +53,14 @@ void getShowerInformation(TString file1name, TString file1_dataormc, TString fil
   if (isCI == 1){
 
     // define vector of algo names
-    algoNames = {"showerrecopandora"};
+    algoNames = {"pandoraCosmic", "pandoraNu"};
 
     // and define plots
     showerPlotNames = {
       "nshowers",
       "shwr_length",
+      "shwr_theta",
+      "shwr_phi",
       "shwr_startdcosx",
       "shwr_startdcosy",
       "shwr_startdcosz"
@@ -66,9 +68,11 @@ void getShowerInformation(TString file1name, TString file1_dataormc, TString fil
 
 
     showerPlotValues = {
-      /*nshowers*/     {30.0, 0, 30.0},
-      /*shwr_length*/   {50.0, 0, 700.0},
-      /*shwr_startdcosx*/ {50, -1, 1},
+      /*nshowers*/       {30.0, 0, 30.0},
+      /*shwr_length*/    {50.0, 0, 700.0},
+      /*shwr_theta*/     {50.0, 0, 3.3},
+      /*shwr_phi*/       {50.0, -3.3, 3.3},
+      /*shwr_startdcosx*/{50, -1, 1},
       /*shwr_startcosy*/ {50, -1, 1},
       /*shwr_startcosz*/ {50, -1, 1},
     };
@@ -82,6 +86,10 @@ void getShowerInformation(TString file1name, TString file1_dataormc, TString fil
     showerPlotNames = {
       "nshowers",
       "shwr_length",
+      "shwr_theta",
+      "shwr_thetaxz",
+      "shwr_thetayz",
+      "shwr_phi",
       "shwr_startdcosx",
       "shwr_startdcosy",
       "shwr_startdcosz",
@@ -91,19 +99,30 @@ void getShowerInformation(TString file1name, TString file1_dataormc, TString fil
 
 
     showerPlotValues = {
-      /*nshowers*/     {30.0, 0, 30.0},
-      /*shwr_length*/   {50.0, 0, 700.0},
-      /*shwr_startdcosx*/ {50, -1, 1},
+      /*nshowers*/       {30.0, 0, 30.0},
+      /*shwr_length*/    {50.0, 0, 700.0},
+      /*shwr_theta*/     {50.0, 0, 3.3},
+      /*shwr_thetaxz*/   {50.0, -3.3, 3.3},
+      /*shwr_thetayz*/   {50.0, -3.3, 3.3},
+      /*shwr_phi*/       {50.0, -3.3, 3.3},
+      /*shwr_startdcosx*/{50, -1, 1},
       /*shwr_startcosy*/ {50, -1, 1},
       /*shwr_startcosz*/ {50, -1, 1},
-      /*shwr_startx*/   {50.0, -100.0, 350.0},
-      /*shwr_starty*/   {50.0, -130.0, 130.0},
+      /*shwr_startx*/    {50.0, -100.0, 350.0},
+      /*shwr_starty*/    {50.0, -130.0, 130.0},
       /*shwr_startz*/    {50.0, -50.0, 1140}};
   }
 
   for (int i = 0; i < algoNames.size(); i++ ) {
 
     for (int j = 0; j < showerPlotNames.size(); j++) {
+
+      if (algoNames[i] == "pandoraCosmic" && showerPlotNames[j] == "nshowers"){
+
+        showerPlotValues[j] = {100,0,100};
+
+      }
+
 
       // histogram styling
       TString yAxisTitle("# Showers");

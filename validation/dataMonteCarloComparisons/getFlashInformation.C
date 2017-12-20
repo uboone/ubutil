@@ -60,12 +60,14 @@ void getFlashInformation(TString file1name, TString file1_dataormc, TString file
 
     // and define plots
     flashPlotNames = {
+      "nfls",
       "flsTime"
     };
 
 
     //Outer vectors are for each variable, inner vectors are for each algorithm
     flashPlotValues = {
+      /*nfls*/              {{10, 0, 10}, {75, 0, 75}},
       /*flsTime*/           {{100, 0, 25}, {160, -3200, 4800}}
     };
 
@@ -80,6 +82,7 @@ void getFlashInformation(TString file1name, TString file1_dataormc, TString file
 
     // and define plots
     flashPlotNames = {
+      "nfls", 
       "flsTime",
       "flsPe",
       "flsZcenter",
@@ -90,6 +93,7 @@ void getFlashInformation(TString file1name, TString file1_dataormc, TString file
 
     //Outer vectors are for each variable, inner vectors are for each algorithm
     flashPlotValues = {
+      /*nfls*/              {{10, 0, 10}, {150, 0, 150}, {10, 0, 10}, {75, 0, 75}},
       /*flsTime*/           {{100, 0, 25}, {160, -3200, 4800}, {100, 0, 25}, {160, -3200, 4800}},
       /*flsPe*/             {{50, 0, 200}, {50, 0, 200},{50, 0, 200}, {50, 0, 200}},
       /*flsZcenter*/        {{50, -100, 1100}, {50, -100, 1100}, {50, -100, 1100}, {50, -100, 1100}},
