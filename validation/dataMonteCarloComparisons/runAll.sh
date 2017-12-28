@@ -2,15 +2,15 @@
 
 # remember to use setup.sh to modify your input files and specify your options
 
-if [[ $UBUTIL_DIR == "/cvmfs"* ]]
+if [ -z $UBUTIL_DIR ]
 then
-  echo "not running locally."
-  source ${UBUTIL_DIR}/bin/setup.sh $1 $2 $3 $4 $5 $6
-  export IS_LOCAL=0
-else
   echo "running locally."
   source setup.sh $1 $2 $3 $4 $5 $6
   export IS_LOCAL=1
+else
+  echo "not running locally."
+  source ${UBUTIL_DIR}/bin/setup.sh $1 $2 $3 $4 $5 $6
+  export IS_LOCAL=0
 fi
 
 if [ $IS_LOCAL -eq 1 ]
@@ -64,4 +64,5 @@ if [ $IS_LOCAL -eq 1 ]
 then
   cd ..
   rm -rf bin
+  unset UBUTIL_DIR
 fi
