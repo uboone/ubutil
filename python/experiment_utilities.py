@@ -94,7 +94,6 @@ def get_sam_metadata(project, stage):
 def get_setup_script_path():
 
     CVMFS_DIR="/cvmfs/uboone.opensciencegrid.org/products/"
-    FERMIAPP_DIR="/grid/fermiapp/products/uboone/"
     UBUTIL_DIR=''
     if os.environ.has_key('UBUTIL_DIR'):
         UBUTIL_DIR=os.environ['UBUTIL_DIR'] + '/bin/'
@@ -106,7 +105,7 @@ def get_setup_script_path():
     elif UBUTIL_DIR != '' and os.path.isfile(UBUTIL_DIR+"setup_uboone.sh"):
         setup_script = UBUTIL_DIR+"setup_uboone.sh"
     else:
-        raise RuntimeError, "Could not find setup script at "+FERMIAPP_DIR+" or "+CVMFS_DIR
+        raise RuntimeError, "Could not find setup script at "+CVMFS_DIR
 
     return setup_script
 
