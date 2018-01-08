@@ -19,7 +19,7 @@
 #include "calculateChiSqDistance.C"
 #include "getNBins.C"
 
-void getTrackInformation(TString file1name, TString file1_dataormc, TString file1_label, TString file2name, TString file2_dataormc, TString file2_label, TString outDir, int compType, int isCI, float chisqNotifierCut) {
+void getTrackInformation(TString file1name, TString file1_dataormc, TString file1_label, TString file2name, TString file2_dataormc, TString file2_label, TString outDir, int compType, int isCI, float chisqNotifierCut, float trackLengthCut) {
 
   // define output
   TString outputFile(outDir+"fOutputTracks.root");
@@ -52,18 +52,16 @@ void getTrackInformation(TString file1name, TString file1_dataormc, TString file
 
   if (isCI == true){
 
-    algoNames = {"pandoraCosmic", "pandoraNu", "pandoraCosmicKalmanTrack", "pandoraNuKalmanTrack"};
+    algoNames = {"pandoraCosmic"};
 
     trackPlotNames = {
       "ntracks",
-      "trklen",
       "trktheta",
       "trkphi"
     };
 
     trackPlotValues = {
       /*ntracks*/     {30.0, 0.0, 30.0},
-      /*trklen*/      {50.0, 0.0, 700.0},
       /*trktheta*/  {50.0, 0.0, 3.3},
       /*trkphi*/  {50.0, -3.3, 3.3}
     };
@@ -155,8 +153,10 @@ void getTrackInformation(TString file1name, TString file1_dataormc, TString file
 
       TString file1DrawString(fileName+" >> "+fileName+"_file1");
       TString file2DrawString(fileName+" >> "+fileName+"_file2");
-      fChainFile1->Draw(file1DrawString);
-      fChainFile2->Draw(file2DrawString);
+      TString cutValue = Form("%g", trackLengthCut);
+      TString lengthCutString("trklen_"+algoNames[i]+" > "+cutValue);
+      fChainFile1->Draw(file1DrawString, lengthCutString);
+      fChainFile2->Draw(file2DrawString, lengthCutString);
 
 
       // Keep error while scaling
@@ -345,8 +345,9 @@ int main(int argc, char* argv[]){
   int compType = atoi(argv[8]);
   int isCI = atoi(argv[9]);
   float chisqNotifierCut = atof(argv[10]);
+  float trackLengthCut = atof(argv[11]);
 
-    getTrackInformation(file1name, file1_dataormc, file1_label, file2name, file2_dataormc, file2_label, outDir, compType, isCI, chisqNotifierCut);
+  getTrackInformation(file1name, file1_dataormc, file1_label, file2name, file2_dataormc, file2_label, outDir, compType, isCI, chisqNotifierCut, trackLengthCut);
   return 0;
 
 }
