@@ -10,7 +10,7 @@ then
   export UBUTIL_DIR="$PWD"
   mkdir ${UBUTIL_DIR}/bin
   cp ${UBUTIL_DIR}/*.* ${UBUTIL_DIR}/bin/
-  cd ${UBUTIL_DIR}/bin
+  #cd ${UBUTIL_DIR}/bin
 fi
 
 source ${UBUTIL_DIR}/bin/setup.sh $1 $2 $3 $4 $5 $6
@@ -54,7 +54,7 @@ rm getNflsInformation
 
 if [ $IS_LOCAL -eq 1 ]
 then
-  cd ..
+  #cd ..
   rm -rf ${UBUTIL_DIR}/bin
   unset UBUTIL_DIR
 fi
