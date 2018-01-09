@@ -7,7 +7,7 @@ export IS_LOCAL=0
 if [ $IS_LOCAL -eq 1 ]
 then
   # MUST be run from directory containing scripts
-  export UBUTIL_DIR="."
+  export UBUTIL_DIR="$PWD"
   mkdir ${UBUTIL_DIR}/bin
   cp ${UBUTIL_DIR}/*.* ${UBUTIL_DIR}/bin/
   cd ${UBUTIL_DIR}/bin
@@ -55,6 +55,6 @@ rm getNflsInformation
 if [ $IS_LOCAL -eq 1 ]
 then
   cd ..
-  rm -rf ${UBUTIL_BIN}/bin
+  rm -rf ${UBUTIL_DIR}/bin
   unset UBUTIL_DIR
 fi
