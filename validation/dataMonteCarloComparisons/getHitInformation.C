@@ -56,7 +56,6 @@ void getHitInformation(TString file1name, TString file1_dataormc, TString file1_
       "hit_channel",
       "hit_channel",
       "hit_channel",
-      "hit_goodnessOfFit",
       "hit_multiplicity"
     };
 
@@ -65,7 +64,6 @@ void getHitInformation(TString file1name, TString file1_dataormc, TString file1_
       /*hit_channel_u*/      {50, 0, 2400},
       /*hit_channel_v*/      {50, 2400, 4800},
       /*hit_channel_y*/      {50, 4800, 8256},
-      /*hit_goodnessOfFit*/  {50, 0, 50},
       /*hit_multiplicity*/   {50, 0, 50}
     };
   }
