@@ -53,7 +53,7 @@ void getShowerInformation(TString file1name, TString file1_dataormc, TString fil
   if (isCI == 1){
 
     // define vector of algo names
-    algoNames = {"pandoraCosmic", "pandoraNu"};
+    algoNames = {"pandoraCosmic"};
 
     // and define plots
     showerPlotNames = {
