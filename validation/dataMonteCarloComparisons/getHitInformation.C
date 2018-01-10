@@ -292,13 +292,20 @@ void getHitInformation(TString file1name, TString file1_dataormc, TString file1_
     // check chisq if MC/MC comparison
     if (file1_dataormc == "MC" && file2_dataormc == "MC"){
 
+      // Print all chi2 values to a file for tracking over time
+      std::ofstream ChisqFile;
+      ChisqFile.open("ChisqValues.txt", std::ios_base::app);
+      ChisqFile << saveString << " " << chisqv << "\n";
+      ChisqFile.close();
+      
+      // Print names of plots with high chi2 to a separate file
       if (chisqv >= chisqNotifierCut/100.0){
-
+	
         std::ofstream highChisqFile;
         highChisqFile.open("highChisqPlots.txt", std::ios_base::app);
         highChisqFile << saveString << "\n";
         highChisqFile.close();
-
+	
       }
     }
 
