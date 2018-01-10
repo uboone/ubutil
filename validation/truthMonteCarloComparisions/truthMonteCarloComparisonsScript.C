@@ -780,7 +780,13 @@ void DrawComparison( std::vector<TH1D> vector1, std::vector<TH1D> vector2, std::
 	double chisqNDF = chisqv/(double)nBins;
 	TString chisqNDFstr = Form("#chi^{2}/No. bins: %g", chisqNDF);
 
-	// If chisq is large, print to file
+	// Print all chisq to file
+	std::ofstream ChisqFile;
+	ChisqFile.open("ChisqValues.txt", std::ios_base::app);
+	ChisqFile << c1.GetName() << "_" << algorithm << " " << chisqv << "\n";
+	ChisqFile.close();
+	
+	// If chisq is large, print plot name to a different file
 	if (chisqv >= chisqNotifierCut/100.0){
 	  std::ofstream highChisqFile;
 	  highChisqFile.open("highChisqPlots.txt", std::ios_base::app);
