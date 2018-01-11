@@ -90,8 +90,8 @@ void FillPlots_MC( TTree* tree, std::vector<TH1D> &hvector, std::string tracking
    Float_t         trklength[kMaxTracks];
    Int_t 	   trkg4id[kMaxTracks];
    Float_t         trkmomrange[kMaxTracks];
-   Float_t         trkmommschi2[kMaxTracks];
-   Float_t         trkmommsllhd[kMaxTracks];
+   Float_t         trkmcsfwdmom[kMaxTracks];
+   Float_t         trkmcsbwdmom[kMaxTracks];
    Float_t	   trkpidpida[kMaxTracks][3];
    Short_t         trkpidbestplane[kMaxTracks];
 
@@ -175,12 +175,12 @@ void FillPlots_MC( TTree* tree, std::vector<TH1D> &hvector, std::string tracking
    branch_name = "trkmomrange_" + tracking_algorithm;
    tree -> SetBranchStatus(branch_name.c_str(),1);
    tree -> SetBranchAddress(branch_name.c_str(), trkmomrange);
-   branch_name = "trkmommschi2_" + tracking_algorithm;
+   branch_name = "trkmcsfwdmom_" + tracking_algorithm;
    tree -> SetBranchStatus(branch_name.c_str(),1);
-   tree -> SetBranchAddress(branch_name.c_str(), trkmommschi2);
-   branch_name = "trkmommsllhd_" + tracking_algorithm;
+   tree -> SetBranchAddress(branch_name.c_str(), trkmcsfwdmom);
+   branch_name = "trkmcsbwdmom_" + tracking_algorithm;
    tree -> SetBranchStatus(branch_name.c_str(),1);
-   tree -> SetBranchAddress(branch_name.c_str(), trkmommsllhd);
+   tree -> SetBranchAddress(branch_name.c_str(), trkmcsbwdmom);
    branch_name = "trkpidpida_" + tracking_algorithm;
    tree -> SetBranchStatus(branch_name.c_str(),1);
    tree -> SetBranchAddress(branch_name.c_str(), trkpidpida);
@@ -192,69 +192,81 @@ void FillPlots_MC( TTree* tree, std::vector<TH1D> &hvector, std::string tracking
    tree -> SetBranchAddress("geant_list_size", &geant_list_size);
    tree -> SetBranchStatus("TrackId",1);
    tree -> SetBranchAddress("TrackId", TrackId);
-   if (version == "mcc7" || version == "MCC7") {
-   tree -> SetBranchStatus("StartPointx_tpcAV",1);
-   tree -> SetBranchAddress("StartPointx_tpcAV", StartX);
-   tree -> SetBranchStatus("StartPointy_tpcAV",1);
-   tree -> SetBranchAddress("StartPointy_tpcAV", StartY);
-   tree -> SetBranchStatus("StartPointz_tpcAV",1);
-   tree -> SetBranchAddress("StartPointz_tpcAV", StartZ);
-   tree -> SetBranchStatus("EndPointx_tpcAV",1);
-   tree -> SetBranchAddress("EndPointx_tpcAV", EndX);
-   tree -> SetBranchStatus("EndPointy_tpcAV",1);
-   tree -> SetBranchAddress("EndPointy_tpcAV", EndY);
-   tree -> SetBranchStatus("EndPointz_tpcAV",1);
-   tree -> SetBranchAddress("EndPointz_tpcAV", EndZ);
-   tree -> SetBranchStatus("StartPointx",1);
-   tree -> SetBranchAddress("StartPointx", real_StartX);
-   tree -> SetBranchStatus("StartPointy",1);
-   tree -> SetBranchAddress("StartPointy", real_StartY);
-   tree -> SetBranchStatus("StartPointz",1);
-   tree -> SetBranchAddress("StartPointz", real_StartZ);
-   tree -> SetBranchStatus("EndPointx",1);
-   tree -> SetBranchAddress("EndPointx", real_EndX);
-   tree -> SetBranchStatus("EndPointy",1);
-   tree -> SetBranchAddress("EndPointy", real_EndY);
-   tree -> SetBranchStatus("EndPointz",1);
-   tree -> SetBranchAddress("EndPointz", real_EndZ);
-   tree -> SetBranchStatus("nuvtx*",1);
-   tree -> SetBranchAddress("nuvtxx_truth", nuvtxx_truth);
-   tree -> SetBranchAddress("nuvtxy_truth", nuvtxy_truth);
-   tree -> SetBranchAddress("nuvtxz_truth", nuvtxz_truth);
-   tree -> SetBranchAddress("nnuvtx", &nnuvtx);
-   tree -> SetBranchAddress("nuvtxx", nuvtxx);
-   tree -> SetBranchAddress("nuvtxy", nuvtxy);
-   tree -> SetBranchAddress("nuvtxz", nuvtxz);
+   // Don't use space charge correction for MCC 8
+   // Note: this is only really true if you're looking at BNB
+   // For cosmics you will want to edit this to use space charge correction
+   if((string(version).find("MCC8") != std::string::npos) || (string(version).find("mcc8") != std::string::npos) || (string(version).find("v06_26") != std::string::npos)){
+     tree -> SetBranchStatus("StartPointx_tpcAV",1);
+     tree -> SetBranchAddress("StartPointx_tpcAV", StartX);
+     tree -> SetBranchStatus("StartPointy_tpcAV",1);
+     tree -> SetBranchAddress("StartPointy_tpcAV", StartY);
+     tree -> SetBranchStatus("StartPointz_tpcAV",1);
+     tree -> SetBranchAddress("StartPointz_tpcAV", StartZ);
+     tree -> SetBranchStatus("EndPointx_tpcAV",1);
+     tree -> SetBranchAddress("EndPointx_tpcAV", EndX);
+     tree -> SetBranchStatus("EndPointy_tpcAV",1);
+     tree -> SetBranchAddress("EndPointy_tpcAV", EndY);
+     tree -> SetBranchStatus("EndPointz_tpcAV",1);
+     tree -> SetBranchAddress("EndPointz_tpcAV", EndZ);
+     tree -> SetBranchStatus("StartPointx",1);
+     tree -> SetBranchAddress("StartPointx", real_StartX);
+     tree -> SetBranchStatus("StartPointy",1);
+     tree -> SetBranchAddress("StartPointy", real_StartY);
+     tree -> SetBranchStatus("StartPointz",1);
+     tree -> SetBranchAddress("StartPointz", real_StartZ);
+     tree -> SetBranchStatus("EndPointx",1);
+     tree -> SetBranchAddress("EndPointx", real_EndX);
+     tree -> SetBranchStatus("EndPointy",1);
+     tree -> SetBranchAddress("EndPointy", real_EndY);
+     tree -> SetBranchStatus("EndPointz",1);
+     tree -> SetBranchAddress("EndPointz", real_EndZ);
+     tree -> SetBranchStatus("nuvtx*",1);
+     tree -> SetBranchAddress("nuvtxx_truth", nuvtxx_truth);
+     tree -> SetBranchAddress("nuvtxy_truth", nuvtxy_truth);
+     tree -> SetBranchAddress("nuvtxz_truth", nuvtxz_truth);
+     branch_name = "nnuvtx_" + tracking_algorithm;
+     tree -> SetBranchStatus(branch_name.c_str(),1);
+     tree -> SetBranchAddress(branch_name.c_str(), &nnuvtx);
+     branch_name = "nuvtxx_" + tracking_algorithm;
+     tree -> SetBranchStatus(branch_name.c_str(),1);
+     tree -> SetBranchAddress(branch_name.c_str(), &nuvtxx);
+     branch_name = "nuvtxy_" + tracking_algorithm;
+     tree -> SetBranchStatus(branch_name.c_str(),1);
+     tree -> SetBranchAddress(branch_name.c_str(), &nuvtxy);
+     branch_name = "nuvtxz_" + tracking_algorithm;
+     tree -> SetBranchStatus(branch_name.c_str(),1);
+     tree -> SetBranchAddress(branch_name.c_str(), &nuvtxz);
    } else {
-   tree -> SetBranchStatus("sp_charge_corrected*",1);
-   tree -> SetBranchAddress("sp_charge_corrected_StartPointx_tpcAV", StartX);
-   tree -> SetBranchAddress("sp_charge_corrected_StartPointy_tpcAV", StartY);
-   tree -> SetBranchAddress("sp_charge_corrected_StartPointz_tpcAV", StartZ);
-   tree -> SetBranchAddress("sp_charge_corrected_EndPointx_tpcAV", EndX);
-   tree -> SetBranchAddress("sp_charge_corrected_EndPointy_tpcAV", EndY);
-   tree -> SetBranchAddress("sp_charge_corrected_EndPointz_tpcAV", EndZ);
-   tree -> SetBranchAddress("sp_charge_corrected_StartPointx", real_StartX);
-   tree -> SetBranchAddress("sp_charge_corrected_StartPointy", real_StartY);
-   tree -> SetBranchAddress("sp_charge_corrected_StartPointz", real_StartZ);
-   tree -> SetBranchAddress("sp_charge_corrected_EndPointx", real_EndX);
-   tree -> SetBranchAddress("sp_charge_corrected_EndPointy", real_EndY);
-   tree -> SetBranchAddress("sp_charge_corrected_EndPointz", real_EndZ);
-   tree -> SetBranchAddress("sp_charge_corrected_nuvtxx_truth", nuvtxx_truth);
-   tree -> SetBranchAddress("sp_charge_corrected_nuvtxy_truth", nuvtxy_truth);
-   tree -> SetBranchAddress("sp_charge_corrected_nuvtxz_truth", nuvtxz_truth);
-   branch_name = "nnuvtx_" + tracking_algorithm;
-   tree -> SetBranchStatus(branch_name.c_str(),1);
-   tree -> SetBranchAddress(branch_name.c_str(), &nnuvtx);
-   branch_name = "nuvtxx_" + tracking_algorithm;
-   tree -> SetBranchStatus(branch_name.c_str(),1);
-   tree -> SetBranchAddress(branch_name.c_str(), &nuvtxx);
-   branch_name = "nuvtxy_" + tracking_algorithm;
-   tree -> SetBranchStatus(branch_name.c_str(),1);
-   tree -> SetBranchAddress(branch_name.c_str(), &nuvtxy);
-   branch_name = "nuvtxz_" + tracking_algorithm;
-   tree -> SetBranchStatus(branch_name.c_str(),1);
-   tree -> SetBranchAddress(branch_name.c_str(), &nuvtxz);
-   }
+     std::cout << "Using space charge correction for start/end points and vertices" << std::endl;
+     tree -> SetBranchStatus("sp_charge_corrected*",1);
+     tree -> SetBranchAddress("sp_charge_corrected_StartPointx_tpcAV", StartX);
+     tree -> SetBranchAddress("sp_charge_corrected_StartPointy_tpcAV", StartY);
+     tree -> SetBranchAddress("sp_charge_corrected_StartPointz_tpcAV", StartZ);
+     tree -> SetBranchAddress("sp_charge_corrected_EndPointx_tpcAV", EndX);
+     tree -> SetBranchAddress("sp_charge_corrected_EndPointy_tpcAV", EndY);
+     tree -> SetBranchAddress("sp_charge_corrected_EndPointz_tpcAV", EndZ);
+     tree -> SetBranchAddress("sp_charge_corrected_StartPointx", real_StartX);
+     tree -> SetBranchAddress("sp_charge_corrected_StartPointy", real_StartY);
+     tree -> SetBranchAddress("sp_charge_corrected_StartPointz", real_StartZ);
+     tree -> SetBranchAddress("sp_charge_corrected_EndPointx", real_EndX);
+     tree -> SetBranchAddress("sp_charge_corrected_EndPointy", real_EndY);
+     tree -> SetBranchAddress("sp_charge_corrected_EndPointz", real_EndZ);
+     tree -> SetBranchAddress("sp_charge_corrected_nuvtxx_truth", nuvtxx_truth);
+     tree -> SetBranchAddress("sp_charge_corrected_nuvtxy_truth", nuvtxy_truth);
+     tree -> SetBranchAddress("sp_charge_corrected_nuvtxz_truth", nuvtxz_truth);
+     branch_name = "nnuvtx_" + tracking_algorithm;
+     tree -> SetBranchStatus(branch_name.c_str(),1);
+     tree -> SetBranchAddress(branch_name.c_str(), &nnuvtx);
+     branch_name = "nuvtxx_" + tracking_algorithm;
+     tree -> SetBranchStatus(branch_name.c_str(),1);
+     tree -> SetBranchAddress(branch_name.c_str(), &nuvtxx);
+     branch_name = "nuvtxy_" + tracking_algorithm;
+     tree -> SetBranchStatus(branch_name.c_str(),1);
+     tree -> SetBranchAddress(branch_name.c_str(), &nuvtxy);
+     branch_name = "nuvtxz_" + tracking_algorithm;
+     tree -> SetBranchStatus(branch_name.c_str(),1);
+     tree -> SetBranchAddress(branch_name.c_str(), &nuvtxz);
+     }
    tree -> SetBranchStatus("mcevts_truth",1);
    tree -> SetBranchAddress("mcevts_truth", &mcevts_truth);
    tree -> SetBranchStatus("origin",1);
@@ -326,9 +338,9 @@ void FillPlots_MC( TTree* tree, std::vector<TH1D> &hvector, std::string tracking
    histoname = "hlresrange_" + version;
    TH1D *hlresrange = new TH1D(histoname.c_str(), "Track length range (Reco) - track length range (True); Track range reco - track range true [cm];", 100, -50, 50);
    histoname = "hresstart_" + version;
-   TH1D *hresstart = new TH1D(histoname.c_str(), "Track start resolution; Track start position (reco) - track start position (true) [cm];", 25, 0, 50);
+   TH1D *hresstart = new TH1D(histoname.c_str(), "Track start resolution; abs(Track start position (reco) - track start position (true)) [cm];", 50, 0, 50);
    histoname = "hresend_" + version;
-   TH1D *hresend = new TH1D(histoname.c_str(), "Track end resolution; Track end position (reco) - track end position (true) [cm];", 25, 0, 50);
+   TH1D *hresend = new TH1D(histoname.c_str(), "Track end resolution; abs(Track end position (reco) - track end position (true)) [cm];", 50, 0, 50);
    histoname = "hresostartx_" + version;
    TH1D *hresostartx = new TH1D(histoname.c_str(),"Track start resolution (x); Track start x-position (reco) - Track start x-position (true) [cm];", 2000, -20, 20); 
    histoname = "hresostarty_" + version;
@@ -343,20 +355,20 @@ void FillPlots_MC( TTree* tree, std::vector<TH1D> &hvector, std::string tracking
    TH1D *hresoendz = new TH1D(histoname.c_str(),"Track end resolution (z); Track end z-position (reco) - Track end z-position (true) [cm];", 2000, -20, 20); 
    histoname = "hresomomentum_range_" + version;
    TH1D *hresomom_range = new TH1D(histoname.c_str(),"Momentum from range - momentum from MC; #Delta P [GeV/c];", 2000, -1, 1); 
-   histoname = "hresomomentum_chi2_" + version;
-   TH1D *hresomom_chi2 = new TH1D(histoname.c_str(),"Momentum from Chi2 MCS - momentum from MC; #Delta P [GeV/c];", 2000, -2, 2); 
+   histoname = "hresomomentum_MCSfwd_" + version;
+   TH1D *hresomom_MCSfwd = new TH1D(histoname.c_str(),"Momentum from MCS forward-going track - momentum from MC; #Delta P [GeV/c];", 2000, -2, 2); 
    histoname = "hresomomentum_llhd_" + version;
-   TH1D *hresomom_llhd = new TH1D(histoname.c_str(),"Momentum from LLHD MCS - momentum from MC; #Delta P [GeV/c];", 2000, -2, 2); 
+   TH1D *hresomom_MCSbwd = new TH1D(histoname.c_str(),"Momentum from MCS backward-going track - momentum from MC; #Delta P [GeV/c];", 2000, -2, 2); 
    histoname = "hresomomentum_contained_chi2_" + version;
-   TH1D *hresomom_contained_chi2 = new TH1D(histoname.c_str(),"Momentum from Chi2 MCS - momentum from MC for contained tracks; #Delta P [GeV/c];", 2000, -2, 2); 
+   TH1D *hresomom_contained_MCSfwd = new TH1D(histoname.c_str(),"Momentum from MCS forward-going track - momentum from MC for contained tracks; #Delta P [GeV/c];", 2000, -2, 2); 
    histoname = "hresomomentum__contained_llhd_" + version;
-   TH1D *hresomom_contained_llhd = new TH1D(histoname.c_str(),"Momentum from LLHD MCS - momentum from MC for contained tracks; #Delta P [GeV/c];", 2000, -2, 2); 
+   TH1D *hresomom_contained_MCSbwd = new TH1D(histoname.c_str(),"Momentum from MCS backward-going track - momentum from MC for contained tracks; #Delta P [GeV/c];", 2000, -2, 2); 
    histoname = "hpidpida_total_" + version;
    TH1D *hpidpida_total = new TH1D(histoname.c_str(),"PIDA for all reco tracks; PIDA;", 100, 0, 30); 
    histoname = "hpidpida_muon_" + version;
    TH1D *hpidpida_muon = new TH1D(histoname.c_str(),"PIDA for all reco muons; PIDA;", 100, 0, 30);  
    histoname = "hvertres_" + version;
-   TH1D *hvertres = new TH1D(histoname.c_str(),"Vertex resolution; Vertex position - true vertex (cm);", 20, 0, 10); 
+   TH1D *hvertres = new TH1D(histoname.c_str(),"Vertex resolution; abs(Vertex position - true vertex) (cm);", 20, 0, 10); 
    histoname = "hvertresx_" + version;
    TH1D *hvertresx = new TH1D(histoname.c_str(),"Vertex resolution in x; Vertex position - true vertex in x (cm);", 200, -10, 10); 
    histoname = "hvertresy_" + version;
@@ -438,7 +450,7 @@ void FillPlots_MC( TTree* tree, std::vector<TH1D> &hvector, std::string tracking
 		std::cout << "Found Broken track!" << std:: endl;
 		nbroken++;
 	}
-         
+	
 	 hstartx -> Fill(trkstartx[recoTracks]);
          hstarty -> Fill(trkstarty[recoTracks]);
          hstartz -> Fill(trkstartz[recoTracks]);
@@ -481,12 +493,12 @@ void FillPlots_MC( TTree* tree, std::vector<TH1D> &hvector, std::string tracking
 			//if ( inFV( real_StartX[j], real_StartY[j], real_StartZ[j] ) && inFV( real_EndX[j], real_EndY[j], real_EndZ[j] ) ) { //contained tracks
 			if ( inFV( trkstartx[recoTracks], trkstarty[recoTracks], trkstartz[recoTracks] ) && inFV( trkendx[recoTracks], trkendy[recoTracks], trkendz[recoTracks] ) ) { //contained tracks
 			hresomom_range-> Fill( trkmomrange[recoTracks] - P[j] );
-			hresomom_contained_chi2-> Fill( trkmommschi2[recoTracks] - P[j] );
-			hresomom_contained_llhd-> Fill( trkmommsllhd[recoTracks] - P[j] );
+			hresomom_contained_MCSfwd-> Fill( trkmcsfwdmom[recoTracks] - P[j] );
+			hresomom_contained_MCSbwd-> Fill( trkmcsbwdmom[recoTracks] - P[j] );
 			}
 
-			hresomom_chi2-> Fill( trkmommschi2[recoTracks] - P[j] );
-			hresomom_llhd-> Fill( trkmommsllhd[recoTracks] - P[j] );
+			hresomom_MCSfwd-> Fill( trkmcsfwdmom[recoTracks] - P[j] );
+			hresomom_MCSbwd-> Fill( trkmcsbwdmom[recoTracks] - P[j] );
 
 			hpidpida_total -> Fill ( trkpidpida[recoTracks][trkpidbestplane[recoTracks]] );
 			if ( pdg[j] == 13 )
@@ -587,19 +599,13 @@ void FillPlots_MC( TTree* tree, std::vector<TH1D> &hvector, std::string tracking
    // Only make reduced set of plots for CI
    hvector.push_back(*hresstart);
    hvector.push_back(*hresend);
-   hvector.push_back(*hnprotons);
    // Note: for now, nuvtxx/nuvtxy/nuvtxz are only available in analysistree from pandoraNu
    // So only make these plots for pandoraNu!
    if (tracking_algorithm == "pandoraNu"){
      hvector.push_back(*hvertres);
    }
-   // Note 2: seems like efficiency plots only really make sense (or more accurately: we only really
-   // understand them) for pandoraCosmic
-   // So only make these plots for pandoraCosmic!
-   if (tracking_algorithm == "pandoraCosmic"){
-     hvector.push_back(*heff_mclen);
-   }
    if (short_long == "long") { // Full set of plots 
+     hvector.push_back(*hnprotons);
      hvector.push_back(*hnreco);
      hvector.push_back(*hstartx);
      hvector.push_back(*hstarty);
@@ -619,10 +625,10 @@ void FillPlots_MC( TTree* tree, std::vector<TH1D> &hvector, std::string tracking
      hvector.push_back(*hresoendy);
      hvector.push_back(*hresoendz);
      hvector.push_back(*hresomom_range);
-     hvector.push_back(*hresomom_chi2);
-     hvector.push_back(*hresomom_llhd);
-     hvector.push_back(*hresomom_contained_chi2);
-     hvector.push_back(*hresomom_contained_llhd);
+     hvector.push_back(*hresomom_MCSfwd);
+     hvector.push_back(*hresomom_MCSbwd);
+     hvector.push_back(*hresomom_contained_MCSfwd);
+     hvector.push_back(*hresomom_contained_MCSbwd);
      hvector.push_back(*hpidpida_total);
      hvector.push_back(*hlrange);
      hvector.push_back(*hlresrange);
@@ -641,6 +647,7 @@ void FillPlots_MC( TTree* tree, std::vector<TH1D> &hvector, std::string tracking
      // understand them) for pandoraCosmic
      // So only make these plots for pandoraCosmic!
      if (tracking_algorithm == "pandoraCosmic"){
+       hvector.push_back(*heff_mclen);
        hvector.push_back(*hreco_mclen);
        hvector.push_back(*htrue_mclen);
        hvector.push_back(*heff_mcpdg);
@@ -669,7 +676,7 @@ void FillPlots_MC( TTree* tree, std::vector<TH1D> &hvector, std::string tracking
 // ------- Function to calculate chi2 between two histograms -------- //
 
 double calculateChiSqDistance(TH1D O, TH1D E){
-
+  
     double chisq = 0;
     for (int i = 1; i < O.GetNbinsX()+1; i++){
 
@@ -678,7 +685,7 @@ double calculateChiSqDistance(TH1D O, TH1D E){
         double O_ierr = O.GetBinError(i);
         double E_ierr = E.GetBinError(i);
 
-        if ((O_i == 0 && E_i == 0) || (O_ierr == 0 && E_ierr == 0)){
+        if ((O_i == 0 && E_i == 0)){ 
             chisq += 0;
         }
         else{
@@ -702,6 +709,8 @@ void DrawHistos ( std::vector<TH1D> hvector , std::string tag, std::string algor
     TCanvas c1;
     hvector[i].SetLineWidth(2);
     hvector[i].Sumw2();
+    double integral = hvector[i].Integral();
+    //hvector[i].Scale(1.0/integral);
     hvector[i].Draw("hist e0");
     outfile.cd();
     hvector[i].Write();
@@ -736,23 +745,32 @@ void DrawComparison( std::vector<TH1D> vector1, std::vector<TH1D> vector2, std::
 	vector1[i].SetStats(0);
 	vector1[i].Sumw2();
 	if(string(vector1[i].GetName()).find("eff") != std::string::npos){ // Don't normalise efficiency histograms (they're already normalised!)
-	  vector1[i].Draw("hist e0");
+	  // do nothing
 	}
 	else{
-	  vector1[i].DrawNormalized("hist e0");
+	  double integral1 = vector1[i].Integral();
+	  vector1[i].Scale(1.0/integral1);
 	}
+	vector1[i].Draw("hist e0");
 	vector2[i].SetLineWidth(2);
 	vector2[i].SetLineColor(2);
 	vector2[i].SetStats(0);
 	vector2[i].Sumw2();
 	if(string(vector2[i].GetName()).find("eff") != std::string::npos){ // Don't normalise efficiency histograms (they're already normalised!)
-	  vector2[i].Draw("hist e0 same");
+	  // do nothing
 	}
 	else{
-	  vector2[i].DrawNormalized("hist e0 same");
+	  double integral2 = vector2[i].Integral();
+	  vector2[i].Scale(1.0/integral2);
 	}
+	vector2[i].Draw("hist e0 same");
 	c1.SetName( string(vector1[i].GetName()).substr(0, string(vector1[i].GetName()).size() - tag1.size() -1 ).c_str() );
 	c1.SetTitle( string(vector1[i].GetName()).substr(0, string(vector1[i].GetName()).size() - tag1.size() -1).c_str() );
+
+	// Resize y axis to show both histograms
+	double maxval = vector1[i].GetMaximum();
+	if (vector2[i].GetMaximum() > maxval){ maxval = vector2[i].GetMaximum(); }
+	vector1[i].GetYaxis()->SetRangeUser(0,maxval*1.1);
 
 	// Calculate chi2 between two plots and put in format for legend
 	double chisqv = calculateChiSqDistance(vector1[i], vector2[i]);
@@ -762,11 +780,17 @@ void DrawComparison( std::vector<TH1D> vector1, std::vector<TH1D> vector2, std::
 	double chisqNDF = chisqv/(double)nBins;
 	TString chisqNDFstr = Form("#chi^{2}/No. bins: %g", chisqNDF);
 
-	// If chisq is large, print to file
-	if (chisqNDF >= chisqNotifierCut/100.0){
+	// Print all chisq to file
+	std::ofstream ChisqFile;
+	ChisqFile.open("ChisqValues.txt", std::ios_base::app);
+	ChisqFile << c1.GetName() << "_" << algorithm << " " << chisqv << "\n";
+	ChisqFile.close();
+	
+	// If chisq is large, print plot name to a different file
+	if (chisqv >= chisqNotifierCut/100.0){
 	  std::ofstream highChisqFile;
 	  highChisqFile.open("highChisqPlots.txt", std::ios_base::app);
-	  highChisqFile << c1.GetName() << " (" << algorithm << ")" <<  "\n";
+	  highChisqFile << c1.GetName() << " (" << algorithm << "): chisq = " << chisqv << "\n";
 	  highChisqFile.close();
 	}
 	
@@ -832,7 +856,7 @@ int main ( int argc, char** argv ) {
 		
 		std::string chisqNotifierCut_str (argv[5]);
 		chisqNotifierCut = std::atoi(chisqNotifierCut_str.c_str());
-		std::cout << "Notifying about any comparison plots with chi2/no. bins > " << chisqNotifierCut/100.0 << std::endl;
+		std::cout << "Notifying about any comparison plots with chi2 > " << chisqNotifierCut/100.0 << std::endl;
 	}
 
 	if ( short_long != "short" && short_long!="long") {
@@ -870,8 +894,9 @@ int main ( int argc, char** argv ) {
 	}
 	}
 
-	std::vector<std::string> algorithm = { "pandoraNu" , "pandoraCosmic" };
+	std::vector<std::string> algorithm = { "pandoraNu" };
 	if ( short_long == "long" ) {
+	        algorithm.push_back ( "pandoraCosmic" );
 		algorithm.push_back ( "pandoraNuKHit" );
 		algorithm.push_back ( "pandoraCosmicKHit" );
 		algorithm.push_back ( "pandoraNuKalmanTrack" );
@@ -880,6 +905,8 @@ int main ( int argc, char** argv ) {
 	for (unsigned algorithms = 0; algorithms < algorithm.size(); algorithms++) {
 	  std::vector<TH1D> vector1;
 	  FillPlots_MC ( tree1, vector1, algorithm[ algorithms ], tag1, short_long );
+	 
+	  
 	  // In "long" mode, draw both sets of histograms separately as well as the comparison
 	  // Also do this if you're not doing a comparison
 	  if (short_long == "long" || !comparison){

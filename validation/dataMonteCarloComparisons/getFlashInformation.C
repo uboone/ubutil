@@ -61,14 +61,16 @@ void getFlashInformation(TString file1name, TString file1_dataormc, TString file
     // and define plots
     flashPlotNames = {
       "nfls",
-      "flsTime"
+      "flsTime",
+      "flsPe"
     };
 
 
     //Outer vectors are for each variable, inner vectors are for each algorithm
     flashPlotValues = {
       /*nfls*/              {{10, 0, 10}, {75, 0, 75}},
-      /*flsTime*/           {{100, 0, 25}, {160, -3200, 4800}}
+      /*flsTime*/           {{100, 0, 25}, {160, -3200, 4800}},
+      /*flsPe*/             {{50, 0, 200}, {50, 0, 200}}
     };
 
   }
@@ -289,6 +291,13 @@ void getFlashInformation(TString file1name, TString file1_dataormc, TString file
        // check chisq if MC/MC comparison
       if (file1_dataormc == "MC" && file2_dataormc == "MC"){
 
+	// Print all chi2 values to a file for tracking over time
+	std::ofstream ChisqFile;
+	ChisqFile.open("ChisqValues.txt", std::ios_base::app);
+	ChisqFile << saveString << " " << chisqv << "\n";
+	ChisqFile.close();
+
+	// Print names of plots with high chi2 to a separate file
         if (chisqv >= chisqNotifierCut/100.0){
 
           std::ofstream highChisqFile;

@@ -38,3 +38,6 @@ export PE_CUT=-1
 
 # PE cut per PMT (ignored if < 0)
 export THRESHOLD=-1
+
+# Track Length Cut (note that this DOES NOT impact the nTracks variable)
+export TRACKLENGTH="5.0"
