@@ -282,16 +282,16 @@ void getCalorimetryInformation(TString file1name, TString file1_dataormc, TStrin
 
 	// Print all chi2 values to a file for tracking over time
 	std::ofstream ChisqFile;
-	ChisqFile.open("ChisqValues.txt", std::ios_base::app);
-	ChisqFile << saveString << " " << chisqv << "\n";
+	ChisqFile.open(outDir+"ChisqValues.txt", std::ios_base::app);
+	ChisqFile << Form(fileName.Remove((int)fileName.Length()-7)+"%i", dqdx_it) << " " << chisqv << "\n";
 	ChisqFile.close();
 
 	// Print names of plots with high chi2 to a separate file
-        if (chisqv >= chisqNotifierCut/100.0){
+        if (chisqv >= chisqNotifierCut){
 
           std::ofstream highChisqFile;
-          highChisqFile.open("highChisqPlots.txt", std::ios_base::app);
-          highChisqFile << saveString << "\n";
+          highChisqFile.open(outDir+"highChisqPlots.txt", std::ios_base::app);
+          highChisqFile << Form(fileName+"%i", dqdx_it) << " " << chisqv << " is larger than " << chisqNotifierCut<< "\n";
           highChisqFile.close();
 
         }
