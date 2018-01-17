@@ -15,18 +15,27 @@ fi
 
 source ${UBUTIL_DIR}/bin/setup.sh $1 $2 $3 $4 $5 $6
 
-
 # appends trailing backslash to OUTDIR in case where it's not included
 [ "${OUTDIR: -1}" != "/" ] && OUTDIR=${OUTDIR}/
 
 if [ $PE_CUT -gt 0 ]
 then
-g++ -o getNflsInformation ${UBUTIL_DIR}/bin/getNflsInformation.C `root-config --cflags --glibs`
+  echo ">> Setup complete."
+  echo ">> Output directory is ${OUTDIR}"
+  echo ">> Compiling... "
+  
+  g++ -o getNflsInformation ${UBUTIL_DIR}/bin/getNflsInformation.C `root-config --cflags --glibs`
+  
+  echo ">> Done."
+  echo ">> Running script."
+  
   ./getNflsInformation "$FILE1" "$FILE1_DATAORMC" "$FILE1_LABEL" "$FILE2" "$FILE2_DATAORMC" "$FILE2_LABEL" "$OUTDIR" "$COMP_TYPE" "$PE_CUT" "opflashBeam" 10 "$IS_CI "$CHISQ_NOTIFIER" "
   ./getNflsInformation "$FILE1" "$FILE1_DATAORMC" "$FILE1_LABEL" "$FILE2" "$FILE2_DATAORMC" "$FILE2_LABEL" "$OUTDIR" "$COMP_TYPE" "$PE_CUT" "opflashCosmic" 150 "$IS_CI" "$CHISQ_NOTIFIER" 
   ./getNflsInformation "$FILE1" "$FILE1_DATAORMC" "$FILE1_LABEL" "$FILE2" "$FILE2_DATAORMC" "$FILE2_LABEL" "$OUTDIR" "$COMP_TYPE" "$PE_CUT" "simpleFlashBeam" 10 "$IS_CI" "$CHISQ_NOTIFIER" 
   ./getNflsInformation "$FILE1" "$FILE1_DATAORMC" "$FILE1_LABEL" "$FILE2" "$FILE2_DATAORMC" "$FILE2_LABEL" "$OUTDIR" "$COMP_TYPE" "$PE_CUT" "simpleFlashCosmic" 75 "$IS_CI" "$CHISQ_NOTIFIER" 
+
 fi
+
 
 rm getNflsInformation
 

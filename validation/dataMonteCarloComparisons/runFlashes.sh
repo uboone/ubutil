@@ -18,7 +18,15 @@ source ${UBUTIL_DIR}/bin/setup.sh $1 $2 $3 $4 $5 $6
 # appends trailing backslash to OUTDIR in case where it's not included
 [ "${OUTDIR: -1}" != "/" ] && OUTDIR=${OUTDIR}/
 
+echo ">> Setup complete."
+echo ">> Output directory is ${OUTDIR}"
+echo ">> Compiling... "
+
 g++ -o getFlashInformation ${UBUTIL_DIR}/bin/getFlashInformation.C `root-config --cflags --glibs`
+
+echo ">> Done."
+echo ">> Running script."
+
 ./getFlashInformation "$FILE1" "$FILE1_DATAORMC" "$FILE1_LABEL" "$FILE2" "$FILE2_DATAORMC" "$FILE2_LABEL" "$OUTDIR" "$COMP_TYPE" "$PE_CUT" "$IS_CI" "$CHISQ_NOTIFIER"  
 
 rm getFlashInformation
