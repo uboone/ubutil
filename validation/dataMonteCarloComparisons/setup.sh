@@ -13,8 +13,7 @@
 export IS_CI=1
 
 # value of chisq which defines a bad plot which should be checked by hand
-# CHISQ_NOTIFIER = chisq value * 100, i.e. 100 = chisq of 1, 150 = chisq of 1.5
-export CHISQ_NOTIFIER=300
+export CHISQ_NOTIFIER="3"
 
 # should be either data, or base MC to compare to
 export FILE1=$1
