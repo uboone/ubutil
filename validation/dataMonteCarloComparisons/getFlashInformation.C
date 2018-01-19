@@ -103,7 +103,7 @@ void getFlashInformation(TString file1name, TString file1_dataormc, TString file
       /*flsZwidth*/         {{50, 0, 500}, {50, 0, 200}, {50, 0, 300}, {50, 0, 200}},
       /*flsYwidth*/         {{50, 0, 100}, {50, 0, 100}, {50, 0, 100}, {50, 0, 100}}};
   }
- 
+
   for (int i = 0; i < algoNames.size(); i++) {
 
     for (int j = 0; j < flashPlotNames.size(); j++) {
@@ -288,26 +288,23 @@ void getFlashInformation(TString file1name, TString file1_dataormc, TString file
 
       hFile1->Write();
       hFile2->Write();
-       // check chisq if MC/MC comparison
-      if (file1_dataormc == "MC" && file2_dataormc == "MC"){
 
-	// Print all chi2 values to a file for tracking over time
-	std::ofstream ChisqFile;
-	ChisqFile.open("ChisqValues.txt", std::ios_base::app);
-	ChisqFile << saveString << " " << chisqv << "\n";
-	ChisqFile.close();
+      // Print all chi2 values to a file for tracking over time
+      std::ofstream ChisqFile;
+      ChisqFile.open(outDir+"ChisqValues.txt", std::ios_base::app);
+      ChisqFile << fileName << " " << chisqv << "\n";
+      ChisqFile.close();
 
-	// Print names of plots with high chi2 to a separate file
-        if (chisqv >= chisqNotifierCut/100.0){
+      // Print names of plots with high chi2 to a separate file
+      if (chisqv >= chisqNotifierCut){
 
-          std::ofstream highChisqFile;
-          highChisqFile.open("highChisqPlots.txt", std::ios_base::app);
-          highChisqFile << saveString << "\n";
-          highChisqFile.close();
+        std::ofstream highChisqFile;
+        highChisqFile.open(outDir+"highChisqPlots.txt", std::ios_base::app);
+        highChisqFile << fileName << " " << chisqv << " is larger than "<< chisqNotifierCut << "\n";
+        highChisqFile.close();
 
-        }
       }
-   }
+    }
   }
 
   f_output.Close();

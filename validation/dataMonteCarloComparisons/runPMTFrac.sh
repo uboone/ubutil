@@ -17,7 +17,15 @@ source ${UBUTIL_DIR}/bin/setup.sh $1 $2 $3 $4 $5 $6
 # appends trailing backslash to OUTDIR in case where it's not included
 [ "${OUTDIR: -1}" != "/" ] && OUTDIR=${OUTDIR}/
 
+echo ">> Setup complete."
+echo ">> Output directory is ${OUTDIR}"
+echo ">> Compiling... "
+
 g++ -o getPMTFracInformation ${UBUTIL_DIR}/bin/getPMTFracInformation.C `root-config --cflags --glibs`
+
+echo ">> Done."
+echo ">> Running script."
+
 ./getPMTFracInformation "$FILE1" "$FILE1_DATAORMC" "$FILE1_LABEL" "$FILE2" "$FILE2_DATAORMC" "$FILE2_LABEL" "$OUTDIR" "$CHISQ_NOTIFIER" 
 
 rm getPMTFracInformation
