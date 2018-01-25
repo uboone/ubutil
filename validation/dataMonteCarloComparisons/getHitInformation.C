@@ -275,6 +275,7 @@ void getHitInformation(TString file1name, TString file1_dataormc, TString file1_
 
       TString perPlane = Form("_plane%i", i);
       saveString.Append(perPlane);
+      fileName.Append(perPlane);
       std::cout << saveString << std::endl;
       i++;
 
