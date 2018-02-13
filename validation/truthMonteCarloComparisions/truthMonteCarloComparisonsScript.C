@@ -703,8 +703,6 @@ void DrawHistos ( std::vector<TH1D> hvector , std::string tag, std::string algor
   std::string outroot = "MCcomparison_" + tag + "_" + algorithm + ".root";
   TFile outfile (outroot.c_str(), "recreate");
 
-  std::string outname = string("MCplots_" + tag + "_" + algorithm + ".png");
-
   for (unsigned i=0; i<hvector.size(); i++) {
     TCanvas c1;
     hvector[i].SetLineWidth(2);
@@ -714,6 +712,9 @@ void DrawHistos ( std::vector<TH1D> hvector , std::string tag, std::string algor
     hvector[i].Draw("hist e0");
     outfile.cd();
     hvector[i].Write();
+
+    std::string plotname = string(hvector[i].GetName()).substr(0, string(hvector[i].GetName()).size() - tag.size() -1 );
+      std::string outname = string("MCplots_" + plotname + "_" + tag + "_" + algorithm + ".png");
     c1.Print(outname.c_str(),"png");
   }
   outfile.Close();
@@ -725,9 +726,6 @@ void DrawComparison( std::vector<TH1D> vector1, std::vector<TH1D> vector2, std::
 	if (vector1.size() != vector2.size() ) { std::cout << "Error! Different size in vec1 and vec2. " << std::endl; exit(-1); }
 	std::string outroot = "MCcomparison_" + tag1 + "_" + tag2 + "_" + algorithm + ".root";
 	TFile outfile (outroot.c_str(), "recreate");
-
-	
-	std::string outname = string("MCcomparison_" + tag1 + "_" + tag2 + "_" + algorithm + ".png");
 	
 	for (unsigned i=0; i<vector1.size(); i++) {
 	TCanvas c1;
@@ -754,8 +752,9 @@ void DrawComparison( std::vector<TH1D> vector1, std::vector<TH1D> vector2, std::
 	  vector2[i].Scale(1.0/integral2);
 	}
 	vector2[i].Draw("hist e0 same");
-	c1.SetName( string(vector1[i].GetName()).substr(0, string(vector1[i].GetName()).size() - tag1.size() -1 ).c_str() );
-	c1.SetTitle( string(vector1[i].GetName()).substr(0, string(vector1[i].GetName()).size() - tag1.size() -1).c_str() );
+	std::string plotname = string(vector1[i].GetName()).substr(0, string(vector1[i].GetName()).size() - tag1.size() -1 );
+	c1.SetName(plotname.c_str());
+	c1.SetTitle(plotname.c_str());
 
 	// Resize y axis to show both histograms
 	double maxval = vector1[i].GetMaximum();
@@ -797,6 +796,7 @@ void DrawComparison( std::vector<TH1D> vector1, std::vector<TH1D> vector2, std::
 	outfile.cd();
 	c1.Write();
 	
+	std::string outname = string("MCcomparison_" + plotname + "_"  + tag1 + "_" + tag2 + "_" + algorithm + ".png");
 	c1.Print(outname.c_str(),"png");
 	}
 						       
