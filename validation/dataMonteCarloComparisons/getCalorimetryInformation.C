@@ -50,11 +50,12 @@ void getCalorimetryInformation(TString file1name, TString file1_dataormc, TStrin
   std::vector< std::string > algoNames;
   std::vector< std::string > caloPlotNames;
   std::vector< std::vector< double > > caloPlotValues;
+  std::vector< std::vector< std::string > > comments;
 
   if (isCI == 1){
 
     // define vector of algo names
-    algoNames = {"pandoraCosmic"};
+    algoNames = {"pandoraNu"};
 
     // and define plots
     caloPlotNames = {
@@ -68,6 +69,11 @@ void getCalorimetryInformation(TString file1name, TString file1_dataormc, TStrin
       /*trkdqdx_v*/     {50, 0.1, 600},
       /*trkdqdx_y*/     {50, 0.1, 600}};
 
+    comments = {
+      /*trkdqdx_u_pandoraNu*/ {"trkdqdx_u",
+        /*trkdqdx_v_pandoraNu*/  "trkdqdx_v",
+        /*trkdqdx_y_pandoraNu*/  "trkdqdx_y"} 
+    };
 
   }
   else {
@@ -274,19 +280,26 @@ void getCalorimetryInformation(TString file1name, TString file1_dataormc, TStrin
       TString saveString = Form(outDir+fileName+".png");
       c1->SaveAs(saveString, "png"); 
 
+      if (isCI){
+        std::ofstream commentsFile;
+        commentsFile.open(outDir+fileName+".comment");
+        commentsFile << comments.at(i).at(j);
+        commentsFile.close();
+      }
+
       hFile1->Write();
       hFile2->Write();
 
       // check chisq if MC/MC comparison
       if (file1_dataormc == "MC" && file2_dataormc == "MC"){
 
-	// Print all chi2 values to a file for tracking over time
-	std::ofstream ChisqFile;
-	ChisqFile.open(outDir+"ChisqValues.txt", std::ios_base::app);
-	ChisqFile << Form(fileName.Remove((int)fileName.Length()-7)+"%i", dqdx_it) << " " << chisqv << "\n";
-	ChisqFile.close();
+        // Print all chi2 values to a file for tracking over time
+        std::ofstream ChisqFile;
+        ChisqFile.open(outDir+"ChisqValues.txt", std::ios_base::app);
+        ChisqFile << Form(fileName.Remove((int)fileName.Length()-7)+"%i", dqdx_it) << " " << chisqv << "\n";
+        ChisqFile.close();
 
-	// Print names of plots with high chi2 to a separate file
+        // Print names of plots with high chi2 to a separate file
         if (chisqv >= chisqNotifierCut){
 
           std::ofstream highChisqFile;

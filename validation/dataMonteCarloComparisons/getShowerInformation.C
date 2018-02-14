@@ -49,6 +49,7 @@ void getShowerInformation(TString file1name, TString file1_dataormc, TString fil
   std::vector< std::string > algoNames;
   std::vector< std::string > showerPlotNames;
   std::vector< std::vector<double> > showerPlotValues;
+  std::vector< std::vector< std::string > > comments;
 
   if (isCI == 1){
 
@@ -75,6 +76,16 @@ void getShowerInformation(TString file1name, TString file1_dataormc, TString fil
       /*shwr_startdcosx*/{50, -1, 1},
       /*shwr_startcosy*/ {50, -1, 1},
       /*shwr_startcosz*/ {50, -1, 1},
+    };
+
+    comments = {
+      /*nshowers_pandoraCosmic*/       {"nshowers_pandoraCosmic",
+      /*shwr_length_pandoraCosmic*/     "shwr_length_pandoraCosmic",
+      /*shwr_theta_pandoraCosmic*/      "shwr_theta_pandoraCosmic",
+      /*shwr_phi_pandoraCosmic*/        "shwr_phi_pandoraCosmic",
+      /*shwr_startdcosx_pandoraCosmic*/ "shwr_startdcosx_pandoraCosmic",
+      /*shwr_startdcosy_pandoraCosmic*/ "shwr_startdcosy_pandoraCosmic",
+      /*shwr_startcosz_pandoraCosmic*/  ""}
     };
 
   }
@@ -293,6 +304,12 @@ void getShowerInformation(TString file1name, TString file1_dataormc, TString fil
       hFile1->Write();
       hFile2->Write();
 
+      if (isCI){
+        std::ofstream commentsFile;
+        commentsFile.open(outDir+fileName+".comment");
+        commentsFile << comments.at(i).at(j);
+        commentsFile.close();
+      }
 
       // Print all chi2 values to a file for tracking over time
       std::ofstream ChisqFile;

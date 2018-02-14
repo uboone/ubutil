@@ -2,7 +2,7 @@
 
 # remember to use setup.sh to modify your input files and specify your options
 
-export IS_LOCAL=0
+export IS_LOCAL=1
 
 if [ $IS_LOCAL -eq 1 ]
 then
