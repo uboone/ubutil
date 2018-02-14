@@ -60,8 +60,8 @@ void getShowerInformation(TString file1name, TString file1_dataormc, TString fil
     showerPlotNames = {
       "nshowers",
       "shwr_length",
-      "shwr_theta",
-      "shwr_phi",
+      //"shwr_theta",
+      //"shwr_phi",
       "shwr_startdcosx",
       "shwr_startdcosy",
       "shwr_startdcosz"
@@ -70,9 +70,9 @@ void getShowerInformation(TString file1name, TString file1_dataormc, TString fil
 
     showerPlotValues = {
       /*nshowers*/       {30.0, 0, 30.0},
-      /*shwr_length*/    {50.0, 0, 700.0},
-      /*shwr_theta*/     {50.0, 0, 3.3},
-      /*shwr_phi*/       {50.0, -3.3, 3.3},
+      /*shwr_length*/    {50.0, 0, 200.0},
+      ///*shwr_theta*/     {50.0, 0, 3.3},
+      ///*shwr_phi*/       {50.0, -3.3, 3.3},
       /*shwr_startdcosx*/{50, -1, 1},
       /*shwr_startcosy*/ {50, -1, 1},
       /*shwr_startcosz*/ {50, -1, 1},
@@ -81,8 +81,8 @@ void getShowerInformation(TString file1name, TString file1_dataormc, TString fil
     comments = {
       /*nshowers_pandoraCosmic*/       {"nshowers_pandoraCosmic",
       /*shwr_length_pandoraCosmic*/     "shwr_length_pandoraCosmic",
-      /*shwr_theta_pandoraCosmic*/      "shwr_theta_pandoraCosmic",
-      /*shwr_phi_pandoraCosmic*/        "shwr_phi_pandoraCosmic",
+      ///*shwr_theta_pandoraCosmic*/      "shwr_theta_pandoraCosmic",
+      ///*shwr_phi_pandoraCosmic*/        "shwr_phi_pandoraCosmic",
       /*shwr_startdcosx_pandoraCosmic*/ "shwr_startdcosx_pandoraCosmic",
       /*shwr_startdcosy_pandoraCosmic*/ "shwr_startdcosy_pandoraCosmic",
       /*shwr_startcosz_pandoraCosmic*/  ""}
@@ -130,7 +130,7 @@ void getShowerInformation(TString file1name, TString file1_dataormc, TString fil
 
       if (algoNames[i] == "pandoraCosmic" && showerPlotNames[j] == "nshowers"){
 
-        showerPlotValues[j] = {150,0,150};
+        showerPlotValues[j] = {40,0,160};
 
       }
 
