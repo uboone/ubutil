@@ -148,7 +148,7 @@ void getTrackInformation(TString file1name, TString file1_dataormc, TString file
 
       if ((algoNames[i] == "pandoraCosmic" || algoNames[i] == "pandoraCosmicKalmanTrack" || algoNames[i] == "pandoraCosmicKHit" || algoNames[i] == "pmtrack") && trackPlotNames[j] == "ntracks"){
 
-        trackPlotValues[j] = {100.0, 0, 100.0};
+        trackPlotValues[j] = {50.0, 0, 100.0};
 
       }
 
@@ -325,7 +325,6 @@ void getTrackInformation(TString file1name, TString file1_dataormc, TString file
         commentsFile.open(outDir+fileName+".comment");
         commentsFile << comments.at(i).at(j) ;
         commentsFile.close();
-
       }
       
       // Print all chi2 values to a file for tracking over time

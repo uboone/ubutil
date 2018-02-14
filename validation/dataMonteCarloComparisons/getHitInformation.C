@@ -61,11 +61,11 @@ void getHitInformation(TString file1name, TString file1_dataormc, TString file1_
     };
 
     hitPlotValues = {
-      /*no_hits*/            {50, 0, 100000},
+      /*no_hits*/            {50, 0, 60000},
       /*hit_channel_u*/      {50, 0, 2400},
       /*hit_channel_v*/      {50, 2400, 4800},
       /*hit_channel_y*/      {50, 4800, 8256},
-      /*hit_multiplicity*/   {50, 0, 50}
+      /*hit_multiplicity*/   {30, 0, 30}
     };
 
     comments = {

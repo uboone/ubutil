@@ -70,7 +70,7 @@ void getFlashInformation(TString file1name, TString file1_dataormc, TString file
     flashPlotValues = {
       /*nfls*/              {{10, 0, 10}, {75, 0, 75}},
       /*flsTime*/           {{100, 0, 25}, {160, -3200, 4800}},
-      /*flsPe*/             {{50, 0, 200}, {50, 0, 200}}
+      /*flsPe*/             {{50, 0, 500}, {50, 0, 500}}
     };
 
     comments = {
