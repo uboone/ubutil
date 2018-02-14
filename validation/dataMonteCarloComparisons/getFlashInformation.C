@@ -49,6 +49,7 @@ void getFlashInformation(TString file1name, TString file1_dataormc, TString file
   std::vector< std::string > algoNames;
   std::vector< std::string > flashPlotNames;
   std::vector< std::vector< std::vector<double> > > flashPlotValues;
+  std::vector< std::vector< std::string > > comments;
 
   if (isCI == 1){
 
@@ -65,12 +66,20 @@ void getFlashInformation(TString file1name, TString file1_dataormc, TString file
       "flsPe"
     };
 
-
     //Outer vectors are for each variable, inner vectors are for each algorithm
     flashPlotValues = {
       /*nfls*/              {{10, 0, 10}, {75, 0, 75}},
       /*flsTime*/           {{100, 0, 25}, {160, -3200, 4800}},
       /*flsPe*/             {{50, 0, 200}, {50, 0, 200}}
+    };
+
+    comments = {
+      /*nfls_simpleFlashBeam*/      {"nfls_simpleFlashBeam",
+      /*flsTime_simpleFlashBeam*/    "flsTime_simpleFlashBeam",
+      /*flsPe_simpleFlashBeam*/      "flsPe_simpleFlashBeam"},
+      /*nfls_simpleFlashCosmic*/    {"nfls_simpleFlashCosmic",
+      /*flsTime_simpleFlashCosmic*/  "flsTime_simpleFlashCosmic",
+      /*flsPe_simpleFlashCosmic*/    "flsPe_simpleFlashCosmic"}
     };
 
   }
@@ -288,6 +297,13 @@ void getFlashInformation(TString file1name, TString file1_dataormc, TString file
 
       hFile1->Write();
       hFile2->Write();
+
+      if (isCI){
+        std::ofstream commentsFile;
+        commentsFile.open(outDir+fileName+".comment");
+        commentsFile << comments.at(i).at(j);
+        commentsFile.close();
+      }
 
       // Print all chi2 values to a file for tracking over time
       std::ofstream ChisqFile;
