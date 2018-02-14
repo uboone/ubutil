@@ -192,52 +192,52 @@ void FillPlots_MC( TTree* tree, std::vector<TH1D> &hvector, std::string tracking
    tree -> SetBranchAddress("geant_list_size", &geant_list_size);
    tree -> SetBranchStatus("TrackId",1);
    tree -> SetBranchAddress("TrackId", TrackId);
-   // Don't use space charge correction for MCC 8
+   // Don't use space charge correction
    // Note: this is only really true if you're looking at BNB
    // For cosmics you will want to edit this to use space charge correction
-   if((string(version).find("MCC8") != std::string::npos) || (string(version).find("mcc8") != std::string::npos) || (string(version).find("v06_26") != std::string::npos)){
-     tree -> SetBranchStatus("StartPointx_tpcAV",1);
-     tree -> SetBranchAddress("StartPointx_tpcAV", StartX);
-     tree -> SetBranchStatus("StartPointy_tpcAV",1);
-     tree -> SetBranchAddress("StartPointy_tpcAV", StartY);
-     tree -> SetBranchStatus("StartPointz_tpcAV",1);
-     tree -> SetBranchAddress("StartPointz_tpcAV", StartZ);
-     tree -> SetBranchStatus("EndPointx_tpcAV",1);
-     tree -> SetBranchAddress("EndPointx_tpcAV", EndX);
-     tree -> SetBranchStatus("EndPointy_tpcAV",1);
-     tree -> SetBranchAddress("EndPointy_tpcAV", EndY);
-     tree -> SetBranchStatus("EndPointz_tpcAV",1);
-     tree -> SetBranchAddress("EndPointz_tpcAV", EndZ);
-     tree -> SetBranchStatus("StartPointx",1);
-     tree -> SetBranchAddress("StartPointx", real_StartX);
-     tree -> SetBranchStatus("StartPointy",1);
-     tree -> SetBranchAddress("StartPointy", real_StartY);
-     tree -> SetBranchStatus("StartPointz",1);
-     tree -> SetBranchAddress("StartPointz", real_StartZ);
-     tree -> SetBranchStatus("EndPointx",1);
-     tree -> SetBranchAddress("EndPointx", real_EndX);
-     tree -> SetBranchStatus("EndPointy",1);
-     tree -> SetBranchAddress("EndPointy", real_EndY);
-     tree -> SetBranchStatus("EndPointz",1);
-     tree -> SetBranchAddress("EndPointz", real_EndZ);
-     tree -> SetBranchStatus("nuvtx*",1);
-     tree -> SetBranchAddress("nuvtxx_truth", nuvtxx_truth);
-     tree -> SetBranchAddress("nuvtxy_truth", nuvtxy_truth);
-     tree -> SetBranchAddress("nuvtxz_truth", nuvtxz_truth);
-     branch_name = "nnuvtx_" + tracking_algorithm;
-     tree -> SetBranchStatus(branch_name.c_str(),1);
-     tree -> SetBranchAddress(branch_name.c_str(), &nnuvtx);
-     branch_name = "nuvtxx_" + tracking_algorithm;
-     tree -> SetBranchStatus(branch_name.c_str(),1);
-     tree -> SetBranchAddress(branch_name.c_str(), &nuvtxx);
-     branch_name = "nuvtxy_" + tracking_algorithm;
-     tree -> SetBranchStatus(branch_name.c_str(),1);
-     tree -> SetBranchAddress(branch_name.c_str(), &nuvtxy);
-     branch_name = "nuvtxz_" + tracking_algorithm;
-     tree -> SetBranchStatus(branch_name.c_str(),1);
-     tree -> SetBranchAddress(branch_name.c_str(), &nuvtxz);
-   } else {
-     std::cout << "Using space charge correction for start/end points and vertices" << std::endl;
+   tree -> SetBranchStatus("StartPointx_tpcAV",1);
+   tree -> SetBranchAddress("StartPointx_tpcAV", StartX);
+   tree -> SetBranchStatus("StartPointy_tpcAV",1);
+   tree -> SetBranchAddress("StartPointy_tpcAV", StartY);
+   tree -> SetBranchStatus("StartPointz_tpcAV",1);
+   tree -> SetBranchAddress("StartPointz_tpcAV", StartZ);
+   tree -> SetBranchStatus("EndPointx_tpcAV",1);
+   tree -> SetBranchAddress("EndPointx_tpcAV", EndX);
+   tree -> SetBranchStatus("EndPointy_tpcAV",1);
+   tree -> SetBranchAddress("EndPointy_tpcAV", EndY);
+   tree -> SetBranchStatus("EndPointz_tpcAV",1);
+   tree -> SetBranchAddress("EndPointz_tpcAV", EndZ);
+   tree -> SetBranchStatus("StartPointx",1);
+   tree -> SetBranchAddress("StartPointx", real_StartX);
+   tree -> SetBranchStatus("StartPointy",1);
+   tree -> SetBranchAddress("StartPointy", real_StartY);
+   tree -> SetBranchStatus("StartPointz",1);
+   tree -> SetBranchAddress("StartPointz", real_StartZ);
+   tree -> SetBranchStatus("EndPointx",1);
+   tree -> SetBranchAddress("EndPointx", real_EndX);
+   tree -> SetBranchStatus("EndPointy",1);
+   tree -> SetBranchAddress("EndPointy", real_EndY);
+   tree -> SetBranchStatus("EndPointz",1);
+   tree -> SetBranchAddress("EndPointz", real_EndZ);
+   tree -> SetBranchStatus("nuvtx*",1);
+   tree -> SetBranchAddress("nuvtxx_truth", nuvtxx_truth);
+   tree -> SetBranchAddress("nuvtxy_truth", nuvtxy_truth);
+   tree -> SetBranchAddress("nuvtxz_truth", nuvtxz_truth);
+   branch_name = "nnuvtx_" + tracking_algorithm;
+   tree -> SetBranchStatus(branch_name.c_str(),1);
+   tree -> SetBranchAddress(branch_name.c_str(), &nnuvtx);
+   branch_name = "nuvtxx_" + tracking_algorithm;
+   tree -> SetBranchStatus(branch_name.c_str(),1);
+   tree -> SetBranchAddress(branch_name.c_str(), &nuvtxx);
+   branch_name = "nuvtxy_" + tracking_algorithm;
+   tree -> SetBranchStatus(branch_name.c_str(),1);
+   tree -> SetBranchAddress(branch_name.c_str(), &nuvtxy);
+   branch_name = "nuvtxz_" + tracking_algorithm;
+   tree -> SetBranchStatus(branch_name.c_str(),1);
+   tree -> SetBranchAddress(branch_name.c_str(), &nuvtxz);
+
+     // This is what you would do if you wanted to use space charge correction
+     /*std::cout << "Using space charge correction for start/end points and vertices" << std::endl;
      tree -> SetBranchStatus("sp_charge_corrected*",1);
      tree -> SetBranchAddress("sp_charge_corrected_StartPointx_tpcAV", StartX);
      tree -> SetBranchAddress("sp_charge_corrected_StartPointy_tpcAV", StartY);
@@ -265,8 +265,8 @@ void FillPlots_MC( TTree* tree, std::vector<TH1D> &hvector, std::string tracking
      tree -> SetBranchAddress(branch_name.c_str(), &nuvtxy);
      branch_name = "nuvtxz_" + tracking_algorithm;
      tree -> SetBranchStatus(branch_name.c_str(),1);
-     tree -> SetBranchAddress(branch_name.c_str(), &nuvtxz);
-     }
+     tree -> SetBranchAddress(branch_name.c_str(), &nuvtxz);*/
+
    tree -> SetBranchStatus("mcevts_truth",1);
    tree -> SetBranchAddress("mcevts_truth", &mcevts_truth);
    tree -> SetBranchStatus("origin",1);
@@ -703,8 +703,6 @@ void DrawHistos ( std::vector<TH1D> hvector , std::string tag, std::string algor
   std::string outroot = "MCcomparison_" + tag + "_" + algorithm + ".root";
   TFile outfile (outroot.c_str(), "recreate");
 
-  std::string outname = string("MCplots_" + tag + "_" + algorithm + ".pdf");
-
   for (unsigned i=0; i<hvector.size(); i++) {
     TCanvas c1;
     hvector[i].SetLineWidth(2);
@@ -714,17 +712,10 @@ void DrawHistos ( std::vector<TH1D> hvector , std::string tag, std::string algor
     hvector[i].Draw("hist e0");
     outfile.cd();
     hvector[i].Write();
-    std::string outname_print;
-    if (i == 0){
-      outname_print = string(outname + "(");
-    }
-    else if (i == hvector.size()-1){
-      outname_print = string(outname + ")");
-    }
-    else{
-      outname_print = string(outname);
-    }
-    c1.Print(outname_print.c_str(),"pdf");
+
+    std::string plotname = string(hvector[i].GetName()).substr(0, string(hvector[i].GetName()).size() - tag.size() -1 );
+      std::string outname = string("MCplots_" + plotname + "_" + tag + "_" + algorithm + ".png");
+    c1.Print(outname.c_str(),"png");
   }
   outfile.Close();
 }
@@ -735,9 +726,6 @@ void DrawComparison( std::vector<TH1D> vector1, std::vector<TH1D> vector2, std::
 	if (vector1.size() != vector2.size() ) { std::cout << "Error! Different size in vec1 and vec2. " << std::endl; exit(-1); }
 	std::string outroot = "MCcomparison_" + tag1 + "_" + tag2 + "_" + algorithm + ".root";
 	TFile outfile (outroot.c_str(), "recreate");
-
-	
-	std::string outname = string("MCcomparison_" + tag1 + "_" + tag2 + "_" + algorithm + ".pdf");
 	
 	for (unsigned i=0; i<vector1.size(); i++) {
 	TCanvas c1;
@@ -764,8 +752,9 @@ void DrawComparison( std::vector<TH1D> vector1, std::vector<TH1D> vector2, std::
 	  vector2[i].Scale(1.0/integral2);
 	}
 	vector2[i].Draw("hist e0 same");
-	c1.SetName( string(vector1[i].GetName()).substr(0, string(vector1[i].GetName()).size() - tag1.size() -1 ).c_str() );
-	c1.SetTitle( string(vector1[i].GetName()).substr(0, string(vector1[i].GetName()).size() - tag1.size() -1).c_str() );
+	std::string plotname = string(vector1[i].GetName()).substr(0, string(vector1[i].GetName()).size() - tag1.size() -1 );
+	c1.SetName(plotname.c_str());
+	c1.SetTitle(plotname.c_str());
 
 	// Resize y axis to show both histograms
 	double maxval = vector1[i].GetMaximum();
@@ -806,19 +795,9 @@ void DrawComparison( std::vector<TH1D> vector1, std::vector<TH1D> vector2, std::
 
 	outfile.cd();
 	c1.Write();
-
-	std::string outname_print;
-	if (i == 0){
-	  outname_print = string(outname+"(");
-	}
-	else if (i == vector1.size()-1){
-	  outname_print = string(outname + ")");
-	}
-	else{
-	  outname_print = string(outname);
-	}
 	
-	c1.Print(outname_print.c_str(),"pdf");
+	std::string outname = string("MCcomparison_" + plotname + "_"  + tag1 + "_" + tag2 + "_" + algorithm + ".png");
+	c1.Print(outname.c_str(),"png");
 	}
 						       
 	outfile.Close();
