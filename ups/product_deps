@@ -25,7 +25,7 @@ defaultqual e10
 # fwdir   -  
 #
 incdir  -
-fcldir  product_dir    job
+fcldir  -
 libdir  product_dir    python
 bindir  product_dir    bin
 
