@@ -49,6 +49,7 @@ void getTrackInformation(TString file1name, TString file1_dataormc, TString file
   std::vector< std::string > algoNames;
   std::vector< std::string > trackPlotNames;
   std::vector< std::vector< double > > trackPlotValues;
+  std::vector< std::vector< std::string > > comments;
 
   if (isCI == true){
 
@@ -66,6 +67,11 @@ void getTrackInformation(TString file1name, TString file1_dataormc, TString file
       /*trkphi*/  {50.0, -3.3, 3.3}
     };
 
+    comments = {
+      /*ntracks_pandoraCosmic*/ {"number of tracks",
+      /*trktheta_pandoraCosmic*/ "track theta angle",
+      /*trkphi_pandoraCosmic*/ "track phi angle"}
+    };
 
   }
 
@@ -142,7 +148,7 @@ void getTrackInformation(TString file1name, TString file1_dataormc, TString file
 
       if ((algoNames[i] == "pandoraCosmic" || algoNames[i] == "pandoraCosmicKalmanTrack" || algoNames[i] == "pandoraCosmicKHit" || algoNames[i] == "pmtrack") && trackPlotNames[j] == "ntracks"){
 
-        trackPlotValues[j] = {100.0, 0, 100.0};
+        trackPlotValues[j] = {50.0, 0, 100.0};
 
       }
 
@@ -314,6 +320,13 @@ void getTrackInformation(TString file1name, TString file1_dataormc, TString file
       hFile1->Write();
       hFile2->Write();
 
+      if (isCI){
+        std::ofstream commentsFile;
+        commentsFile.open(outDir+fileName+".comment");
+        commentsFile << comments.at(i).at(j) ;
+        commentsFile.close();
+      }
+      
       // Print all chi2 values to a file for tracking over time
       std::ofstream ChisqFile;
       ChisqFile.open(outDir+"ChisqValues.txt", std::ios_base::app);

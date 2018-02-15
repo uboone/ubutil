@@ -48,6 +48,7 @@ void getHitInformation(TString file1name, TString file1_dataormc, TString file1_
 
   std::vector< std::string > hitPlotNames;
   std::vector< std::vector< double > > hitPlotValues;
+  std::vector< std::string > comments;
 
   if (isCI == 1){
 
@@ -60,11 +61,19 @@ void getHitInformation(TString file1name, TString file1_dataormc, TString file1_
     };
 
     hitPlotValues = {
-      /*no_hits*/            {50, 0, 100000},
+      /*no_hits*/            {50, 0, 60000},
       /*hit_channel_u*/      {50, 0, 2400},
       /*hit_channel_v*/      {50, 2400, 4800},
       /*hit_channel_y*/      {50, 4800, 8256},
-      /*hit_multiplicity*/   {50, 0, 50}
+      /*hit_multiplicity*/   {30, 0, 30}
+    };
+
+    comments = {
+      /*no_hits*/ "no_hits",
+      /*hit_channel_u*/ "hit_channel_u",
+      /*hit_channel_v*/ "hit_channel_v",
+      /*hit_channel_y*/ "hit_channel_y",
+      /*hit_multiplicity*/ "hit_multiplicity"
     };
   }
 
@@ -289,6 +298,13 @@ void getHitInformation(TString file1name, TString file1_dataormc, TString file1_
 
     hFile1->Delete();
     hFile2->Delete();
+
+    if (isCI){
+      std::ofstream commentsFile;
+      commentsFile.open(outDir+fileName+".comment");
+      commentsFile << comments.at(i);
+      commentsFile.close();
+    }
 
     // Print all chi2 values to a file for tracking over time
     std::ofstream ChisqFile;
