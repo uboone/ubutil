@@ -77,7 +77,7 @@ TH1D* effcalc(TH1D* hreco, TH1D* htrue, TString label){
 
 // ------- Function to make all of the plots -------- //
 
-void FillPlots_MC( TTree* tree, std::vector<TH1D> &hvector, std::string tracking_algorithm, std::string version, std::string short_long ) {
+void FillPlots_MC( TTree* tree, std::vector<TH1D> &hvector, std::string tracking_algorithm, std::string version, std::string short_long, std::vector<std::string> &comments ) {
 
    const int kMaxTracks = 5000;
    Short_t         ntracks;
@@ -567,8 +567,8 @@ void FillPlots_MC( TTree* tree, std::vector<TH1D> &hvector, std::string tracking
 
 	  dtmin = 10000;
 	  for(int recoTracks = 0; recoTracks < ntracks; recoTracks++) { // Loop over reco tracks
-            dts = sqrt((nuvtxx[i_vtx] - trkstartx[recoTracks])*(nuvtxx[i_vtx] - trkstartx[recoTracks]) + (nuvtxy[i_vtx] - trkstarty[recoTracks])*(nuvtxy[i_vtx] - trkstarty[recoTracks]) + (nuvtxz[i_vtx] - trkstartz[recoTracks])*(nuvtxz[i_vtx] - trkstartz[recoTracks]));         
-            dte = sqrt((nuvtxx[i_vtx] - trkendx[recoTracks])*(nuvtxx[i_vtx] - trkendx[recoTracks]) + (nuvtxy[i_vtx] - trkendy[recoTracks])*(nuvtxy[i_vtx] - trkendy[recoTracks]) + (nuvtxz[i_vtx] - trkendz[recoTracks])*(nuvtxz[i_vtx] - trkendz[recoTracks]));
+            dts = sqrt((nuvtxx[i_vtx] - trkstartx[recoTracks])*(nuvtxx[i_vtx] - trkstartx[recoTracks]) + (nuvtxy[i_vtx] - trkstarty[recoTracks])*(nuvtxy[i_vtx] - trkstarty[recoTracks]) + (nuvtxz[i_vtx] - trkstartz[recoTracks])*(nuvtxz[i_vtx] - trkstartz[recoTracks]));     // distance vertex-track start    
+            dte = sqrt((nuvtxx[i_vtx] - trkendx[recoTracks])*(nuvtxx[i_vtx] - trkendx[recoTracks]) + (nuvtxy[i_vtx] - trkendy[recoTracks])*(nuvtxy[i_vtx] - trkendy[recoTracks]) + (nuvtxz[i_vtx] - trkendz[recoTracks])*(nuvtxz[i_vtx] - trkendz[recoTracks])); // distance vertex-track end
             if(dts < dtmin) dtmin = dts;
             if(dte < dtmin) dtmin = dte;
 	  } //end loop over reco tracks
@@ -596,15 +596,25 @@ void FillPlots_MC( TTree* tree, std::vector<TH1D> &hvector, std::string tracking
    heff_mcthetayz = effcalc(hreco_mcthetayz, htrue_mcthetayz, TString("Tracking Efficiency; True #theta_{yz}; Efficiency"));
    heff_mcmom = effcalc(hreco_mcmom, htrue_mcmom, TString("Tracking Efficiency; True Momentum (GeV); Efficiency"));
 
-   // Only make reduced set of plots for CI
+
+
+   // ----- Now put the plots into a vector to be saved ---- //
+   
+   // Only make reduced set of plots by default ("short" mode)
+   // Also save comments for each plot (must be in order and in line with plots vector)
+   // These comments will appear on the CI dashboard next to the plot
+   
    hvector.push_back(*hresstart);
+   comments.push_back("Distance between true track start position and reco track start position. Should peak at 0, width tells you about the resolution.");
    hvector.push_back(*hresend);
+   comments.push_back("Distance between true track end position and reco track end position. Should peak at 0, width tells you about the resolution.");
    // Note: for now, nuvtxx/nuvtxy/nuvtxz are only available in analysistree from pandoraNu
    // So only make these plots for pandoraNu!
    if (tracking_algorithm == "pandoraNu"){
      hvector.push_back(*hvertres);
+     comments.push_back("Distance between true vertex position and reconstructed vertex position. In theory should peak at 0, but usually we see the peak is actually in the second bin (0.5-1 cm). This is nothing to worry about. Width tells you about the resolution.");
    }
-   if (short_long == "long") { // Full set of plots 
+   if (short_long == "long") { // Long mode = full set of plots 
      hvector.push_back(*hnprotons);
      hvector.push_back(*hnreco);
      hvector.push_back(*hstartx);
@@ -722,8 +732,13 @@ void DrawHistos ( std::vector<TH1D> hvector , std::string tag, std::string algor
 
 // ------- Function to draw comparison histograms -------- //
 	
-void DrawComparison( std::vector<TH1D> vector1, std::vector<TH1D> vector2, std::string tag1, std::string tag2, std::string algorithm ) {
-	if (vector1.size() != vector2.size() ) { std::cout << "Error! Different size in vec1 and vec2. " << std::endl; exit(-1); }
+void DrawComparison( std::vector<TH1D> vector1, std::vector<TH1D> vector2, std::string tag1, std::string tag2, std::string algorithm, std::vector<std::string> comments ) {
+  
+	if (vector1.size() != vector2.size() ) { std::cout << "[ERROR] Different size in vec1 and vec2. " << std::endl; exit(-1); }
+	if (vector1.size()+vector2.size() != comments.size() ){ std::cout << "[ERROR] vector1+vector2 size != comments size. Not producing comment files. " << std::endl
+									  << "        vector1 size = " << vector1.size() << ", vector2 size = " << vector2.size() << ", comments size = " << comments.size() << std::endl; }
+
+	
 	std::string outroot = "MCcomparison_" + tag1 + "_" + tag2 + "_" + algorithm + ".root";
 	TFile outfile (outroot.c_str(), "recreate");
 	
@@ -798,6 +813,16 @@ void DrawComparison( std::vector<TH1D> vector1, std::vector<TH1D> vector2, std::
 	
 	std::string outname = string("MCcomparison_" + plotname + "_"  + tag1 + "_" + tag2 + "_" + algorithm + ".png");
 	c1.Print(outname.c_str(),"png");
+	
+	// Make comments file
+	// Actually only uses the comments set for vector1 (they should be identical for vector2)
+	if (vector1.size()+vector2.size() == comments.size()){
+	  std::ofstream commentsfile;
+	  std::string commentsfilename = string("MCcomparison_" + plotname + "_"  + tag1 + "_" + tag2 + "_" + algorithm + ".comment");
+	  commentsfile.open(commentsfilename.c_str(), std::ios_base::app);
+	  commentsfile << comments[i] << "\n";
+	  commentsfile.close();
+	  }
 	}
 						       
 	outfile.Close();
@@ -881,9 +906,13 @@ int main ( int argc, char** argv ) {
 		algorithm.push_back ( "pandoraNuKalmanTrack" );
 		}
 
+	// Vector of strings to save comments for CI dashboard
+	// These comments will be displayed alongside plots to give shifters information about the plots
+	std::vector<std::string> comments;
+
 	for (unsigned algorithms = 0; algorithms < algorithm.size(); algorithms++) {
 	  std::vector<TH1D> vector1;
-	  FillPlots_MC ( tree1, vector1, algorithm[ algorithms ], tag1, short_long );
+	  FillPlots_MC ( tree1, vector1, algorithm[ algorithms ], tag1, short_long, comments );
 	 
 	  
 	  // In "long" mode, draw both sets of histograms separately as well as the comparison
@@ -896,13 +925,13 @@ int main ( int argc, char** argv ) {
 	  
 	  std::vector<TH1D> vector2;
 	  file2->cd();
-	  FillPlots_MC ( tree2, vector2, algorithm[ algorithms ], tag2, short_long );
+	  FillPlots_MC ( tree2, vector2, algorithm[ algorithms ], tag2, short_long, comments );
 	  // In "long" mode, draw both sets of histograms separately as well as the comparison
 	  if (short_long == "long"){ 
 	    DrawHistos( vector2, tag2, algorithm[ algorithms ] );
 	  }
 	  
-	  DrawComparison( vector1, vector2, tag1, tag2, algorithm[ algorithms ] );
+	  DrawComparison( vector1, vector2, tag1, tag2, algorithm[ algorithms ], comments );
 	  
 	}
 
