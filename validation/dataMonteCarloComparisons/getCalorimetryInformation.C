@@ -177,7 +177,7 @@ void getCalorimetryInformation(TString file1name, TString file1_dataormc, TStrin
 
         setStyleRatio(ratioPlotFile2, file1_label, file2_label);
 
-        ratioPlotFile2->Draw("e2");
+        ratioPlotFile2->Draw("hist");
         TH1D* ratioPlotFile2C = (TH1D*)ratioPlotFile2->Clone("ratioPlotFile2C");
         ratioPlotFile2C->SetFillColor(0);
         ratioPlotFile2C->Draw("histsame");
@@ -218,7 +218,7 @@ void getCalorimetryInformation(TString file1name, TString file1_dataormc, TStrin
         ratioPlotFile2->Divide(hFile2);
         setStyleRatio(ratioPlotFile2, file1_label, file2_label);
         ratioPlotFile2->GetYaxis()->SetRangeUser(-1,1);
-        ratioPlotFile2->Draw("e2");
+        ratioPlotFile2->Draw("hist");
         TH1D* ratioPlotFile2C = (TH1D*)ratioPlotFile2->Clone("ratioPlotFile2C");
         ratioPlotFile2C->SetFillColor(0);
         ratioPlotFile2C->Draw("histsame");
@@ -248,7 +248,7 @@ void getCalorimetryInformation(TString file1name, TString file1_dataormc, TStrin
         ratioPlotFile2->Divide(hFile2);
         setStyleRatio(ratioPlotFile2, file1_label, file2_label);
         ratioPlotFile2->GetYaxis()->SetRangeUser(-1,1);
-        ratioPlotFile2->Draw("e1");
+        ratioPlotFile2->Draw("hist");
 
         TH1D *ratioPlotFile1 = (TH1D*)hFile1->Clone("ratioPlotFile1");
         ratioPlotFile1->Add(hFile2, -1);
