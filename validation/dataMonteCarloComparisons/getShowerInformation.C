@@ -77,9 +77,9 @@ void getShowerInformation(TString file1name, TString file1_dataormc, TString fil
     };
 
     comments = {
-      /*nshowers_pandoraCosmic*/       {"nshowers_pandoraCosmic",
-      /*shwr_theta_pandoraCosmic*/      "shwr_theta_pandoraCosmic",
-      /*shwr_phi_pandoraCosmic*/        "shwr_phi_pandoraCosmic"}
+      /*nshowers_pandoraCosmic*/       {"nshowers_pandoraCosmic. Number of showers reconstructed by the pandoraCosmic algorithm.",
+      /*shwr_theta_pandoraCosmic*/      "shwr_theta_pandoraCosmic. Shower theta angle as reconstructed by pandoraCosmic. Theta = 0 means the shower is going in the beam direction, Theta = pi means the shower is going in the anti-beam direction.",
+      /*shwr_phi_pandoraCosmic*/        "shwr_phi_pandoraCosmic. Shower phi angle as reconstructed by pandoraCosmic. Phi = -pi/2 means the shower is downwards-going, Phi = pi/2 means the shower is upwards-going."}
       ///*shwr_startdcosx_pandoraCosmic*/ "shwr_startdcosx_pandoraCosmic",
       ///*shwr_startdcosy_pandoraCosmic*/ "shwr_startdcosy_pandoraCosmic",
       ///*shwr_startcosz_pandoraCosmic*/  ""}

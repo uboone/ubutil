@@ -70,9 +70,9 @@ void getCalorimetryInformation(TString file1name, TString file1_dataormc, TStrin
       /*trkdqdx_y*/     {50, 0.1, 600}};
 
     comments = {
-      /*trkdqdx_u_pandoraNu*/ {"trkdqdx_u",
-        /*trkdqdx_v_pandoraNu*/  "trkdqdx_v",
-        /*trkdqdx_y_pandoraNu*/  "trkdqdx_y"} 
+      /*trkdqdx_u_pandoraNu*/ {"trkdqdx_u. Track dQ/dx values on the U (first induction) plane as reconstructed by the pandoraNu algorithm.",
+        /*trkdqdx_v_pandoraNu*/  "trkdqdx_v. Track dQ/dx values on the V (second induction) plane as reconstructed by the pandoraNu algorithm.",
+        /*trkdqdx_y_pandoraNu*/  "trkdqdx_y. Track dQ/dx values on the Y (collection) plane as reconstructed by the pandoraNu algorithm."} 
     };
 
   }

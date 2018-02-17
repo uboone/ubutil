@@ -57,6 +57,7 @@ void getHitInformation(TString file1name, TString file1_dataormc, TString file1_
       "hit_channel",
       "hit_channel",
       "hit_channel",
+      "hit_charge",
       "hit_multiplicity"
     };
 
@@ -65,15 +66,17 @@ void getHitInformation(TString file1name, TString file1_dataormc, TString file1_
       /*hit_channel_u*/      {50, 0, 2400},
       /*hit_channel_v*/      {50, 2400, 4800},
       /*hit_channel_y*/      {50, 4800, 8256},
+      /*hit_charge*/         {50, 0, 1000}, 
       /*hit_multiplicity*/   {30, 0, 30}
     };
 
     comments = {
-      /*no_hits*/ "no_hits",
-      /*hit_channel_u*/ "hit_channel_u",
-      /*hit_channel_v*/ "hit_channel_v",
-      /*hit_channel_y*/ "hit_channel_y",
-      /*hit_multiplicity*/ "hit_multiplicity"
+      /*no_hits*/ "no_hits. Each entry in this histogram is the number of TPC hits in a single event.",
+      /*hit_channel_u*/ "hit_channel_u. The number of TPC hits on the U (first induction) plane by channel number, binned to try and wash out statistical fluctuations.",
+      /*hit_channel_v*/ "hit_channel_v. The number of TPC hits on the V (second induction) plane by channel number, binned to try and wash out statistical fluctuations.",
+      /*hit_channel_y*/ "hit_channel_y. The number of TPC hits on the Y (collection) plane by channel number, binned to try and wash out statistical fluctuations.",
+      /*hit_charge*/    "hit_charge. Each entry here is the integral of a single TPC hit.",
+      /*hit_multiplicity*/ "hit_multiplicity. The hit multiplicity is the number of TPC hits fit in a single Region Of Interest (ROI). There is currently a maximum number of 26 hits allowed per ROI."
     };
   }
 
@@ -340,7 +343,7 @@ void getHitInformation(TString file1name, TString file1_dataormc, TString file1_
 
     if (isCI){
       std::ofstream commentsFile;
-      commentsFile.open(outDir+fileName+".comment");
+      commentsFile.open(outDir+"0HIT_"+fileName+".comment");
       commentsFile << comments.at(i);
       commentsFile.close();
     }
