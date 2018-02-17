@@ -59,7 +59,6 @@ void getShowerInformation(TString file1name, TString file1_dataormc, TString fil
     // and define plots
     showerPlotNames = {
       "nshowers",
-      "shwr_length",
       "shwr_theta",
       "shwr_phi"
       //"shwr_startdcosx",
@@ -70,7 +69,6 @@ void getShowerInformation(TString file1name, TString file1_dataormc, TString fil
 
     showerPlotValues = {
       /*nshowers*/       {30.0, 0, 30.0},
-      /*shwr_length*/    {50.0, 0, 200.0},
       /*shwr_theta*/     {50.0, 0, 3.3},
       /*shwr_phi*/       {50.0, -3.3, 3.3}
       ///*shwr_startdcosx*/{50, -1, 1},
@@ -80,7 +78,6 @@ void getShowerInformation(TString file1name, TString file1_dataormc, TString fil
 
     comments = {
       /*nshowers_pandoraCosmic*/       {"nshowers_pandoraCosmic",
-      /*shwr_length_pandoraCosmic*/     "shwr_length_pandoraCosmic",
       /*shwr_theta_pandoraCosmic*/      "shwr_theta_pandoraCosmic",
       /*shwr_phi_pandoraCosmic*/        "shwr_phi_pandoraCosmic"}
       ///*shwr_startdcosx_pandoraCosmic*/ "shwr_startdcosx_pandoraCosmic",
@@ -324,7 +321,7 @@ void getShowerInformation(TString file1name, TString file1_dataormc, TString fil
       pt2->SetTextAlign(11);
       pt2->Draw("same");
 
-      TString saveString = Form(outDir+fileName+".png");
+      TString saveString = Form(outDir+"2SHOWER_"+fileName+".png");
       c1->SaveAs(saveString, "png"); 
 
       hFile1->Write();
@@ -332,7 +329,7 @@ void getShowerInformation(TString file1name, TString file1_dataormc, TString fil
 
       if (isCI){
         std::ofstream commentsFile;
-        commentsFile.open(outDir+fileName+".comment");
+        commentsFile.open(outDir+"2SHOWER_"+fileName+".comment");
         commentsFile << comments.at(i).at(j);
         commentsFile.close();
       }

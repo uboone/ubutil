@@ -287,7 +287,7 @@ void getPMTInformation(TString file1name, TString file1_dataormc, TString file1_
         pt2->Draw("same");
 
 
-        TString saveString = Form(outDir+fileName+".png");
+        TString saveString = Form(outDir+"7PMT_"+fileName+".png");
         c1->SaveAs(saveString, "png"); 
 
         hFile1->Write();

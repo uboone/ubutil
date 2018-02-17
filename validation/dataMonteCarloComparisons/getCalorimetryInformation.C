@@ -307,12 +307,12 @@ void getCalorimetryInformation(TString file1name, TString file1_dataormc, TStrin
       pt2->SetTextAlign(11);
       pt2->Draw("same");
 
-      TString saveString = Form(outDir+fileName+".png");
+      TString saveString = Form(outDir+"4CALO_"+fileName+".png");
       c1->SaveAs(saveString, "png"); 
 
       if (isCI){
         std::ofstream commentsFile;
-        commentsFile.open(outDir+fileName+".comment");
+        commentsFile.open(outDir+"4CALO_"+fileName+".comment");
         commentsFile << comments.at(i).at(j);
         commentsFile.close();
       }

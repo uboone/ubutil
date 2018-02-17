@@ -339,7 +339,7 @@ void getTrackInformation(TString file1name, TString file1_dataormc, TString file
       pt2->SetTextAlign(11);
       pt2->Draw("same");
 
-      TString saveString = Form(outDir+fileName+".png");
+      TString saveString = Form(outDir+"1TRACK_"+fileName+".png");
       c1->SaveAs(saveString, "png"); 
 
       hFile1->Write();
@@ -347,7 +347,7 @@ void getTrackInformation(TString file1name, TString file1_dataormc, TString file
 
       if (isCI){
         std::ofstream commentsFile;
-        commentsFile.open(outDir+fileName+".comment");
+        commentsFile.open(outDir+"1TRACK_"+fileName+".comment");
         commentsFile << comments.at(i).at(j) ;
         commentsFile.close();
       }

@@ -69,7 +69,7 @@ void getFlashInformation(TString file1name, TString file1_dataormc, TString file
     //Outer vectors are for each variable, inner vectors are for each algorithm
     flashPlotValues = {
       /*nfls*/              {{10, 0, 10}, {75, 0, 75}},
-      /*flsTime*/           {{100, 0, 25}, {160, -3200, 4800}},
+      /*flsTime*/           {{50, 0, 25}, {160, -3200, 4800}},
       /*flsPe*/             {{50, 0, 500}, {50, 0, 500}}
     };
 
@@ -318,7 +318,7 @@ void getFlashInformation(TString file1name, TString file1_dataormc, TString file
       pt2->Draw("same");
 
 
-      TString saveString = Form(outDir+fileName+".png");
+      TString saveString = Form(outDir+"5FLASH_"+fileName+".png");
       c1->SaveAs(saveString, "png"); 
 
       hFile1->Write();
@@ -326,7 +326,7 @@ void getFlashInformation(TString file1name, TString file1_dataormc, TString file
 
       if (isCI){
         std::ofstream commentsFile;
-        commentsFile.open(outDir+fileName+".comment");
+        commentsFile.open(outDir+"5FLASH_"+fileName+".comment");
         commentsFile << comments.at(i).at(j);
         commentsFile.close();
       }

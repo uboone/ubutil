@@ -317,7 +317,7 @@ void getHitInformation(TString file1name, TString file1_dataormc, TString file1_
       pt2->Draw("same");
     }
 
-    TString saveString = Form(outDir+fileName);
+    TString saveString = Form(outDir+"0HIT_"+fileName);
     // separate out hits per plane in case of "hit_channel" variable
     if (hitPlotNames[j] == "hit_channel"){
 

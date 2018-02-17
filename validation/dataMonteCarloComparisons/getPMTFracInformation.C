@@ -248,7 +248,7 @@ void getPMTFracInformation(TString file1name, TString file1_dataormc, TString fi
     pt2->Draw("same");
 
 
-    TString saveString = Form(outDir+fileName+".png");
+    TString saveString = Form(outDir+"7PMT_"+fileName+".png");
     c1->SaveAs(saveString, "png"); 
 
     f_output.cd();

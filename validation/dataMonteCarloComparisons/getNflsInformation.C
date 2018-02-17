@@ -280,7 +280,7 @@ void getNflsInformation(TString file1name, TString file1_dataormc, TString file1
   pt2->Draw("same");
 
 
-  TString saveString = Form(outDir+"nfls_"+algoName+".png");
+  TString saveString = Form(outDir+"6NFLASH_nfls_"+algoName+".png");
   c1->SaveAs(saveString, "png"); 
 
   hFile1->Write();
