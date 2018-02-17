@@ -20,7 +20,7 @@ void setStyle(TH1* h, int dhc, TString histoYAxis) {
 
         h->SetLineColor(kOrange+10);
         h->GetYaxis()->SetTitle(histoYAxis);
-        h->SetFillColor(kOrange+6);
+        h->SetFillColorAlpha(kOrange+6, 0.5);
         h->SetMarkerColor(2);
         h->SetLineWidth(2);
         h->GetXaxis()->SetTitleSize(0);
@@ -47,7 +47,7 @@ void setStyle(TH1* h, int dhc, TString histoYAxis) {
 
         h->SetLineColor(kBlack);
         h->GetYaxis()->SetTitle(histoYAxis);
-        h->SetFillColor(kAzure+6);
+        h->SetFillColorAlpha(kAzure+6, 0.5);
         h->SetMarkerColor(2);
         h->SetLineWidth(2);
         h->GetXaxis()->SetTitleSize(0);
