@@ -170,13 +170,13 @@ void getTrackInformation(TString file1name, TString file1_dataormc, TString file
       hFile2->Sumw2();
 
 
-      // arb units
+      // arb units, make sure to include underflow and overflow
       if (hFile1->Integral() > 0 && compType == 0) {
-        hFile1->Scale(1./hFile1->Integral());
+        hFile1->Scale(1./(hFile1->Integral()+hFile1->GetBinContent(0)+hFile1->GetBinContent(hFile1->GetNbinsX()+1)));
       }
 
       if (hFile2->Integral() > 0 && compType == 0) {
-        hFile2->Scale(1./hFile2->Integral());
+        hFile2->Scale(1./(hFile2->Integral()+hFile2->GetBinContent(0)+hFile2->GetBinContent(hFile2->GetNbinsX()+1)));
       }
 
       // set max extent of histogram
@@ -306,6 +306,31 @@ void getTrackInformation(TString file1name, TString file1_dataormc, TString file
       pt->SetBorderSize(0);
       pt->SetTextAlign(31);
       pt->Draw("same");
+
+      double totalEntries1 = hFile1->Integral() + hFile1->GetBinContent(0) + hFile1->GetBinContent(hFile1->GetNbinsX()+1);
+      double underflowFrac1 = hFile1->GetBinContent(0)/totalEntries1;
+      double overflowFrac1 =  hFile1->GetBinContent(hFile1->GetNbinsX()+1)/totalEntries1;
+
+      double totalEntries2 = hFile2->Integral() + hFile2->GetBinContent(0) + hFile2->GetBinContent(hFile2->GetNbinsX()+1);
+      double underflowFrac2 = hFile2->GetBinContent(0)/totalEntries2;
+      double overflowFrac2 = hFile2->GetBinContent(hFile2->GetNbinsX()+1)/totalEntries2;
+
+      TString underOver1 = Form("UF: %g  OF: %g", file1_label, underflowFrac1, overflowFrac1);
+      TString underOver2 = Form("UF: %g  OF: %g", file2_label, underflowFrac2, overflowFrac2);
+
+      TPaveText *pt_ufofl = new TPaveText(0.5, 0.73, 0.9, 0.78, "NDC");
+      pt_ufofl->AddText(file1_label+"/"+underOver1);
+      pt_ufofl->SetFillStyle(0);
+      pt_ufofl->SetBorderSize(0);
+      pt_ufofl->SetTextAlign(31);
+      pt_ufofl->Draw("same");
+
+      TPaveText *pt_ufofr = new TPaveText(0.5, 0.68, 0.9, 0.73, "NDC");
+      pt_ufofr->AddText(file2_label+"/"+underOver2);
+      pt_ufofr->SetFillStyle(0);
+      pt_ufofr->SetBorderSize(0);
+      pt_ufofr->SetTextAlign(31);
+      pt_ufofr->Draw("same");
 
       TPaveText *pt2 = new TPaveText(0.1, 0.83, 0.5, 0.88, "NDC");
       pt2->AddText(file1_dataormc+"/"+file2_dataormc);
