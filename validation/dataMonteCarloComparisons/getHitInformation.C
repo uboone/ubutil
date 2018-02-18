@@ -344,7 +344,7 @@ void getHitInformation(TString file1name, TString file1_dataormc, TString file1_
     if (isCI){
       std::ofstream commentsFile;
       commentsFile.open(outDir+"0HIT_"+fileName+".comment");
-      commentsFile << comments.at(i);
+      commentsFile << comments.at(j);
       commentsFile.close();
     }
 
