@@ -18,6 +18,7 @@
 #include "setLegend.C"
 #include "calculateChiSqDistance.C"
 #include "getNBins.C"
+#include "textWrap.C"
 
 void getHitInformation(TString file1name, TString file1_dataormc, TString file1_label, TString file2name, TString file2_dataormc, TString file2_label, TString outDir, int compType, int isCI, float chisqNotifierCut) {
 
@@ -344,7 +345,7 @@ void getHitInformation(TString file1name, TString file1_dataormc, TString file1_
     if (isCI){
       std::ofstream commentsFile;
       commentsFile.open(outDir+"0HIT_"+fileName+".comment");
-      commentsFile << comments.at(j);
+      textWrap(comments.at(j),commentsFile,70);
       commentsFile.close();
     }
 

@@ -18,6 +18,7 @@
 #include "setLegend.C"
 #include "calculateChiSqDistance.C"
 #include "getNBins.C"
+#include "textWrap.C"
 
 void getFlashInformation(TString file1name, TString file1_dataormc, TString file1_label, TString file2name, TString file2_dataormc, TString file2_label, TString outDir, int compType, double PeCut, int isCI, float chisqNotifierCut) {
 
@@ -327,7 +328,7 @@ void getFlashInformation(TString file1name, TString file1_dataormc, TString file
       if (isCI){
         std::ofstream commentsFile;
         commentsFile.open(outDir+"5FLASH_"+fileName+".comment");
-        commentsFile << comments.at(i).at(j);
+        textWrap(comments.at(i).at(j),commentsFile,70);
         commentsFile.close();
       }
 

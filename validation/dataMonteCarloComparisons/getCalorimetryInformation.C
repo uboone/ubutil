@@ -19,6 +19,7 @@
 #include "setLegend.C"
 #include "calculateChiSqDistance.C"
 #include "getNBins.C"
+#include "textWrap.C"
 
 void getCalorimetryInformation(TString file1name, TString file1_dataormc, TString file1_label, TString file2name, TString file2_dataormc, TString file2_label, TString outDir, int compType, int isCI, float chisqNotifierCut) {
 
@@ -313,7 +314,7 @@ void getCalorimetryInformation(TString file1name, TString file1_dataormc, TStrin
       if (isCI){
         std::ofstream commentsFile;
         commentsFile.open(outDir+"4CALO_"+fileName+".comment");
-        commentsFile << comments.at(i).at(j);
+        textWrap(comments.at(i).at(j), commentsFile, 70);
         commentsFile.close();
       }
 
