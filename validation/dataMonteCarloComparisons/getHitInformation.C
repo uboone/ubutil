@@ -18,6 +18,7 @@
 #include "setLegend.C"
 #include "calculateChiSqDistance.C"
 #include "getNBins.C"
+#include "textWrap.C"
 
 void getHitInformation(TString file1name, TString file1_dataormc, TString file1_label, TString file2name, TString file2_dataormc, TString file2_label, TString outDir, int compType, int isCI, float chisqNotifierCut) {
 
@@ -57,6 +58,7 @@ void getHitInformation(TString file1name, TString file1_dataormc, TString file1_
       "hit_channel",
       "hit_channel",
       "hit_channel",
+      "hit_charge",
       "hit_multiplicity"
     };
 
@@ -65,15 +67,17 @@ void getHitInformation(TString file1name, TString file1_dataormc, TString file1_
       /*hit_channel_u*/      {50, 0, 2400},
       /*hit_channel_v*/      {50, 2400, 4800},
       /*hit_channel_y*/      {50, 4800, 8256},
+      /*hit_charge*/         {50, 0, 1000}, 
       /*hit_multiplicity*/   {30, 0, 30}
     };
 
     comments = {
-      /*no_hits*/ "no_hits",
-      /*hit_channel_u*/ "hit_channel_u",
-      /*hit_channel_v*/ "hit_channel_v",
-      /*hit_channel_y*/ "hit_channel_y",
-      /*hit_multiplicity*/ "hit_multiplicity"
+      /*no_hits*/ "no_hits. Each entry in this histogram is the number of TPC hits in a single event.",
+      /*hit_channel_u*/ "hit_channel_u. The number of TPC hits on the U (first induction) plane by channel number, binned to try and wash out statistical fluctuations.",
+      /*hit_channel_v*/ "hit_channel_v. The number of TPC hits on the V (second induction) plane by channel number, binned to try and wash out statistical fluctuations.",
+      /*hit_channel_y*/ "hit_channel_y. The number of TPC hits on the Y (collection) plane by channel number, binned to try and wash out statistical fluctuations.",
+      /*hit_charge*/    "hit_charge. Each entry here is the integral of a single TPC hit.",
+      /*hit_multiplicity*/ "hit_multiplicity. The hit multiplicity is the number of TPC hits fit in a single Region Of Interest (ROI). There is currently a maximum number of 26 hits allowed per ROI."
     };
   }
 
@@ -129,12 +133,24 @@ void getHitInformation(TString file1name, TString file1_dataormc, TString file1_
     hFile2->Sumw2();
 
     // arb units
-    if (hFile1->Integral() > 0 && compType == 0) {
-      hFile1->Scale(1./hFile1->Integral());
-    }
+    if (hitPlotNames.at(j) == "hit_channel"){
+      if (hFile1->Integral() > 0 && compType == 0) {
+        hFile1->Scale(1./hFile1->Integral());
+      }
 
-    if (hFile2->Integral() > 0 && compType == 0) {
-      hFile2->Scale(1./hFile2->Integral());
+      if (hFile2->Integral() > 0 && compType == 0) {
+        hFile2->Scale(1./hFile2->Integral());
+      }
+
+    }
+    else{
+      if (hFile1->Integral() > 0 && compType == 0) {
+        hFile1->Scale(1./(hFile1->Integral()+hFile1->GetBinContent(0)+hFile1->GetBinContent(hFile1->GetNbinsX()+1)));
+      }
+
+      if (hFile2->Integral() > 0 && compType == 0) {
+        hFile2->Scale(1./(hFile2->Integral()+hFile2->GetBinContent(0)+hFile2->GetBinContent(hFile2->GetNbinsX()+1)));
+      }
     }
 
     // set max extent of histogram
@@ -175,7 +191,7 @@ void getHitInformation(TString file1name, TString file1_dataormc, TString file1_
 
       setStyleRatio(ratioPlotFile2, file1_label, file2_label);
 
-      ratioPlotFile2->Draw("e2");
+      ratioPlotFile2->Draw("hist");
       TH1D* ratioPlotFile2C = (TH1D*)ratioPlotFile2->Clone("ratioPlotFile2C");
       ratioPlotFile2C->Draw("histsame");
 
@@ -215,7 +231,7 @@ void getHitInformation(TString file1name, TString file1_dataormc, TString file1_
       ratioPlotFile2->Divide(hFile2);
       setStyleRatio(ratioPlotFile2, file1_label, file2_label);
       ratioPlotFile2->GetYaxis()->SetRangeUser(-1,1);
-      ratioPlotFile2->Draw("e2");
+      ratioPlotFile2->Draw("hist");
       TH1D* ratioPlotFile2C = (TH1D*)ratioPlotFile2->Clone("ratioPlotFile2C");
       ratioPlotFile2C->SetFillColor(0);
       ratioPlotFile2C->Draw("histsame");
@@ -248,7 +264,7 @@ void getHitInformation(TString file1name, TString file1_dataormc, TString file1_
       ratioPlotFile2->Add(hFile2, -1);
       ratioPlotFile2->Divide(hFile2);
       setStyleRatio(ratioPlotFile2, file1_label, file2_label);
-      ratioPlotFile2->Draw("e1");
+      ratioPlotFile2->Draw("hist");
 
       TH1D *ratioPlotFile1 = (TH1D*)hFile1->Clone("ratioPlotFile1");
       ratioPlotFile1->Add(hFile2, -1);
@@ -270,15 +286,42 @@ void getHitInformation(TString file1name, TString file1_dataormc, TString file1_
     pt->SetTextAlign(31);
     pt->Draw("same");
 
-    TPaveText *pt2 = new TPaveText(0.1, 0.83, 0.5, 0.88, "NDC");
-    pt2->AddText(file1_dataormc+"/"+file2_dataormc);
-    pt2->SetFillStyle(0);
-    pt2->SetBorderSize(0);
-    pt2->SetTextAlign(11);
-    pt2->Draw("same");
+    if (hitPlotNames.at(j) != "hit_channel"){
+      double totalEntries1 = hFile1->Integral() + hFile1->GetBinContent(0) + hFile1->GetBinContent(hFile1->GetNbinsX()+1);
+      double underflowFrac1 = hFile1->GetBinContent(0)/totalEntries1;
+      double overflowFrac1 =  hFile1->GetBinContent(hFile1->GetNbinsX()+1)/totalEntries1;
+
+      double totalEntries2 = hFile2->Integral() + hFile2->GetBinContent(0) + hFile2->GetBinContent(hFile2->GetNbinsX()+1);
+      double underflowFrac2 = hFile2->GetBinContent(0)/totalEntries2;
+      double overflowFrac2 = hFile2->GetBinContent(hFile2->GetNbinsX()+1)/totalEntries2;
+
+      TString underOver1 = Form("UF: %g  OF: %g", file1_label, underflowFrac1, overflowFrac1);
+      TString underOver2 = Form("UF: %g  OF: %g", file2_label, underflowFrac2, overflowFrac2);
+
+      TPaveText *pt_ufofl = new TPaveText(0.5, 0.73, 0.9, 0.78, "NDC");
+      pt_ufofl->AddText(file1_label+"/"+underOver1);
+      pt_ufofl->SetFillStyle(0);
+      pt_ufofl->SetBorderSize(0);
+      pt_ufofl->SetTextAlign(31);
+      pt_ufofl->Draw("same");
+
+      TPaveText *pt_ufofr = new TPaveText(0.5, 0.68, 0.9, 0.73, "NDC");
+      pt_ufofr->AddText(file2_label+"/"+underOver2);
+      pt_ufofr->SetFillStyle(0);
+      pt_ufofr->SetBorderSize(0);
+      pt_ufofr->SetTextAlign(31);
+      pt_ufofr->Draw("same");
 
 
-    TString saveString = Form(outDir+fileName);
+      TPaveText *pt2 = new TPaveText(0.1, 0.83, 0.5, 0.88, "NDC");
+      pt2->AddText(file1_dataormc+"/"+file2_dataormc);
+      pt2->SetFillStyle(0);
+      pt2->SetBorderSize(0);
+      pt2->SetTextAlign(11);
+      pt2->Draw("same");
+    }
+
+    TString saveString = Form(outDir+"0HIT_"+fileName);
     // separate out hits per plane in case of "hit_channel" variable
     if (hitPlotNames[j] == "hit_channel"){
 
@@ -301,8 +344,8 @@ void getHitInformation(TString file1name, TString file1_dataormc, TString file1_
 
     if (isCI){
       std::ofstream commentsFile;
-      commentsFile.open(outDir+fileName+".comment");
-      commentsFile << comments.at(i);
+      commentsFile.open(outDir+"0HIT_"+fileName+".comment");
+      textWrap(comments.at(j),commentsFile,70);
       commentsFile.close();
     }
 

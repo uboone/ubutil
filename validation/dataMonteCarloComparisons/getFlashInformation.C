@@ -18,6 +18,7 @@
 #include "setLegend.C"
 #include "calculateChiSqDistance.C"
 #include "getNBins.C"
+#include "textWrap.C"
 
 void getFlashInformation(TString file1name, TString file1_dataormc, TString file1_label, TString file2name, TString file2_dataormc, TString file2_label, TString outDir, int compType, double PeCut, int isCI, float chisqNotifierCut) {
 
@@ -69,17 +70,17 @@ void getFlashInformation(TString file1name, TString file1_dataormc, TString file
     //Outer vectors are for each variable, inner vectors are for each algorithm
     flashPlotValues = {
       /*nfls*/              {{10, 0, 10}, {75, 0, 75}},
-      /*flsTime*/           {{100, 0, 25}, {160, -3200, 4800}},
+      /*flsTime*/           {{50, 0, 25}, {160, -3200, 4800}},
       /*flsPe*/             {{50, 0, 500}, {50, 0, 500}}
     };
 
     comments = {
-      /*nfls_simpleFlashBeam*/      {"nfls_simpleFlashBeam",
-      /*flsTime_simpleFlashBeam*/    "flsTime_simpleFlashBeam",
-      /*flsPe_simpleFlashBeam*/      "flsPe_simpleFlashBeam"},
-      /*nfls_simpleFlashCosmic*/    {"nfls_simpleFlashCosmic",
-      /*flsTime_simpleFlashCosmic*/  "flsTime_simpleFlashCosmic",
-      /*flsPe_simpleFlashCosmic*/    "flsPe_simpleFlashCosmic"}
+      /*nfls_simpleFlashBeam*/      {"nfls_simpleFlashBeam. Each entry in the histogram is the number of flashes for a single event, as reconstructed with the simpleFlashBeam algorithm.",
+      /*flsTime_simpleFlashBeam*/    "flsTime_simpleFlashBeam. Peak time of each flash, as reconstructed with the simpleFlashBeam algorithm.",
+      /*flsPe_simpleFlashBeam*/      "flsPe_simpleFlashBeam. The number of photoelectrons produced by each flash, as reconstructed with the simpleFlashBeam algorithm."},
+      /*nfls_simpleFlashCosmic*/    {"nfls_simpleFlashCosmic. Each entry in the histogram is the number of flashes for a single event, as reconstructed with the simpleFlashCosmic algorithm.",
+      /*flsTime_simpleFlashCosmic*/  "flsTime_simpleFlashCosmic. Peak time of each flash, as reconstructed with the simpleFlashCosmic algorithm.",
+      /*flsPe_simpleFlashCosmic*/    "flsPe_simpleFlashCosmic. The number of photoelectrons produced by each flash, as as reconstructed with the simpleFlashCosmic algorithm."}
     };
 
   }
@@ -143,11 +144,11 @@ void getFlashInformation(TString file1name, TString file1_dataormc, TString file
 
       // arb units
       if (hFile1->Integral() > 0 && compType == 0) {
-        hFile1->Scale(1./hFile1->Integral());
+        hFile1->Scale(1./(hFile1->Integral()+hFile1->GetBinContent(0)+hFile1->GetBinContent(hFile1->GetNbinsX()+1)));
       }
 
       if (hFile2->Integral() > 0 && compType == 0) {
-        hFile2->Scale(1./hFile2->Integral());
+        hFile2->Scale(1./(hFile2->Integral()+hFile2->GetBinContent(0)+hFile2->GetBinContent(hFile2->GetNbinsX()+1)));
       }
 
       // set max extent of histogram
@@ -188,7 +189,7 @@ void getFlashInformation(TString file1name, TString file1_dataormc, TString file
 
         setStyleRatio(ratioPlotFile2, file1_label, file2_label);
 
-        ratioPlotFile2->Draw("e2");
+        ratioPlotFile2->Draw("hist");
         TH1D* ratioPlotFile2C = (TH1D*)ratioPlotFile2->Clone("ratioPlotFile2C");
         ratioPlotFile2C->SetFillColor(0);
         ratioPlotFile2C->Draw("histsame");
@@ -231,7 +232,7 @@ void getFlashInformation(TString file1name, TString file1_dataormc, TString file
         ratioPlotFile2->Divide(hFile2);
         setStyleRatio(ratioPlotFile2, file1_label, file2_label);
         ratioPlotFile2->GetYaxis()->SetRangeUser(-1,1);
-        ratioPlotFile2->Draw("e2");
+        ratioPlotFile2->Draw("hist");
         TH1D* ratioPlotFile2C = (TH1D*)ratioPlotFile2->Clone("ratioPlotFile2C");
         ratioPlotFile2C->SetFillColor(0);
         ratioPlotFile2C->Draw("histsame");
@@ -262,7 +263,7 @@ void getFlashInformation(TString file1name, TString file1_dataormc, TString file
         ratioPlotFile2->Add(hFile2, -1);
         ratioPlotFile2->Divide(hFile2);
         setStyleRatio(ratioPlotFile2, file1_label, file2_label);
-        ratioPlotFile2->Draw("e1");
+        ratioPlotFile2->Draw("hist");
 
         TH1D *ratioPlotFile1 = (TH1D*)hFile1->Clone("ratioPlotFile1");
         ratioPlotFile1->Add(hFile2, -1);
@@ -284,6 +285,32 @@ void getFlashInformation(TString file1name, TString file1_dataormc, TString file
       pt->SetTextAlign(31);
       pt->Draw("same");
 
+      double totalEntries1 = hFile1->Integral() + hFile1->GetBinContent(0) + hFile1->GetBinContent(hFile1->GetNbinsX()+1);
+      double underflowFrac1 = hFile1->GetBinContent(0)/totalEntries1;
+      double overflowFrac1 =  hFile1->GetBinContent(hFile1->GetNbinsX()+1)/totalEntries1;
+
+      double totalEntries2 = hFile2->Integral() + hFile2->GetBinContent(0) + hFile2->GetBinContent(hFile2->GetNbinsX()+1);
+      double underflowFrac2 = hFile2->GetBinContent(0)/totalEntries2;
+      double overflowFrac2 = hFile2->GetBinContent(hFile2->GetNbinsX()+1)/totalEntries2;
+
+      TString underOver1 = Form("UF: %g  OF: %g", file1_label, underflowFrac1, overflowFrac1);
+      TString underOver2 = Form("UF: %g  OF: %g", file2_label, underflowFrac2, overflowFrac2);
+
+      TPaveText *pt_ufofl = new TPaveText(0.5, 0.73, 0.9, 0.78, "NDC");
+      pt_ufofl->AddText(file1_label+"/"+underOver1);
+      pt_ufofl->SetFillStyle(0);
+      pt_ufofl->SetBorderSize(0);
+      pt_ufofl->SetTextAlign(31);
+      pt_ufofl->Draw("same");
+
+      TPaveText *pt_ufofr = new TPaveText(0.5, 0.68, 0.9, 0.73, "NDC");
+      pt_ufofr->AddText(file2_label+"/"+underOver2);
+      pt_ufofr->SetFillStyle(0);
+      pt_ufofr->SetBorderSize(0);
+      pt_ufofr->SetTextAlign(31);
+      pt_ufofr->Draw("same");
+
+
       TPaveText *pt2 = new TPaveText(0.1, 0.83, 0.5, 0.88, "NDC");
       pt2->AddText(file1_dataormc+"/"+file2_dataormc);
       pt2->SetFillStyle(0);
@@ -292,7 +319,7 @@ void getFlashInformation(TString file1name, TString file1_dataormc, TString file
       pt2->Draw("same");
 
 
-      TString saveString = Form(outDir+fileName+".png");
+      TString saveString = Form(outDir+"5FLASH_"+fileName+".png");
       c1->SaveAs(saveString, "png"); 
 
       hFile1->Write();
@@ -300,8 +327,8 @@ void getFlashInformation(TString file1name, TString file1_dataormc, TString file
 
       if (isCI){
         std::ofstream commentsFile;
-        commentsFile.open(outDir+fileName+".comment");
-        commentsFile << comments.at(i).at(j);
+        commentsFile.open(outDir+"5FLASH_"+fileName+".comment");
+        textWrap(comments.at(i).at(j),commentsFile,70);
         commentsFile.close();
       }
 
