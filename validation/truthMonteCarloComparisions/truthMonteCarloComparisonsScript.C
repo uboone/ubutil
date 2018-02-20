@@ -354,7 +354,7 @@ void FillPlots_MC( TTree* tree, std::vector<TH1D> &hvector, std::string tracking
    std::string histoname = "hnreco_" + version;
    TH1D *hnreco = new TH1D(histoname.c_str(), "Number of reco tracks; Number of reco tracks;", 30, 0, 30);
    histoname = "hntrue_" + version;
-   TH1D *hntrue = new TH1D(histoname.c_str(), "Number of true primary tracks per event; # True tracks;", 50, 0, 50);
+   TH1D *hntrue = new TH1D(histoname.c_str(), "Number of true tracks; # True tracks;", 50, 0, 50);
    histoname = "hstartx_" + version;
    TH1D *hstartx = new TH1D(histoname.c_str(), "Track start X position; x [cm];", 100, -200, 500);
    histoname = "hstarty_" + version;
