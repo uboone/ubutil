@@ -18,6 +18,7 @@
 #include "setLegend.C"
 #include "calculateChiSqDistance.C"
 #include "getNBins.C"
+#include "textWrap.C"
 
 void getShowerInformation(TString file1name, TString file1_dataormc, TString file1_label, TString file2name, TString file2_dataormc, TString file2_label, TString outDir, int compType, int isCI, float chisqNotifierCut) {
 
@@ -49,6 +50,7 @@ void getShowerInformation(TString file1name, TString file1_dataormc, TString fil
   std::vector< std::string > algoNames;
   std::vector< std::string > showerPlotNames;
   std::vector< std::vector<double> > showerPlotValues;
+  std::vector< std::vector< std::string > > comments;
 
   if (isCI == 1){
 
@@ -58,23 +60,30 @@ void getShowerInformation(TString file1name, TString file1_dataormc, TString fil
     // and define plots
     showerPlotNames = {
       "nshowers",
-      "shwr_length",
       "shwr_theta",
-      "shwr_phi",
-      "shwr_startdcosx",
-      "shwr_startdcosy",
-      "shwr_startdcosz"
+      "shwr_phi"
+      //"shwr_startdcosx",
+      //"shwr_startdcosy",
+      //"shwr_startdcosz"
     };
 
 
     showerPlotValues = {
       /*nshowers*/       {30.0, 0, 30.0},
-      /*shwr_length*/    {50.0, 0, 700.0},
       /*shwr_theta*/     {50.0, 0, 3.3},
-      /*shwr_phi*/       {50.0, -3.3, 3.3},
-      /*shwr_startdcosx*/{50, -1, 1},
-      /*shwr_startcosy*/ {50, -1, 1},
-      /*shwr_startcosz*/ {50, -1, 1},
+      /*shwr_phi*/       {50.0, -3.3, 3.3}
+      ///*shwr_startdcosx*/{50, -1, 1},
+      ///*shwr_startcosy*/ {50, -1, 1},
+      ///*shwr_startcosz*/ {50, -1, 1},
+    };
+
+    comments = {
+      /*nshowers_pandoraCosmic*/       {"nshowers_pandoraCosmic. Number of showers reconstructed by the pandoraCosmic algorithm.",
+      /*shwr_theta_pandoraCosmic*/      "shwr_theta_pandoraCosmic. Shower theta angle as reconstructed by pandoraCosmic. Theta = 0 means the shower is going in the beam direction, Theta = pi means the shower is going in the anti-beam direction.",
+      /*shwr_phi_pandoraCosmic*/        "shwr_phi_pandoraCosmic. Shower phi angle as reconstructed by pandoraCosmic. Phi = -pi/2 means the shower is downwards-going, Phi = pi/2 means the shower is upwards-going."}
+      ///*shwr_startdcosx_pandoraCosmic*/ "shwr_startdcosx_pandoraCosmic",
+      ///*shwr_startdcosy_pandoraCosmic*/ "shwr_startdcosy_pandoraCosmic",
+      ///*shwr_startcosz_pandoraCosmic*/  ""}
     };
 
   }
@@ -119,7 +128,7 @@ void getShowerInformation(TString file1name, TString file1_dataormc, TString fil
 
       if (algoNames[i] == "pandoraCosmic" && showerPlotNames[j] == "nshowers"){
 
-        showerPlotValues[j] = {150,0,150};
+        showerPlotValues[j] = {40,0,160};
 
       }
 
@@ -145,11 +154,11 @@ void getShowerInformation(TString file1name, TString file1_dataormc, TString fil
 
       // arb units
       if (hFile1->Integral() > 0 && compType == 0) {
-        hFile1->Scale(1./hFile1->Integral());
+        hFile1->Scale(1./(hFile1->Integral()+hFile1->GetBinContent(0)+hFile1->GetBinContent(hFile1->GetNbinsX()+1)));
       }
 
       if (hFile2->Integral() > 0 && compType == 0) {
-        hFile2->Scale(1./hFile2->Integral());
+        hFile2->Scale(1./(hFile2->Integral()+hFile2->GetBinContent(0)+hFile2->GetBinContent(hFile2->GetNbinsX()+1)));
       }
 
       // set max extent of histogram
@@ -187,7 +196,7 @@ void getShowerInformation(TString file1name, TString file1_dataormc, TString fil
 
         setStyleRatio(ratioPlotFile2, file1_label, file2_label);
 
-        ratioPlotFile2->Draw("e2");
+        ratioPlotFile2->Draw("hist");
         TH1D* ratioPlotFile2C = (TH1D*)ratioPlotFile2->Clone("ratioPlotFile2C");
         ratioPlotFile2C->SetFillColor(0);
         ratioPlotFile2C->Draw("histsame");
@@ -228,7 +237,7 @@ void getShowerInformation(TString file1name, TString file1_dataormc, TString fil
         ratioPlotFile2->Divide(hFile2);
         setStyleRatio(ratioPlotFile2, file1_label, file2_label);
         ratioPlotFile2->GetYaxis()->SetRangeUser(-1,1);
-        ratioPlotFile2->Draw("e2");
+        ratioPlotFile2->Draw("hist");
         TH1D* ratioPlotFile2C = (TH1D*)ratioPlotFile2->Clone("ratioPlotFile2C");
         ratioPlotFile2C->SetFillColor(0);
         ratioPlotFile2C->Draw("histsame");
@@ -258,7 +267,7 @@ void getShowerInformation(TString file1name, TString file1_dataormc, TString fil
         ratioPlotFile2->Divide(hFile2);
         setStyleRatio(ratioPlotFile2, file1_label, file2_label);
         ratioPlotFile2->GetYaxis()->SetRangeUser(-1,1);
-        ratioPlotFile2->Draw("e1");
+        ratioPlotFile2->Draw("hist");
 
         TH1D *ratioPlotFile1 = (TH1D*)hFile1->Clone("ratioPlotFile1");
         ratioPlotFile1->Add(hFile2, -1);
@@ -280,6 +289,32 @@ void getShowerInformation(TString file1name, TString file1_dataormc, TString fil
       pt->SetTextAlign(31);
       pt->Draw("same");
 
+      double totalEntries1 = hFile1->Integral() + hFile1->GetBinContent(0) + hFile1->GetBinContent(hFile1->GetNbinsX()+1);
+      double underflowFrac1 = hFile1->GetBinContent(0)/totalEntries1;
+      double overflowFrac1 =  hFile1->GetBinContent(hFile1->GetNbinsX()+1)/totalEntries1;
+
+      double totalEntries2 = hFile2->Integral() + hFile2->GetBinContent(0) + hFile2->GetBinContent(hFile2->GetNbinsX()+1);
+      double underflowFrac2 = hFile2->GetBinContent(0)/totalEntries2;
+      double overflowFrac2 = hFile2->GetBinContent(hFile2->GetNbinsX()+1)/totalEntries2;
+
+      TString underOver1 = Form("UF: %g  OF: %g", file1_label, underflowFrac1, overflowFrac1);
+      TString underOver2 = Form("UF: %g  OF: %g", file2_label, underflowFrac2, overflowFrac2);
+
+      TPaveText *pt_ufofl = new TPaveText(0.5, 0.73, 0.9, 0.78, "NDC");
+      pt_ufofl->AddText(file1_label+"/"+underOver1);
+      pt_ufofl->SetFillStyle(0);
+      pt_ufofl->SetBorderSize(0);
+      pt_ufofl->SetTextAlign(31);
+      pt_ufofl->Draw("same");
+
+      TPaveText *pt_ufofr = new TPaveText(0.5, 0.68, 0.9, 0.73, "NDC");
+      pt_ufofr->AddText(file2_label+"/"+underOver2);
+      pt_ufofr->SetFillStyle(0);
+      pt_ufofr->SetBorderSize(0);
+      pt_ufofr->SetTextAlign(31);
+      pt_ufofr->Draw("same");
+
+
       TPaveText *pt2 = new TPaveText(0.1, 0.83, 0.5, 0.88, "NDC");
       pt2->AddText(file1_dataormc+"/"+file2_dataormc);
       pt2->SetFillStyle(0);
@@ -287,12 +322,18 @@ void getShowerInformation(TString file1name, TString file1_dataormc, TString fil
       pt2->SetTextAlign(11);
       pt2->Draw("same");
 
-      TString saveString = Form(outDir+fileName+".png");
+      TString saveString = Form(outDir+"2SHOWER_"+fileName+".png");
       c1->SaveAs(saveString, "png"); 
 
       hFile1->Write();
       hFile2->Write();
 
+      if (isCI){
+        std::ofstream commentsFile;
+        commentsFile.open(outDir+"2SHOWER_"+fileName+".comment");
+        textWrap(comments.at(i).at(j),commentsFile,70);
+        commentsFile.close();
+      }
 
       // Print all chi2 values to a file for tracking over time
       std::ofstream ChisqFile;

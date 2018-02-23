@@ -19,6 +19,7 @@
 #include "setLegend.C"
 #include "calculateChiSqDistance.C"
 #include "getNBins.C"
+#include "textWrap.C"
 
 void getCalorimetryInformation(TString file1name, TString file1_dataormc, TString file1_label, TString file2name, TString file2_dataormc, TString file2_label, TString outDir, int compType, int isCI, float chisqNotifierCut) {
 
@@ -50,11 +51,12 @@ void getCalorimetryInformation(TString file1name, TString file1_dataormc, TStrin
   std::vector< std::string > algoNames;
   std::vector< std::string > caloPlotNames;
   std::vector< std::vector< double > > caloPlotValues;
+  std::vector< std::vector< std::string > > comments;
 
   if (isCI == 1){
 
     // define vector of algo names
-    algoNames = {"pandoraCosmic"};
+    algoNames = {"pandoraNu"};
 
     // and define plots
     caloPlotNames = {
@@ -68,6 +70,11 @@ void getCalorimetryInformation(TString file1name, TString file1_dataormc, TStrin
       /*trkdqdx_v*/     {50, 0.1, 600},
       /*trkdqdx_y*/     {50, 0.1, 600}};
 
+    comments = {
+      /*trkdqdx_u_pandoraNu*/ {"trkdqdx_u. Track dQ/dx values on the U (first induction) plane as reconstructed by the pandoraNu algorithm.",
+        /*trkdqdx_v_pandoraNu*/  "trkdqdx_v. Track dQ/dx values on the V (second induction) plane as reconstructed by the pandoraNu algorithm.",
+        /*trkdqdx_y_pandoraNu*/  "trkdqdx_y. Track dQ/dx values on the Y (collection) plane as reconstructed by the pandoraNu algorithm."} 
+    };
 
   }
   else {
@@ -129,11 +136,11 @@ void getCalorimetryInformation(TString file1name, TString file1_dataormc, TStrin
 
       // arb units
       if (hFile1->Integral() > 0 && compType == 0) {
-        hFile1->Scale(1./hFile1->Integral());
+        hFile1->Scale(1./(hFile1->Integral()+hFile1->GetBinContent(hFile1->GetNbinsX()+1)));
       }
 
       if (hFile2->Integral() > 0 && compType == 0) {
-        hFile2->Scale(1./hFile2->Integral());
+        hFile2->Scale(1./(hFile2->Integral()+hFile2->GetBinContent(hFile2->GetNbinsX()+1)));
       }
 
       // set max extent of histogram
@@ -171,7 +178,7 @@ void getCalorimetryInformation(TString file1name, TString file1_dataormc, TStrin
 
         setStyleRatio(ratioPlotFile2, file1_label, file2_label);
 
-        ratioPlotFile2->Draw("e2");
+        ratioPlotFile2->Draw("hist");
         TH1D* ratioPlotFile2C = (TH1D*)ratioPlotFile2->Clone("ratioPlotFile2C");
         ratioPlotFile2C->SetFillColor(0);
         ratioPlotFile2C->Draw("histsame");
@@ -212,7 +219,7 @@ void getCalorimetryInformation(TString file1name, TString file1_dataormc, TStrin
         ratioPlotFile2->Divide(hFile2);
         setStyleRatio(ratioPlotFile2, file1_label, file2_label);
         ratioPlotFile2->GetYaxis()->SetRangeUser(-1,1);
-        ratioPlotFile2->Draw("e2");
+        ratioPlotFile2->Draw("hist");
         TH1D* ratioPlotFile2C = (TH1D*)ratioPlotFile2->Clone("ratioPlotFile2C");
         ratioPlotFile2C->SetFillColor(0);
         ratioPlotFile2C->Draw("histsame");
@@ -242,7 +249,7 @@ void getCalorimetryInformation(TString file1name, TString file1_dataormc, TStrin
         ratioPlotFile2->Divide(hFile2);
         setStyleRatio(ratioPlotFile2, file1_label, file2_label);
         ratioPlotFile2->GetYaxis()->SetRangeUser(-1,1);
-        ratioPlotFile2->Draw("e1");
+        ratioPlotFile2->Draw("hist");
 
         TH1D *ratioPlotFile1 = (TH1D*)hFile1->Clone("ratioPlotFile1");
         ratioPlotFile1->Add(hFile2, -1);
@@ -264,6 +271,36 @@ void getCalorimetryInformation(TString file1name, TString file1_dataormc, TStrin
       pt->SetTextAlign(31);
       pt->Draw("same");
 
+      /*
+       * Note that this is not like the other get-modules because there
+       * are a lot of dqdx values at 0 --- going to look into this.
+       */
+
+      double totalEntries1 = hFile1->Integral()+hFile1->GetBinContent(hFile1->GetNbinsX()+1);
+      double underflowFrac1 = 0.0;
+      double overflowFrac1 =  hFile1->GetBinContent(hFile1->GetNbinsX()+1)/totalEntries1;
+
+      double totalEntries2 = hFile2->Integral()+hFile2->GetBinContent(hFile2->GetNbinsX()+1);
+      double underflowFrac2 = 0.0;
+      double overflowFrac2 = hFile2->GetBinContent(hFile2->GetNbinsX()+1)/totalEntries2;
+
+      TString underOver1 = Form("UF: %g  OF: %g", file1_label, underflowFrac1, overflowFrac1);
+      TString underOver2 = Form("UF: %g  OF: %g", file2_label, underflowFrac2, overflowFrac2);
+
+      TPaveText *pt_ufofl = new TPaveText(0.5, 0.73, 0.9, 0.78, "NDC");
+      pt_ufofl->AddText(file1_label+"/"+underOver1);
+      pt_ufofl->SetFillStyle(0);
+      pt_ufofl->SetBorderSize(0);
+      pt_ufofl->SetTextAlign(31);
+      pt_ufofl->Draw("same");
+
+      TPaveText *pt_ufofr = new TPaveText(0.5, 0.68, 0.9, 0.73, "NDC");
+      pt_ufofr->AddText(file2_label+"/"+underOver2);
+      pt_ufofr->SetFillStyle(0);
+      pt_ufofr->SetBorderSize(0);
+      pt_ufofr->SetTextAlign(31);
+      pt_ufofr->Draw("same");
+
       TPaveText *pt2 = new TPaveText(0.1, 0.83, 0.5, 0.88, "NDC");
       pt2->AddText(file1_dataormc+"/"+file2_dataormc);
       pt2->SetFillStyle(0);
@@ -271,8 +308,15 @@ void getCalorimetryInformation(TString file1name, TString file1_dataormc, TStrin
       pt2->SetTextAlign(11);
       pt2->Draw("same");
 
-      TString saveString = Form(outDir+fileName+".png");
+      TString saveString = Form(outDir+"4CALO_"+fileName+".png");
       c1->SaveAs(saveString, "png"); 
+
+      if (isCI){
+        std::ofstream commentsFile;
+        commentsFile.open(outDir+"4CALO_"+fileName+".comment");
+        textWrap(comments.at(i).at(j), commentsFile, 70);
+        commentsFile.close();
+      }
 
       hFile1->Write();
       hFile2->Write();
@@ -280,13 +324,13 @@ void getCalorimetryInformation(TString file1name, TString file1_dataormc, TStrin
       // check chisq if MC/MC comparison
       if (file1_dataormc == "MC" && file2_dataormc == "MC"){
 
-	// Print all chi2 values to a file for tracking over time
-	std::ofstream ChisqFile;
-	ChisqFile.open(outDir+"ChisqValues.txt", std::ios_base::app);
-	ChisqFile << Form(fileName.Remove((int)fileName.Length()-7)+"%i", dqdx_it) << " " << chisqv << "\n";
-	ChisqFile.close();
+        // Print all chi2 values to a file for tracking over time
+        std::ofstream ChisqFile;
+        ChisqFile.open(outDir+"ChisqValues.txt", std::ios_base::app);
+        ChisqFile << Form(fileName.Remove((int)fileName.Length()-7)+"%i", dqdx_it) << " " << chisqv << "\n";
+        ChisqFile.close();
 
-	// Print names of plots with high chi2 to a separate file
+        // Print names of plots with high chi2 to a separate file
         if (chisqv >= chisqNotifierCut){
 
           std::ofstream highChisqFile;
