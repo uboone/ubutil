@@ -71,16 +71,16 @@ void getFlashInformation(TString file1name, TString file1_dataormc, TString file
     flashPlotValues = {
       /*nfls*/              {{10, 0, 10}, {75, 0, 75}},
       /*flsTime*/           {{50, 0, 25}, {160, -3200, 4800}},
-      /*flsPe*/             {{50, 0, 500}, {50, 0, 500}}
+      /*flsPe*/             {{100, 20, 4000}, {100, 30, 4000}}
     };
 
     comments = {
       /*nfls_simpleFlashBeam*/      {"nfls_simpleFlashBeam. Each entry in the histogram is the number of flashes for a single event, as reconstructed with the simpleFlashBeam algorithm.",
       /*flsTime_simpleFlashBeam*/    "flsTime_simpleFlashBeam. Peak time of each flash, as reconstructed with the simpleFlashBeam algorithm.",
-      /*flsPe_simpleFlashBeam*/      "flsPe_simpleFlashBeam. The number of photoelectrons produced by each flash, as reconstructed with the simpleFlashBeam algorithm."},
+      /*flsPe_simpleFlashBeam*/      "flsPe_simpleFlashBeam. The number of photoelectrons produced by each flash, as reconstructed with the simpleFlashBeam algorithm. If there are any entries in the underflow bin, email the experts."},
       /*nfls_simpleFlashCosmic*/    {"nfls_simpleFlashCosmic. Each entry in the histogram is the number of flashes for a single event, as reconstructed with the simpleFlashCosmic algorithm.",
       /*flsTime_simpleFlashCosmic*/  "flsTime_simpleFlashCosmic. Peak time of each flash, as reconstructed with the simpleFlashCosmic algorithm.",
-      /*flsPe_simpleFlashCosmic*/    "flsPe_simpleFlashCosmic. The number of photoelectrons produced by each flash, as as reconstructed with the simpleFlashCosmic algorithm."}
+      /*flsPe_simpleFlashCosmic*/    "flsPe_simpleFlashCosmic. The number of photoelectrons produced by each flash, as as reconstructed with the simpleFlashCosmic algorithm. If there are any entries in the underflow bin, email the experts."}
     };
 
   }
