@@ -1,5 +1,8 @@
 #include <iostream>
 #include <fstream>
+#include <cstdlib>
+#include <cctype>
+#include <functional>
 #include <string>
 #include <algorithm>
 #include <cassert>
@@ -24,6 +27,38 @@ int chisqNotifierCut = 9999999;
 bool inFV(Double_t x, Double_t y, Double_t z) {
 	if(x < (FVx - borderx) && (x > borderx) && (y < (FVy/2. - bordery)) && (y > (-FVy/2. + bordery)) && (z < (FVz - borderz)) && (z > borderz)) return true;
 	else return false;
+}
+
+
+// This function wraps text (so we can output multi-line .comment files for the CI dashboard)
+void textWrap(string &in, ostream& out, size_t width) {
+  
+   string tmp;
+   char cur = '\0';
+   char last = '\0';
+   size_t i = 0;
+   
+   for (size_t idx_in_str=0; idx_in_str < in.size(); idx_in_str++) {
+     cur = in.at(idx_in_str);
+     if (idx_in_str == in.size()-1){ // Add last word to the file
+       out << tmp << cur << '\n';
+     }
+     if (++i == width) { // If you get to the character limit for a line, add it to the file
+       if (isspace(tmp.at(0))){ // Remove leading spaces
+	 //tmp = tmp.substr(1,tmp.size()-1);
+	 tmp.erase(tmp.begin());
+       }
+       out << '\n' << tmp;           
+       i = tmp.length();
+       tmp.clear();
+     }
+     else if (isspace(cur) && !isspace(last)) { // This is the end of a word. Add it to the file
+       out << tmp;
+       tmp.clear();
+     }
+     tmp += cur;
+     last = cur;
+   }
 }
 
 
@@ -64,9 +99,8 @@ TH1D* effcalc(TH1D* hreco, TH1D* htrue, TString label){
       heff->SetBinError(ibin, err);
     }
   }
-  heff->SetMinimum(0.);
-  heff->SetMaximum(1.05);
   heff->SetMarkerStyle(20);
+  heff->GetYaxis()->SetRangeUser(0,1.5);
 
   return heff;
 }
@@ -94,6 +128,8 @@ void FillPlots_MC( TTree* tree, std::vector<TH1D> &hvector, std::string tracking
    Float_t         trkmcsbwdmom[kMaxTracks];
    Float_t	   trkpidpida[kMaxTracks][3];
    Short_t         trkpidbestplane[kMaxTracks];
+   Float_t         trkpurity[kMaxTracks]; // Track purity based on hit information
+   Float_t         trkcompleteness[kMaxTracks]; // Track completeness based on hit information
 
    const int kMaxVertices = 100;
    Short_t         nnuvtx;
@@ -142,6 +178,8 @@ void FillPlots_MC( TTree* tree, std::vector<TH1D> &hvector, std::string tracking
    Int_t           genie_primaries_pdg[maxgenie];
    Int_t           genie_status_code[maxgenie];
 
+   Int_t           no_mctracks; // number of MC tracks in this event
+
    // Initialise only the branches we want (makes it run faster)
    // and set branch addresses
    tree -> SetBranchStatus("*",0);
@@ -187,6 +225,12 @@ void FillPlots_MC( TTree* tree, std::vector<TH1D> &hvector, std::string tracking
    branch_name = "trkpidbestplane_" + tracking_algorithm;
    tree -> SetBranchStatus(branch_name.c_str(),1);
    tree -> SetBranchAddress(branch_name.c_str(), trkpidbestplane);
+   branch_name = "trkpurity_" + tracking_algorithm;
+   tree -> SetBranchStatus(branch_name.c_str(),1);
+   tree -> SetBranchAddress(branch_name.c_str(), trkpurity);
+   branch_name = "trkcompleteness_" + tracking_algorithm;
+   tree -> SetBranchStatus(branch_name.c_str(),1);
+   tree -> SetBranchAddress(branch_name.c_str(), trkcompleteness);
    
    tree -> SetBranchStatus("geant_list_size",1);
    tree -> SetBranchAddress("geant_list_size", &geant_list_size);
@@ -301,6 +345,8 @@ void FillPlots_MC( TTree* tree, std::vector<TH1D> &hvector, std::string tracking
    tree -> SetBranchAddress("theta_xz", &theta_xz);
    tree -> SetBranchStatus("theta_yz",1);
    tree -> SetBranchAddress("theta_yz", &theta_yz);
+   tree -> SetBranchStatus("no_mctracks",1);
+   tree -> SetBranchAddress("no_mctracks", &no_mctracks);
 
    long Size = tree -> GetEntries();
    cout << "Number of events in the tree is: " << Size << endl;
@@ -308,7 +354,7 @@ void FillPlots_MC( TTree* tree, std::vector<TH1D> &hvector, std::string tracking
    std::string histoname = "hnreco_" + version;
    TH1D *hnreco = new TH1D(histoname.c_str(), "Number of reco tracks; Number of reco tracks;", 30, 0, 30);
    histoname = "hntrue_" + version;
-   TH1D *hntrue = new TH1D(histoname.c_str(), "Number of true primary tracks per event; # True tracks;", 50, 0, 50);
+   TH1D *hntrue = new TH1D(histoname.c_str(), "Number of true tracks; # True tracks;", 50, 0, 50);
    histoname = "hstartx_" + version;
    TH1D *hstartx = new TH1D(histoname.c_str(), "Track start X position; x [cm];", 100, -200, 500);
    histoname = "hstarty_" + version;
@@ -325,6 +371,10 @@ void FillPlots_MC( TTree* tree, std::vector<TH1D> &hvector, std::string tracking
    TH1D *hlreco = new TH1D(histoname.c_str(), "Track length Reco; Track length [cm];", 100, 0, 1000);
    histoname = "hlrange_" + version;
    TH1D *hlrange = new TH1D(histoname.c_str(), "Track length Range (start point - end point); Track range [cm];", 100, 0, 1000);
+   histoname = "htrkpurity_" + version;
+   TH1D *htrkpurity = new TH1D(histoname.c_str(), "Track Purity based on hit information", 100, 0, 1);
+   histoname = "htrkcompleteness_" + version;
+   TH1D *htrkcompleteness = new TH1D(histoname.c_str(), "Track Completeness based on hit information", 100, 0, 1);
    histoname = "hlmc_" + version;
    TH1D *hlmc = new TH1D(histoname.c_str(), "Track length True; Track length [cm];", 100, 0, 1000);
    histoname = "hlrangemc_" + version;
@@ -382,45 +432,110 @@ void FillPlots_MC( TTree* tree, std::vector<TH1D> &hvector, std::string tracking
 
    // Define track efficiency truth histograms
    histoname = "htrue_mclen_" + version;
-   TH1D *htrue_mclen = new TH1D(histoname.c_str(),"True Length", 60, 0, 1200);
-   histoname = "htrue_mcpdg_" + version;
-   TH1D *htrue_mcpdg = new TH1D(histoname.c_str(),"True PDG", 20, 0, 5000);
+   TH1D *htrue_mclen = new TH1D(histoname.c_str(),"True Length (#mu^{+/-}, #pi^{+/-}, K^{+/-}, p)", 60, 0, 1200);
    histoname = "htrue_mctheta_" + version;
-   TH1D *htrue_mctheta = new TH1D(histoname.c_str(),"True Theta", 20, 0, 180);
+   TH1D *htrue_mctheta = new TH1D(histoname.c_str(),"True Theta (#mu^{+/-}, #pi^{+/-}, K^{+/-}, p)", 20, 0, 180);
    histoname = "htrue_mcphi_" + version;
-   TH1D *htrue_mcphi = new TH1D(histoname.c_str(),"True Phi", 20, -180, 180);
-   histoname = "htrue_mcthetaxz_" + version;
-   TH1D *htrue_mcthetaxz = new TH1D(histoname.c_str(),"True ThetaXZ", 20, -180, 180);
-   histoname = "htrue_mcthetayz_" + version;
-   TH1D *htrue_mcthetayz = new TH1D(histoname.c_str(),"True ThetaYZ", 20, -180, 180);
+   TH1D *htrue_mcphi = new TH1D(histoname.c_str(),"True Phi (#mu^{+/-}, #pi^{+/-}, K^{+/-}, p)", 20, -180, 180);
    histoname = "htrue_mcmom_" + version;
-   TH1D *htrue_mcmom = new TH1D(histoname.c_str(),"True Momentum", 20, 0, 2.2);
+   TH1D *htrue_mcmom = new TH1D(histoname.c_str(),"True Momentum (#mu^{+/-}, #pi^{+/-}, K^{+/-}, p)", 20, 0, 2.2);
+   histoname = "htrue_muon_mclen_" + version;
+   TH1D *htrue_muon_mclen = new TH1D(histoname.c_str(),"True Length (#mu^{+/-} only)", 60, 0, 1200);
+   histoname = "htrue_muon_mctheta_" + version;
+   TH1D *htrue_muon_mctheta = new TH1D(histoname.c_str(),"True Theta (#mu^{+/-} only)", 20, 0, 180);
+   histoname = "htrue_muon_mcphi_" + version;
+   TH1D *htrue_muon_mcphi = new TH1D(histoname.c_str(),"True Phi (#mu^{+/-} only)", 20, -180, 180);
+   histoname = "htrue_muon_mcmom_" + version;
+   TH1D *htrue_muon_mcmom = new TH1D(histoname.c_str(),"True Momentum (#mu^{+/-} only)", 20, 0, 2.2);
+   histoname = "htrue_pion_mclen_" + version;
+   TH1D *htrue_pion_mclen = new TH1D(histoname.c_str(),"True Length (#pi^{+/-} only)", 60, 0, 1200);
+   histoname = "htrue_pion_mctheta_" + version;
+   TH1D *htrue_pion_mctheta = new TH1D(histoname.c_str(),"True Theta (#pi^{+/-} only)", 20, 0, 180);
+   histoname = "htrue_pion_mcphi_" + version;
+   TH1D *htrue_pion_mcphi = new TH1D(histoname.c_str(),"True Phi (#pi^{+/-} only)", 20, -180, 180);
+   histoname = "htrue_pion_mcmom_" + version;
+   TH1D *htrue_pion_mcmom = new TH1D(histoname.c_str(),"True Momentum (#pi^{+/-} only)", 20, 0, 2.2);
+   histoname = "htrue_kaon_mclen_" + version;
+   TH1D *htrue_kaon_mclen = new TH1D(histoname.c_str(),"True Length (K^{+/-} only)", 60, 0, 1200);
+   histoname = "htrue_kaon_mctheta_" + version;
+   TH1D *htrue_kaon_mctheta = new TH1D(histoname.c_str(),"True Theta (K^{+/-} only)", 20, 0, 180);
+   histoname = "htrue_kaon_mcphi_" + version;
+   TH1D *htrue_kaon_mcphi = new TH1D(histoname.c_str(),"True Phi (K^{+/-} only)", 20, -180, 180);
+   histoname = "htrue_kaon_mcmom_" + version;
+   TH1D *htrue_kaon_mcmom = new TH1D(histoname.c_str(),"True Momentum (K^{+/-} only)", 20, 0, 2.2);
+   histoname = "htrue_proton_mclen_" + version;
+   TH1D *htrue_proton_mclen = new TH1D(histoname.c_str(),"True Length (p only)", 60, 0, 1200);
+   histoname = "htrue_proton_mctheta_" + version;
+   TH1D *htrue_proton_mctheta = new TH1D(histoname.c_str(),"True Theta (p only)", 20, 0, 180);
+   histoname = "htrue_proton_mcphi_" + version;
+   TH1D *htrue_proton_mcphi = new TH1D(histoname.c_str(),"True Phi (p only)", 20, -180, 180);
+   histoname = "htrue_proton_mcmom_" + version;
+   TH1D *htrue_proton_mcmom = new TH1D(histoname.c_str(),"True Momentum (p only)", 20, 0, 2.2);
 
    // Define track efficiency reco histograms
    histoname = "hreco_mclen_" + version;
-   TH1D *hreco_mclen = new TH1D(histoname.c_str(),"Reco Length", 60, 0, 1200);
-   histoname = "hreco_mcpdg_" + version;
-   TH1D *hreco_mcpdg = new TH1D(histoname.c_str(),"Reco PDG", 20, 0, 5000);
+   TH1D *hreco_mclen = new TH1D(histoname.c_str(),"Reco Length (#mu^{+/-}, #pi^{+/-}, K^{+/-}, p)", 60, 0, 1200);
    histoname = "hreco_mctheta_" + version;
-   TH1D *hreco_mctheta = new TH1D(histoname.c_str(),"Reco Theta", 20, 0, 180);
+   TH1D *hreco_mctheta = new TH1D(histoname.c_str(),"Reco Theta (#mu^{+/-}, #pi^{+/-}, K^{+/-}, p)", 20, 0, 180);
    histoname = "hreco_mcphi_" + version;
-   TH1D *hreco_mcphi = new TH1D(histoname.c_str(),"Reco Phi", 20, -180, 180);
-   histoname = "hreco_mcthetaxz_" + version;
-   TH1D *hreco_mcthetaxz = new TH1D(histoname.c_str(),"Reco ThetaXZ", 20, -180, 180);
-   histoname = "hreco_mcthetayz_" + version;
-   TH1D *hreco_mcthetayz = new TH1D(histoname.c_str(),"Reco ThetaYZ", 20, -180, 180);
+   TH1D *hreco_mcphi = new TH1D(histoname.c_str(),"Reco Phi (#mu^{+/-}, #pi^{+/-}, K^{+/-}, p)", 20, -180, 180);
    histoname = "hreco_mcmom_" + version;
-   TH1D *hreco_mcmom = new TH1D(histoname.c_str(),"Reco Momentum", 20, 0, 2.2);
+   TH1D *hreco_mcmom = new TH1D(histoname.c_str(),"Reco Momentum (#mu^{+/-}, #pi^{+/-}, K^{+/-}, p)", 20, 0, 2.2);
+   histoname = "hreco_muon_mclen_" + version;
+   TH1D *hreco_muon_mclen = new TH1D(histoname.c_str(),"True Length (#mu^{+/-} only)", 60, 0, 1200);
+   histoname = "hreco_muon_mctheta_" + version;
+   TH1D *hreco_muon_mctheta = new TH1D(histoname.c_str(),"True Theta (#mu^{+/-} only)", 20, 0, 180);
+   histoname = "hreco_muon_mcphi_" + version;
+   TH1D *hreco_muon_mcphi = new TH1D(histoname.c_str(),"True Phi (#mu^{+/-} only)", 20, -180, 180);
+   histoname = "hreco_muon_mcmom_" + version;
+   TH1D *hreco_muon_mcmom = new TH1D(histoname.c_str(),"True Momentum (#mu^{+/-} only)", 20, 0, 2.2);
+   histoname = "hreco_pion_mclen_" + version;
+   TH1D *hreco_pion_mclen = new TH1D(histoname.c_str(),"True Length (#pi^{+/-} only)", 60, 0, 1200);
+   histoname = "hreco_pion_mctheta_" + version;
+   TH1D *hreco_pion_mctheta = new TH1D(histoname.c_str(),"True Theta (#pi^{+/-} only)", 20, 0, 180);
+   histoname = "hreco_pion_mcphi_" + version;
+   TH1D *hreco_pion_mcphi = new TH1D(histoname.c_str(),"True Phi (#pi^{+/-} only)", 20, -180, 180);
+   histoname = "hreco_pion_mcmom_" + version;
+   TH1D *hreco_pion_mcmom = new TH1D(histoname.c_str(),"True Momentum (#pi^{+/-} only)", 20, 0, 2.2);
+   histoname = "hreco_kaon_mclen_" + version;
+   TH1D *hreco_kaon_mclen = new TH1D(histoname.c_str(),"True Length (K^{+/-} only)", 60, 0, 1200);
+   histoname = "hreco_kaon_mctheta_" + version;
+   TH1D *hreco_kaon_mctheta = new TH1D(histoname.c_str(),"True Theta (K^{+/-} only)", 20, 0, 180);
+   histoname = "hreco_kaon_mcphi_" + version;
+   TH1D *hreco_kaon_mcphi = new TH1D(histoname.c_str(),"True Phi (K^{+/-} only)", 20, -180, 180);
+   histoname = "hreco_kaon_mcmom_" + version;
+   TH1D *hreco_kaon_mcmom = new TH1D(histoname.c_str(),"True Momentum (K^{+/-} only)", 20, 0, 2.2);
+   histoname = "hreco_proton_mclen_" + version;
+   TH1D *hreco_proton_mclen = new TH1D(histoname.c_str(),"True Length (p only)", 60, 0, 1200);
+   histoname = "hreco_proton_mctheta_" + version;
+   TH1D *hreco_proton_mctheta = new TH1D(histoname.c_str(),"True Theta (p only)", 20, 0, 180);
+   histoname = "hreco_proton_mcphi_" + version;
+   TH1D *hreco_proton_mcphi = new TH1D(histoname.c_str(),"True Phi (p only)", 20, -180, 180);
+   histoname = "hreco_proton_mcmom_" + version;
+   TH1D *hreco_proton_mcmom = new TH1D(histoname.c_str(),"True Momentum (p only)", 20, 0, 2.2);
 
    // Define track efficiency histograms
   TH1D* heff_mclen;
-  TH1D* heff_mcpdg;
   TH1D* heff_mctheta;
   TH1D* heff_mcphi;
-  TH1D* heff_mcthetaxz;
-  TH1D* heff_mcthetayz;
   TH1D* heff_mcmom;
-   
+  TH1D* heff_muon_mclen;
+  TH1D* heff_muon_mctheta;
+  TH1D* heff_muon_mcphi;
+  TH1D* heff_muon_mcmom;
+  TH1D* heff_pion_mclen;
+  TH1D* heff_pion_mctheta;
+  TH1D* heff_pion_mcphi;
+  TH1D* heff_pion_mcmom;
+  TH1D* heff_kaon_mclen;
+  TH1D* heff_kaon_mctheta;
+  TH1D* heff_kaon_mcphi;
+  TH1D* heff_kaon_mcmom;
+  TH1D* heff_proton_mclen;
+  TH1D* heff_proton_mctheta;
+  TH1D* heff_proton_mcphi;
+  TH1D* heff_proton_mcmom;
+
    int mutrue = 0;
    double d = 0;
    double dmc = 0;
@@ -438,118 +553,177 @@ void FillPlots_MC( TTree* tree, std::vector<TH1D> &hvector, std::string tracking
       }
 
    hnreco -> Fill(ntracks);
+   hntrue -> Fill(no_mctracks);
 
    // reconstructed info
-   std::vector<Int_t> recoID_vector;
    Int_t nbroken = 0;
    bool is_first = true;
    mutrue = 0;
    for (int recoTracks = 0; recoTracks < ntracks; recoTracks++){
-	Int_t recoID = trkg4id[recoTracks];
-	if (std::find( recoID_vector.begin(), recoID_vector.end(), recoID) != recoID_vector.end() ) {
-		std::cout << "Found Broken track!" << std:: endl;
-		nbroken++;
-	}
-	
-	 hstartx -> Fill(trkstartx[recoTracks]);
-         hstarty -> Fill(trkstarty[recoTracks]);
-         hstartz -> Fill(trkstartz[recoTracks]);
-         hendx -> Fill(trkendx[recoTracks]);
-         hendy -> Fill(trkendy[recoTracks]);
-         hendz -> Fill(trkendz[recoTracks]);
 
-         hlreco -> Fill(trklength[recoTracks]);
-         d = sqrt( pow(trkstartx[recoTracks] - trkendx[recoTracks],2) + pow(trkstarty[recoTracks] - trkendy[recoTracks],2) + pow(trkstartz[recoTracks] - trkendz[recoTracks],2) );
-         hlrange -> Fill(d);
-         hldiff -> Fill(trklength[recoTracks] - d);
-           
-      bool is_found = false;
-      for(Int_t j = 0; j < geant_list_size; j++) {
-                Int_t G4ID = TrackId[j];
-		if ( is_first && status[j]==1 && Mother[j]==0 && pdg[j] == 13) mutrue++;
-                if (recoID == G4ID){ //j is the proper index for the mc particle to be used for this track
-                        if (is_found) { 
-				std::cout << "Error! Double matching of the same MC particle" << std::endl;
-				break;
-			}
-			is_found = true;
-               
-			//calculate MC track range, and fill track range and track length
-               		dmc = sqrt( pow(StartX[j] - EndX[j], 2) + pow(StartY[j] - EndY[j],2) + pow(StartZ[j] - EndZ[j],2) );
-               		hlrangemc -> Fill(dmc);
-               		hlmc -> Fill(pathlen[j]);
-               		hldiffmc -> Fill(pathlen[j] - dmc);
+     // Reco-only plots
+     hstartx -> Fill(trkstartx[recoTracks]);
+     hstarty -> Fill(trkstarty[recoTracks]);
+     hstartz -> Fill(trkstartz[recoTracks]);
+     hendx -> Fill(trkendx[recoTracks]);
+     hendy -> Fill(trkendy[recoTracks]);
+     hendz -> Fill(trkendz[recoTracks]);
+     htrkpurity -> Fill(trkpurity[recoTracks]);
+     htrkcompleteness -> Fill(trkcompleteness[recoTracks]);
+     
+     hlreco -> Fill(trklength[recoTracks]);
+     d = sqrt( pow(trkstartx[recoTracks] - trkendx[recoTracks],2) + pow(trkstarty[recoTracks] - trkendy[recoTracks],2) + pow(trkstartz[recoTracks] - trkendz[recoTracks],2) );
+     hlrange -> Fill(d);
+     hldiff -> Fill(trklength[recoTracks] - d);
 
-                  	hlres -> Fill(trklength[recoTracks] - pathlen[j]);
-                  	hlresrange -> Fill(d - dmc);
-		  
-		  	hresostartx -> Fill(trkstartx[recoTracks]-StartX[j]);
-		  	hresostarty -> Fill(trkstarty[recoTracks]-StartY[j]);
-		  	hresostartz -> Fill(trkstartz[recoTracks]-StartZ[j]);
-		  	hresoendx -> Fill(trkendx[recoTracks]-EndX[j]);
-		  	hresoendy -> Fill(trkendy[recoTracks]-EndY[j]);
-		  	hresoendz -> Fill(trkendz[recoTracks]-EndZ[j]);
-		 	
-			//if ( inFV( real_StartX[j], real_StartY[j], real_StartZ[j] ) && inFV( real_EndX[j], real_EndY[j], real_EndZ[j] ) ) { //contained tracks
-			if ( inFV( trkstartx[recoTracks], trkstarty[recoTracks], trkstartz[recoTracks] ) && inFV( trkendx[recoTracks], trkendy[recoTracks], trkendz[recoTracks] ) ) { //contained tracks
-			hresomom_range-> Fill( trkmomrange[recoTracks] - P[j] );
-			hresomom_contained_MCSfwd-> Fill( trkmcsfwdmom[recoTracks] - P[j] );
-			hresomom_contained_MCSbwd-> Fill( trkmcsbwdmom[recoTracks] - P[j] );
-			}
+     // Now move on to plots that include comparison to truth-level variables
+     // Need to match to a truth track
+     Int_t g4ID = trkg4id[recoTracks];
+     Int_t mcID = 99999999;
+     bool is_found = false;
+     for (Int_t j = 0; j < geant_list_size; j++){
+       if (TrackId[j] == g4ID){ // j is the proper index for the MC particle to be used for this track
+	 if (is_found){
+	   std::cout << "[ERROR] Tried to match two true particles to one reco track!" << std::endl;
+	   continue;
+	 }
+	 mcID = j;
+	 is_found = true;
+       }
+     }
+     if (mcID == 99999999){
+       std::cout << "Track not matched: recoTracks = " << recoTracks << ", trkg4id = " << g4ID << std::endl;
+       std::cout << "Skipping track for reco/truth plots" << std::endl;
+       continue;
+     }
+     
+     //calculate MC track range, and fill track range and track length
+     dmc = sqrt( pow(StartX[mcID] - EndX[mcID], 2) + pow(StartY[mcID] - EndY[mcID],2) + pow(StartZ[mcID] - EndZ[mcID],2) );
+     hlrangemc -> Fill(dmc);
+     hlmc -> Fill(pathlen[mcID]);
+     hldiffmc -> Fill(pathlen[mcID] - dmc);
+     
+     hlres -> Fill(trklength[recoTracks] - pathlen[mcID]);
+     hlresrange -> Fill(d - dmc);
+     
+     hresostartx -> Fill(trkstartx[recoTracks]-StartX[mcID]);
+     hresostarty -> Fill(trkstarty[recoTracks]-StartY[mcID]);
+     hresostartz -> Fill(trkstartz[recoTracks]-StartZ[mcID]);
+     hresoendx -> Fill(trkendx[recoTracks]-EndX[mcID]);
+     hresoendy -> Fill(trkendy[recoTracks]-EndY[mcID]);
+     hresoendz -> Fill(trkendz[recoTracks]-EndZ[mcID]);
+     
+     //if ( inFV( real_StartX[mcID], real_StartY[mcID], real_StartZ[mcID] ) && inFV( real_EndX[mcID], real_EndY[mcID], real_EndZ[mcID] ) ) { //contained tracks
+     if ( inFV( trkstartx[recoTracks], trkstarty[recoTracks], trkstartz[recoTracks] ) && inFV( trkendx[recoTracks], trkendy[recoTracks], trkendz[recoTracks] ) ) { //contained tracks
+       hresomom_range-> Fill( trkmomrange[recoTracks] - P[mcID] );
+       hresomom_contained_MCSfwd-> Fill( trkmcsfwdmom[recoTracks] - P[mcID] );
+       hresomom_contained_MCSbwd-> Fill( trkmcsbwdmom[recoTracks] - P[mcID] );
+     }
+     
+     hresomom_MCSfwd-> Fill( trkmcsfwdmom[recoTracks] - P[mcID] );
+     hresomom_MCSbwd-> Fill( trkmcsbwdmom[recoTracks] - P[mcID] );
+     
+     hpidpida_total -> Fill ( trkpidpida[recoTracks][trkpidbestplane[recoTracks]] );
+     if ( pdg[mcID] == 13 )
+       hpidpida_muon -> Fill ( trkpidpida[recoTracks][trkpidbestplane[recoTracks]] );
+     
+     //calculate start point resolution
+     d1 = sqrt( pow(StartX[mcID] - trkstartx[recoTracks], 2) + pow(StartY[mcID] - trkstarty[recoTracks],2) + pow(StartZ[mcID] - trkstartz[recoTracks], 2) );
+     d2 = sqrt( pow(StartX[mcID] - trkendx[recoTracks], 2) + pow(StartY[mcID] - trkendy[recoTracks], 2) + pow(StartZ[mcID] - trkendz[recoTracks], 2) );
+     if(d1 < d2) {
+       hresstart -> Fill(d1);
+       d1 = sqrt( pow(EndX[mcID] - trkendx[recoTracks], 2) + pow(EndY[mcID] - trkendy[recoTracks], 2) + pow(EndZ[mcID] - trkendz[recoTracks], 2) );
+       hresend -> Fill(d1); 
+     } else {
+       hresstart -> Fill(d2);
+       d2 = sqrt( pow(EndX[mcID] - trkstartx[recoTracks],2 ) +pow(EndY[mcID] - trkstarty[recoTracks],2) +pow(EndZ[mcID] - trkstartz[recoTracks],2));
+       hresend -> Fill(d2);	
+     }
+     
+     // Add an entry for this matched reco track to reco histogram
+     // Only do this for mu, charged pi, charged K, p
+     // Only do this if the true track starts in the FV
+     if (inFV(real_StartX[mcID], real_StartY[mcID], real_StartZ[mcID])){
+       if (abs(pdg[mcID]) == 13 || abs(pdg[mcID]) == 211 || abs(pdg[mcID]) == 321 || abs(pdg[mcID]) == 2212){
+	 hreco_mclen->Fill(pathlen[mcID]);
+	 hreco_mctheta->Fill(theta[mcID]*180/3.142);
+	 hreco_mcphi->Fill(phi[mcID]*180/3.142);
+	 hreco_mcmom->Fill(P[mcID]);
+       }
+       if (abs(pdg[mcID]) == 13){ // Muons only
+	 hreco_muon_mclen->Fill(pathlen[mcID]);
+	 hreco_muon_mctheta->Fill(theta[mcID]*180/3.142);
+	 hreco_muon_mcphi->Fill(phi[mcID]*180/3.142);
+	 hreco_muon_mcmom->Fill(P[mcID]);
+       }
+       if (abs(pdg[mcID]) == 211){ // Charged Pions only
+	 hreco_pion_mclen->Fill(pathlen[mcID]);
+	 hreco_pion_mctheta->Fill(theta[mcID]*180/3.142);
+	 hreco_pion_mcphi->Fill(phi[mcID]*180/3.142);
+	 hreco_pion_mcmom->Fill(P[mcID]);
+       }
+       if (abs(pdg[mcID]) == 321){ // Charged Kaons only
+	 hreco_kaon_mclen->Fill(pathlen[mcID]);
+	 hreco_kaon_mctheta->Fill(theta[mcID]*180/3.142);
+	 hreco_kaon_mcphi->Fill(phi[mcID]*180/3.142);
+	 hreco_kaon_mcmom->Fill(P[mcID]);
+       }
+       if (abs(pdg[mcID]) == 2212){ // Protons only
+	 hreco_proton_mclen->Fill(pathlen[mcID]);
+	 hreco_proton_mctheta->Fill(theta[mcID]*180/3.142);
+	 hreco_proton_mcphi->Fill(phi[mcID]*180/3.142);
+	 hreco_proton_mcmom->Fill(P[mcID]);
+       }
+     }
+     
+     
+   } //end loop on reco tracks
 
-			hresomom_MCSfwd-> Fill( trkmcsfwdmom[recoTracks] - P[j] );
-			hresomom_MCSbwd-> Fill( trkmcsbwdmom[recoTracks] - P[j] );
-
-			hpidpida_total -> Fill ( trkpidpida[recoTracks][trkpidbestplane[recoTracks]] );
-			if ( pdg[j] == 13 )
-			hpidpida_muon -> Fill ( trkpidpida[recoTracks][trkpidbestplane[recoTracks]] );
-		  
-                  	//calculate start point resolution
-                  	d1 = sqrt( pow(StartX[j] - trkstartx[recoTracks], 2) + pow(StartY[j] - trkstarty[recoTracks],2) + pow(StartZ[j] - trkstartz[recoTracks], 2) );
-                  	d2 = sqrt( pow(StartX[j] - trkendx[recoTracks], 2) + pow(StartY[j] - trkendy[recoTracks], 2) + pow(StartZ[j] - trkendz[recoTracks], 2) );
-                  	if(d1 < d2) {
-                     		hresstart -> Fill(d1);
-                     		d1 = sqrt( pow(EndX[j] - trkendx[recoTracks], 2) + pow(EndY[j] - trkendy[recoTracks], 2) + pow(EndZ[j] - trkendz[recoTracks], 2) );
-                     		hresend -> Fill(d1); 
-                 	 } else {
-                     		hresstart -> Fill(d2);
-                     		d2 = sqrt( pow(EndX[j] - trkstartx[recoTracks],2 ) +pow(EndY[j] - trkstarty[recoTracks],2) +pow(EndZ[j] - trkstartz[recoTracks],2));
-                     		hresend -> Fill(d2);	
-                  	}
-
-			// Add an entry for this matched reco track to reco histogram
-			// Only do this for mu, charged pi, charged K, p
-			if (abs(pdg[j]) == 13 || abs(pdg[j]) == 211 || abs(pdg[j]) == 321 || abs(pdg[j]) == 2212){
-			  hreco_mclen->Fill(pathlen[j]);
-			  hreco_mcpdg->Fill(pdg[j]);
-			  hreco_mctheta->Fill(theta[j]*180/3.142);
-			  hreco_mcphi->Fill(phi[j]*180/3.142);
-			  hreco_mcthetaxz->Fill(theta_xz[j]*180/3.142);
-			  hreco_mcthetayz->Fill(theta_yz[j]*180/3.142);
-			  hreco_mcmom->Fill(P[j]);
-			  }
-			
-               	} // end-if j is the proper index for the mc particle to be used for this track
-               } //end loop on MC particles
-      		is_first=false;
-            } //end loop on reco tracks
-   
-      	hntrue -> Fill(mutrue);
 		
-	// Loop over all true geant particles in event and add entries for all tracks to true histogram
-	for (int igeant=0; igeant<geant_list_size; igeant++){
-	  // Only do this for mu, charged pi, charged K, p
-	  if (abs(pdg[igeant]) == 13 || abs(pdg[igeant]) == 211 || abs(pdg[igeant]) == 321 || abs(pdg[igeant]) == 2212){
-	    htrue_mclen->Fill(pathlen[igeant]);
-	    htrue_mcpdg->Fill(pdg[igeant]);
-	    htrue_mctheta->Fill(theta[igeant]*180/3.142);
-	    htrue_mcphi->Fill(phi[igeant]*180/3.142);
-	    htrue_mcthetaxz->Fill(theta_xz[igeant]*180/3.142);
-	    htrue_mcthetayz->Fill(theta_yz[igeant]*180/3.142);
-	    htrue_mcmom->Fill(P[igeant]);
-	  }
-	}
-			
+   // Loop over all true geant particles in event and add entries for all particles to true histogram
+   for (int igeant=0; igeant<geant_list_size; igeant++){
+     
+     // Check if the true start position is in the TPC
+     if (!inFV(real_StartX[igeant], real_StartY[igeant], real_StartZ[igeant])){
+       //std::cout << "Track start true point not in FV: recoTracks = " << recoTracks << std::endl;
+       // std::cout << "Skipping track..." << std::endl;
+       continue;
+     }
+     
+     // Only do this for mu, charged pi, charged K, p
+     if (abs(pdg[igeant]) == 13 || abs(pdg[igeant]) == 211 || abs(pdg[igeant]) == 321 || abs(pdg[igeant]) == 2212){
+	 htrue_mclen->Fill(pathlen[igeant]);
+	 htrue_mctheta->Fill(theta[igeant]*180/3.142);
+	 htrue_mcphi->Fill(phi[igeant]*180/3.142);
+	 htrue_mcmom->Fill(P[igeant]);
+     }
+     if (abs(pdg[igeant]) == 13){ // Muons only
+       htrue_muon_mclen->Fill(pathlen[igeant]);
+       htrue_muon_mctheta->Fill(theta[igeant]*180/3.142);
+       htrue_muon_mcphi->Fill(phi[igeant]*180/3.142);
+       htrue_muon_mcmom->Fill(P[igeant]);
+     }
+     if (abs(pdg[igeant]) == 211){ // Charged Pions only
+       htrue_pion_mclen->Fill(pathlen[igeant]);
+       htrue_pion_mctheta->Fill(theta[igeant]*180/3.142);
+       htrue_pion_mcphi->Fill(phi[igeant]*180/3.142);
+       htrue_pion_mcmom->Fill(P[igeant]);
+     }
+     if (abs(pdg[igeant]) == 321){ // Charged Kaons only
+       htrue_kaon_mclen->Fill(pathlen[igeant]);
+       htrue_kaon_mctheta->Fill(theta[igeant]*180/3.142);
+       htrue_kaon_mcphi->Fill(phi[igeant]*180/3.142);
+       htrue_kaon_mcmom->Fill(P[igeant]);
+       }
+     if (abs(pdg[igeant]) == 2212){ // Protons only
+       htrue_proton_mclen->Fill(pathlen[igeant]);
+       htrue_proton_mctheta->Fill(theta[igeant]*180/3.142);
+       htrue_proton_mcphi->Fill(phi[igeant]*180/3.142);
+       htrue_proton_mcmom->Fill(P[igeant]);
+     }
+   }       
+
+   
 	// Vertex information
 	double distmin = 10000;
 	double dist = 0;
@@ -588,13 +762,31 @@ void FillPlots_MC( TTree* tree, std::vector<TH1D> &hvector, std::string tracking
    } //end loop on events
 
    // Make efficiency histograms
-   heff_mclen = effcalc(hreco_mclen, htrue_mclen, TString("Tracking Efficiency; True Track Length (cm); Efficiency"));
-   heff_mcpdg = effcalc(hreco_mcpdg, htrue_mcpdg, TString("Tracking Efficiency; True PDG Code; Efficiency"));
-   heff_mctheta = effcalc(hreco_mctheta, htrue_mctheta, TString("Tracking Efficiency; True #theta (degrees); Efficiency"));
-   heff_mcphi = effcalc(hreco_mcphi, htrue_mcphi, TString("Tracking Efficiency; True #phi (degrees); Efficiency"));
-   heff_mcthetaxz = effcalc(hreco_mcthetaxz, htrue_mcthetaxz, TString("Tracking Efficiency; True #theta_{xz} (degrees); Efficiency"));
-   heff_mcthetayz = effcalc(hreco_mcthetayz, htrue_mcthetayz, TString("Tracking Efficiency; True #theta_{yz}; Efficiency"));
-   heff_mcmom = effcalc(hreco_mcmom, htrue_mcmom, TString("Tracking Efficiency; True Momentum (GeV); Efficiency"));
+   // All charged particle types
+   heff_mclen = effcalc(hreco_mclen, htrue_mclen, TString("Tracking Efficiency: #mu^{+/-}, #pi^{+/-}, K^{+/-}, p; True Track Length (cm); Efficiency"));
+   heff_mctheta = effcalc(hreco_mctheta, htrue_mctheta, TString("Tracking Efficiency: #mu^{+/-}, #pi^{+/-}, K^{+/-}, p; True #theta (degrees); Efficiency"));
+   heff_mcphi = effcalc(hreco_mcphi, htrue_mcphi, TString("Tracking Efficiency: #mu^{+/-}, #pi^{+/-}, K^{+/-}, p; True #phi (degrees); Efficiency"));
+   heff_mcmom = effcalc(hreco_mcmom, htrue_mcmom, TString("Tracking Efficiency: #mu^{+/-}, #pi^{+/-}, K^{+/-}, p; True Momentum (GeV); Efficiency"));
+   // Muons
+   heff_muon_mclen = effcalc(hreco_muon_mclen, htrue_muon_mclen, TString("Tracking Efficiency: #mu^{+/-}; True Track Length (cm); Efficiency"));
+   heff_muon_mctheta = effcalc(hreco_muon_mctheta, htrue_muon_mctheta, TString("Tracking Efficiency: #mu^{+/-}; True #theta (degrees); Efficiency"));
+   heff_muon_mcphi = effcalc(hreco_muon_mcphi, htrue_muon_mcphi, TString("Tracking Efficiency: #mu^{+/-}; True #phi (degrees); Efficiency"));
+   heff_muon_mcmom = effcalc(hreco_muon_mcmom, htrue_muon_mcmom, TString("Tracking Efficiency: #mu^{+/-}; True Momentum (GeV); Efficiency"));
+   // Pions
+   heff_pion_mclen = effcalc(hreco_pion_mclen, htrue_pion_mclen, TString("Tracking Efficiency: #pi^{+/-}; True Track Length (cm); Efficiency"));
+   heff_pion_mctheta = effcalc(hreco_pion_mctheta, htrue_pion_mctheta, TString("Tracking Efficiency: #pi^{+/-}; True #theta (degrees); Efficiency"));
+   heff_pion_mcphi = effcalc(hreco_pion_mcphi, htrue_pion_mcphi, TString("Tracking Efficiency: #pi^{+/-}; True #phi (degrees); Efficiency"));
+   heff_pion_mcmom = effcalc(hreco_pion_mcmom, htrue_pion_mcmom, TString("Tracking Efficiency: #pi^{+/-}; True Momentum (GeV); Efficiency"));
+   // Kaons
+   heff_kaon_mclen = effcalc(hreco_kaon_mclen, htrue_kaon_mclen, TString("Tracking Efficiency: K^{+/-}; True Track Length (cm); Efficiency"));
+   heff_kaon_mctheta = effcalc(hreco_kaon_mctheta, htrue_kaon_mctheta, TString("Tracking Efficiency: K^{+/-}; True #theta (degrees); Efficiency"));
+   heff_kaon_mcphi = effcalc(hreco_kaon_mcphi, htrue_kaon_mcphi, TString("Tracking Efficiency: K^{+/-}; True #phi (degrees); Efficiency"));
+   heff_kaon_mcmom = effcalc(hreco_kaon_mcmom, htrue_kaon_mcmom, TString("Tracking Efficiency: K^{+/-}; True Momentum (GeV); Efficiency"));
+   // Protons
+   heff_proton_mclen = effcalc(hreco_proton_mclen, htrue_proton_mclen, TString("Tracking Efficiency: p; True Track Length (cm); Efficiency"));
+   heff_proton_mctheta = effcalc(hreco_proton_mctheta, htrue_proton_mctheta, TString("Tracking Efficiency: p; True #theta (degrees); Efficiency"));
+   heff_proton_mcphi = effcalc(hreco_proton_mcphi, htrue_proton_mcphi, TString("Tracking Efficiency: p; True #phi (degrees); Efficiency"));
+   heff_proton_mcmom = effcalc(hreco_proton_mcmom, htrue_proton_mcmom, TString("Tracking Efficiency: p; True Momentum (GeV); Efficiency"));
 
 
 
@@ -608,6 +800,12 @@ void FillPlots_MC( TTree* tree, std::vector<TH1D> &hvector, std::string tracking
    comments.push_back("Distance between true track start position and reco track start position. Should peak at 0, width tells you about the resolution.");
    hvector.push_back(*hresend);
    comments.push_back("Distance between true track end position and reco track end position. Should peak at 0, width tells you about the resolution.");
+   hvector.push_back(*heff_mcmom);
+   comments.push_back("Efficiency for reconstruction charged particle tracks in which the true start position is inside a fiducial volume (10 cm from the edge of the TPC active volume in x and z, 20 cm from the edge of the TPC active volume in y), as a function of true particle momentum.");
+   hvector.push_back(*htrkpurity);
+   comments.push_back("Track purity, constructed from hits. Should peak at 1.");
+   hvector.push_back(*htrkcompleteness);
+   comments.push_back("Track completeness, constructed from hits. Should peak at 1.");
    // Note: for now, nuvtxx/nuvtxy/nuvtxz are only available in analysistree from pandoraNu
    // So only make these plots for pandoraNu!
    if (tracking_algorithm == "pandoraNu"){
@@ -645,6 +843,65 @@ void FillPlots_MC( TTree* tree, std::vector<TH1D> &hvector, std::string tracking
      hvector.push_back(*hlrangemc);
      hvector.push_back(*hntrue);
      hvector.push_back(*hpidpida_muon);
+     hvector.push_back(*heff_mctheta);
+     hvector.push_back(*hreco_mctheta);
+     hvector.push_back(*htrue_mctheta);
+     hvector.push_back(*heff_mcphi);
+     hvector.push_back(*hreco_mcphi);
+     hvector.push_back(*htrue_mcphi);
+     hvector.push_back(*heff_mclen);
+     hvector.push_back(*hreco_mclen);
+     hvector.push_back(*htrue_mclen);
+     hvector.push_back(*hreco_mcmom);
+     hvector.push_back(*htrue_mcmom);
+     hvector.push_back(*heff_muon_mctheta);
+     hvector.push_back(*hreco_muon_mctheta);
+     hvector.push_back(*htrue_muon_mctheta);
+     hvector.push_back(*heff_muon_mcphi);
+     hvector.push_back(*hreco_muon_mcphi);
+     hvector.push_back(*htrue_muon_mcphi);
+     hvector.push_back(*heff_muon_mclen);
+     hvector.push_back(*hreco_muon_mclen);
+     hvector.push_back(*htrue_muon_mclen);
+     hvector.push_back(*heff_muon_mcmom);
+     hvector.push_back(*hreco_muon_mcmom);
+     hvector.push_back(*htrue_muon_mcmom);
+     hvector.push_back(*heff_pion_mctheta);
+     hvector.push_back(*hreco_pion_mctheta);
+     hvector.push_back(*htrue_pion_mctheta);
+     hvector.push_back(*heff_pion_mcphi);
+     hvector.push_back(*hreco_pion_mcphi);
+     hvector.push_back(*htrue_pion_mcphi);
+     hvector.push_back(*heff_pion_mclen);
+     hvector.push_back(*hreco_pion_mclen);
+     hvector.push_back(*htrue_pion_mclen);
+     hvector.push_back(*heff_pion_mcmom);
+     hvector.push_back(*hreco_pion_mcmom);
+     hvector.push_back(*htrue_pion_mcmom);
+     hvector.push_back(*heff_kaon_mctheta);
+     hvector.push_back(*hreco_kaon_mctheta);
+     hvector.push_back(*htrue_kaon_mctheta);
+     hvector.push_back(*heff_kaon_mcphi);
+     hvector.push_back(*hreco_kaon_mcphi);
+     hvector.push_back(*htrue_kaon_mcphi);
+     hvector.push_back(*heff_kaon_mclen);
+     hvector.push_back(*hreco_kaon_mclen);
+     hvector.push_back(*htrue_kaon_mclen);
+     hvector.push_back(*heff_kaon_mcmom);
+     hvector.push_back(*hreco_kaon_mcmom);
+     hvector.push_back(*htrue_kaon_mcmom);
+     hvector.push_back(*heff_proton_mctheta);
+     hvector.push_back(*hreco_proton_mctheta);
+     hvector.push_back(*htrue_proton_mctheta);
+     hvector.push_back(*heff_proton_mcphi);
+     hvector.push_back(*hreco_proton_mcphi);
+     hvector.push_back(*htrue_proton_mcphi);
+     hvector.push_back(*heff_proton_mclen);
+     hvector.push_back(*hreco_proton_mclen);
+     hvector.push_back(*htrue_proton_mclen);
+     hvector.push_back(*heff_proton_mcmom);
+     hvector.push_back(*hreco_proton_mcmom);
+     hvector.push_back(*htrue_proton_mcmom);
      // Note: for now, nuvtxx/nuvtxy/nuvtxz are only available in analysistree from pandoraNu
      // So only make these plots for pandoraNu!
      if (tracking_algorithm == "pandoraNu"){
@@ -652,32 +909,6 @@ void FillPlots_MC( TTree* tree, std::vector<TH1D> &hvector, std::string tracking
        hvector.push_back(*hvertresy);
        hvector.push_back(*hvertresz);
        hvector.push_back(*hvertdist);
-     }
-     // Note 2: seems like efficiency plots only really make sense (or more accurately: we only really
-     // understand them) for pandoraCosmic
-     // So only make these plots for pandoraCosmic!
-     if (tracking_algorithm == "pandoraCosmic"){
-       hvector.push_back(*heff_mclen);
-       hvector.push_back(*hreco_mclen);
-       hvector.push_back(*htrue_mclen);
-       hvector.push_back(*heff_mcpdg);
-       hvector.push_back(*hreco_mcpdg);
-       hvector.push_back(*htrue_mcpdg);
-       hvector.push_back(*heff_mctheta);
-       hvector.push_back(*hreco_mctheta);
-       hvector.push_back(*htrue_mctheta);
-       hvector.push_back(*heff_mcphi);
-       hvector.push_back(*hreco_mcphi);
-       hvector.push_back(*htrue_mcphi);
-       hvector.push_back(*heff_mcthetaxz);
-       hvector.push_back(*hreco_mcthetaxz);
-       hvector.push_back(*htrue_mcthetaxz);
-       hvector.push_back(*heff_mcthetayz);
-       hvector.push_back(*hreco_mcthetayz);
-       hvector.push_back(*htrue_mcthetayz);
-       hvector.push_back(*heff_mcmom);
-       hvector.push_back(*hreco_mcmom);
-       hvector.push_back(*htrue_mcmom);
      }
    }
 } //end function
@@ -735,7 +966,7 @@ void DrawHistos ( std::vector<TH1D> hvector , std::string tag, std::string algor
 void DrawComparison( std::vector<TH1D> vector1, std::vector<TH1D> vector2, std::string tag1, std::string tag2, std::string algorithm, std::vector<std::string> comments ) {
   
 	if (vector1.size() != vector2.size() ) { std::cout << "[ERROR] Different size in vec1 and vec2. " << std::endl; exit(-1); }
-	if (vector1.size()+vector2.size() != comments.size() ){ std::cout << "[ERROR] vector1+vector2 size != comments size. Not producing comment files. " << std::endl
+	if (vector1.size()+vector2.size() != comments.size() ){ std::cout << "[WARNING] vector1+vector2 size != comments size. Comments files may not line up with plots. " << std::endl
 									  << "        vector1 size = " << vector1.size() << ", vector2 size = " << vector2.size() << ", comments size = " << comments.size() << std::endl; }
 
 	
@@ -816,11 +1047,12 @@ void DrawComparison( std::vector<TH1D> vector1, std::vector<TH1D> vector2, std::
 	
 	// Make comments file
 	// Actually only uses the comments set for vector1 (they should be identical for vector2)
-	if (vector1.size()+vector2.size() == comments.size()){
+	if (i < comments.size()){
 	  std::ofstream commentsfile;
 	  std::string commentsfilename = string("MCcomparison_" + plotname + "_"  + tag1 + "_" + tag2 + "_" + algorithm + ".comment");
 	  commentsfile.open(commentsfilename.c_str(), std::ios_base::app);
-	  commentsfile << comments[i] << "\n";
+	  //commentsfile << comments[i] << "\n";
+	  textWrap(comments[i],commentsfile,70);
 	  commentsfile.close();
 	  }
 	}
