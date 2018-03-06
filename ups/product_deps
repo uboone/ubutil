@@ -2,7 +2,7 @@
 
 # The *parent* line must the first non-commented line and defines this product and version
 # The version should be of the form vxx_yy_zz (e.g. v01_02_03)
-parent ubutil v06_69_01
+parent ubutil v06_70_00
 
 defaultqual e15
 
@@ -43,7 +43,7 @@ table_fragment_end
 # Add the dependent product and version
 
 product          version
-art             v2_09_06
+art             v2_10_03
 larbatch        v01_37_01
 pycurl          -		-	optional
 
@@ -54,9 +54,9 @@ end_product_list
 # We now define allowed qualifiers and the corresponding qualifiers for the depdencies.
 # Make a table by adding columns before "notes". 
 qualifier	art		larbatch	pycurl	notes
-e15:debug	nu:e15:debug	-nq-		-nq-
-e15:opt		nu:e15:opt	-nq-		-nq-
-e15:prof	nu:e15:prof	-nq-		-nq-
+e15:debug	e15:debug	-nq-		-nq-
+e15:opt		e15:opt		-nq-		-nq-
+e15:prof	e15:prof	-nq-		-nq-
 end_qualifier_list
 
 # Preserve tabs and formatting in emacs and vi / vim:
