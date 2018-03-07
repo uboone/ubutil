@@ -70,8 +70,8 @@ void getTrackInformation(TString file1name, TString file1_dataormc, TString file
 
     comments = {
       /*ntracks_pandoraCosmic*/ {"ntracks_pandoraCosmic. Number of tracks reconstructed by the pandoraCosmic algorithm.",
-      /*trktheta_pandoraCosmic*/ "trktheta_pandoraCosmic. Track theta angle as reconstructed by pandoraCosmic. Theta = 0 means the track is going in the beam direction, Theta  = pi means the track is going in the anti-beam direction.",
-      /*trkphi_pandoraCosmic*/ "trkphi_pandoraCosmic. Track phi angle as reconstructed by pandoraCosmic. Phi = -pi/2 means the track is downwards-going, Phi = pi/2 means the track is upwards-going. "}
+      /*trktheta_pandoraCosmic*/ "trktheta_pandoraCosmic. Track theta angle for tracks greater than 5 cm in length, as reconstructed by pandoraCosmic. Theta = 0 means the track is going in the beam direction, Theta  = pi means the track is going in the anti-beam direction.",
+      /*trkphi_pandoraCosmic*/ "trkphi_pandoraCosmic. Track phi angle for tracks greater than 5 cm in length, as reconstructed by pandoraCosmic. Phi = -pi/2 means the track is downwards-going, Phi = pi/2 means the track is upwards-going. "}
     };
 
   }
@@ -162,9 +162,15 @@ void getTrackInformation(TString file1name, TString file1_dataormc, TString file
       TString file2DrawString(fileName+" >> "+fileName+"_file2");
       TString cutValue = Form("%g", trackLengthCut);
       TString lengthCutString("trklen_"+algoNames[i]+" > "+cutValue);
-      fChainFile1->Draw(file1DrawString, lengthCutString);
-      fChainFile2->Draw(file2DrawString, lengthCutString);
-
+     
+      if (trackPlotNames[j] == "ntracks"){
+        fChainFile1->Draw(file1DrawString);
+        fChainFile2->Draw(file2DrawString);
+      }
+      else{
+        fChainFile1->Draw(file1DrawString, lengthCutString);
+        fChainFile2->Draw(file2DrawString, lengthCutString);
+      }
 
       // Keep error while scaling
       hFile1->Sumw2();

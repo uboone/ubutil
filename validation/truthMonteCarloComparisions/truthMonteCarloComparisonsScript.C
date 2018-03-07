@@ -93,7 +93,7 @@ TH1D* effcalc(TH1D* hreco, TH1D* htrue, TString label){
       if (eff_bc < 0){ eff_bc = 0; }
       if (eff_bc > 1){ eff_bc = 1; }
 
-      float err = TMath::Sqrt(eff_bc * (1.-eff_bc)/true_bc);
+      float err = TMath::Sqrt(eff_bc * (1.+eff_bc)/true_bc);
       
       heff->SetBinContent(ibin, eff_bc);
       heff->SetBinError(ibin, err);
