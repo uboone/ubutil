@@ -162,9 +162,15 @@ void getTrackInformation(TString file1name, TString file1_dataormc, TString file
       TString file2DrawString(fileName+" >> "+fileName+"_file2");
       TString cutValue = Form("%g", trackLengthCut);
       TString lengthCutString("trklen_"+algoNames[i]+" > "+cutValue);
-      fChainFile1->Draw(file1DrawString, lengthCutString);
-      fChainFile2->Draw(file2DrawString, lengthCutString);
-
+     
+      if (trackPlotNames[j] == "ntracks"){
+        fChainFile1->Draw(file1DrawString);
+        fChainFile2->Draw(file2DrawString);
+      }
+      else{
+        fChainFile1->Draw(file1DrawString, lengthCutString);
+        fChainFile2->Draw(file2DrawString, lengthCutString);
+      }
 
       // Keep error while scaling
       hFile1->Sumw2();
