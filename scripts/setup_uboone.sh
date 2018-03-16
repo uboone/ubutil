@@ -1,8 +1,10 @@
 # Source this file to set the basic configuration needed by LArSoft 
 # and for the uBooNE-specific software that interfaces to LArSoft.
 
-FERMIAPP_LARSOFT_DIR="/grid/fermiapp/products/larsoft/"
-FERMIOSG_LARSOFT_DIR="/cvmfs/fermilab.opensciencegrid.org/products/larsoft/"
+FERMIAPP_LARSOFT1_DIR="/grid/fermiapp/products/larsoft/"
+FERMIOSG_LARSOFT1_DIR="/cvmfs/fermilab.opensciencegrid.org/products/larsoft/"
+
+FERMIOSG_LARSOFT2_DIR="/cvmfs/larsoft.opensciencegrid.org/products/"
 
 FERMIAPP_UBOONE_DIR="/grid/fermiapp/products/uboone/"
 FERMIOSG_UBOONE_DIR="/cvmfs/uboone.opensciencegrid.org/products/"
@@ -12,15 +14,26 @@ UBOONE_BLUEARC_DATA="/uboone/data/"
 # Set up ups for LArSoft
 # Sourcing this setup will add larsoft and common to $PRODUCTS
 
-for dir in $FERMIOSG_LARSOFT_DIR $FERMIAPP_LARSOFT_DIR;
+for dir in $FERMIOSG_LARSOFT1_DIR $FERMIAPP_LARSOFT1_DIR;
 do
   if [[ -f $dir/setup ]]; then
-    echo "Setting up larsoft UPS area... ${dir}"
+    echo "Setting up old larsoft UPS area... ${dir}"
     source $dir/setup
     common=`dirname $dir`/common/db
     if [[ -d $common ]]; then
       export PRODUCTS=`dropit -p $PRODUCTS common/db`:`dirname $dir`/common/db
     fi
+    break
+  fi
+done
+
+# Sourcing this setup will add new larsoft to $PRODUCTS
+
+for dir in $FERMIOSG_LARSOFT2_DIR
+do
+  if [[ -f $dir/setup ]]; then
+    echo "Setting up new larsoft UPS area... ${dir}"
+    source $dir/setup
     break
   fi
 done
