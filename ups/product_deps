@@ -47,7 +47,7 @@ art             v2_05_01
 larbatch        v01_39_00
 pycurl          -		-	optional
 
-cetbuildtools	v7_02_01	-	only_for_build
+cetbuildtools	v7_03_02	-	only_for_build
 end_product_list
 
 
