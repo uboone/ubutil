@@ -2,7 +2,7 @@
 
 # The *parent* line must the first non-commented line and defines this product and version
 # The version should be of the form vxx_yy_zz (e.g. v01_02_03)
-parent ubutil v06_70_00
+parent ubutil v06_75_00
 
 defaultqual e15
 
@@ -44,16 +44,19 @@ table_fragment_end
 
 product          version
 art             v2_10_03
-larbatch        v01_37_01
+larbatch        v01_39_00
 pycurl          -		-	optional
 
-cetbuildtools	v7_00_03	-	only_for_build
+cetbuildtools	v7_03_02	-	only_for_build
 end_product_list
 
 
 # We now define allowed qualifiers and the corresponding qualifiers for the depdencies.
 # Make a table by adding columns before "notes". 
 qualifier	art		larbatch	pycurl	notes
+c2:debug	c2:debug	-nq-		-nq-
+c2:opt		c2:opt		-nq-		-nq-
+c2:prof		c2:prof		-nq-		-nq-
 e15:debug	e15:debug	-nq-		-nq-
 e15:opt		e15:opt		-nq-		-nq-
 e15:prof	e15:prof	-nq-		-nq-
