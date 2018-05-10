@@ -158,7 +158,7 @@ do
   dt=$(( $t2 - $t0 ))
   #echo $dt
   if [ $dt -lt 300 ]; then
-    #echo "Skipping this time because it is less than 60 seconds later than previous time."
+    #echo "Skipping this time because it is less than 300 seconds later than previous time."
     continue
   fi
   t0=$t2
