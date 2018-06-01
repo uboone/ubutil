@@ -666,7 +666,7 @@ void FillPlots_MC( TTree* tree, std::vector<TH1D> &hvector, std::string tracking
      double dstartvecflipped_mag = dstartvecflipped.Mag();
      double dendvecflipped_mag   = dendvecflipped.Mag();
 
-     if(dstartvec_mag < dendvec_mag) {
+     if(dstartvec_mag < dstartvecflipped_mag) {
        // Sign(dstartvec_mag,truevec.Dot(dstartvec)) returns dstartvec_mag with the sign of truevec.Dot(dstartvec) -- this gives the magnitude of the difference vector with the sign +ve if it goes along the true track direction and -ve if it goes against it.
        hresstart -> Fill(TMath::Sign(dstartvec_mag,truevec.Dot(dstartvec)));
        hresend -> Fill(TMath::Sign(dendvec_mag,truevec.Dot(dendvec)));
