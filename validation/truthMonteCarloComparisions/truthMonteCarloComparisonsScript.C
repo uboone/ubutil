@@ -666,7 +666,7 @@ void FillPlots_MC( TTree* tree, std::vector<TH1D> &hvector, std::string tracking
      double dstartvecflipped_mag = dstartvecflipped.Mag();
      double dendvecflipped_mag   = dendvecflipped.Mag();
 
-     if(dstartvec_mag < dstartvecflipped_mag) {
+     if(dstartvec_mag < dendvec_mag) {
        // Sign(dstartvec_mag,truevec.Dot(dstartvec)) returns dstartvec_mag with the sign of truevec.Dot(dstartvec) -- this gives the magnitude of the difference vector with the sign +ve if it goes along the true track direction and -ve if it goes against it.
        hresstart -> Fill(TMath::Sign(dstartvec_mag,truevec.Dot(dstartvec)));
        hresend -> Fill(TMath::Sign(dendvec_mag,truevec.Dot(dendvec)));
@@ -854,9 +854,9 @@ void FillPlots_MC( TTree* tree, std::vector<TH1D> &hvector, std::string tracking
    TCanvas *c5 = new TCanvas();
    hnmatchedtracks->Draw("colz");
    //c5->SetLogz();
-   c5->Print("hnmatchedtracks2d.png");
-   //hvector.push_back(*hnmatchedtracks);
-   //comments.push_back("Number of reco tracks matched to a single geant track. Gives some information about numbers of unmatched/broken tracks.");
+   //c5->Print("hnmatchedtracks2d.png");
+   hvector.push_back(*hnmatchedtracks);
+   comments.push_back("Number of reco tracks matched to a single geant track, for true charged pions, kaons, muons, and protons. Gives some information about numbers of unmatched/broken tracks.");
    // Note: for now, nuvtxx/nuvtxy/nuvtxz are only available in analysistree from pandoraNu
    // So only make these plots for pandoraNu!
    if (tracking_algorithm == "pandoraNu"){
