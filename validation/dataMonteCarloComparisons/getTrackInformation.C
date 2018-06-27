@@ -54,31 +54,34 @@ void getTrackInformation(TString file1name, TString file1_dataormc, TString file
 
   if (isCI == true){
 
-    algoNames = {"pandoraCosmic"};
+    algoNames = {"pandora"};
 
     trackPlotNames = {
       "ntracks",
       "trktheta",
-      "trkphi"
+      "trkphi",
+      "trkntraj"
     };
 
     trackPlotValues = {
       /*ntracks*/     {30.0, 0.0, 30.0},
       /*trktheta*/  {50.0, 0.0, 3.3},
-      /*trkphi*/  {50.0, -3.3, 3.3}
+      /*trkphi*/  {50.0, -3.3, 3.3},
+      /*trkntraj*/ {150,0.0,3000}
     };
 
     comments = {
-      /*ntracks_pandoraCosmic*/ {"ntracks_pandoraCosmic. Number of tracks reconstructed by the pandoraCosmic algorithm.",
-      /*trktheta_pandoraCosmic*/ "trktheta_pandoraCosmic. Track theta angle for tracks greater than 5 cm in length, as reconstructed by pandoraCosmic. Theta = 0 means the track is going in the beam direction, Theta  = pi means the track is going in the anti-beam direction.",
-      /*trkphi_pandoraCosmic*/ "trkphi_pandoraCosmic. Track phi angle for tracks greater than 5 cm in length, as reconstructed by pandoraCosmic. Phi = -pi/2 means the track is downwards-going, Phi = pi/2 means the track is upwards-going. "}
+      /*ntracks_pandora*/ {"ntracks_pandora. Number of tracks reconstructed by the pandora algorithm.",
+      /*trktheta_pandora*/ "trktheta_pandora. Track theta angle for tracks greater than 5 cm in length, as reconstructed by pandora. Theta = 0 means the track is going in the beam direction, Theta  = pi means the track is going in the anti-beam direction.",
+      /*trkphi_pandora*/ "trkphi_pandora. Track phi angle for tracks greater than 5 cm in length, as reconstructed by pandora. Phi = -pi/2 means the track is downwards-going, Phi = pi/2 means the track is upwards-going. ",
+      /*trkntraj_pandora*/ "trkntraj_pandora. Number of trajectory points per track in the pandora algorithm. There is a one-to-one correspondence between trajectory points and hits so this also represents the number of hits per track."}
     };
 
   }
 
   else{
     // define vector of algo names
-    algoNames = {"pandoraNu", "pandoraNuPMA", "pandoraCosmic", "pandoraCosmicKHit","pandoraCosmicKalmanTrack", "pandoraNuKHit", "pandoraNuKalmanTrack", "pmtrack", "pandoraNuKalmanShower"};
+    algoNames = {"pandoraNu", "pandoraNuPMA", "pandoraCosmic", "pandoraCosmicKHit","pandoraCosmicKalmanTrack", "pandoraNuKHit", "pandoraNuKalmanTrack", "pmtrack", "pandoraNuKalmanShower","pandora"};
 
     // and define plots
     trackPlotNames = {
@@ -90,6 +93,7 @@ void getTrackInformation(TString file1name, TString file1_dataormc, TString file
       "trkstartz",
       "trkendz",
       "trklen",
+      "trkntraj",
       "trktheta",
       "trkthetaxz",
       "trkthetayz",
@@ -141,13 +145,13 @@ void getTrackInformation(TString file1name, TString file1_dataormc, TString file
         }
       }
 
-      if (algoNames[i] == "pandoraCosmic" && trackPlotNames[j] == "nvtx"){
+      if ((algoNames[i] == "pandoraCosmic" || algoNames[i] == "pandora") && trackPlotNames[j] == "nvtx"){
 
         trackPlotValues[j] = {100,0,300};
 
       }
 
-      if ((algoNames[i] == "pandoraCosmic" || algoNames[i] == "pandoraCosmicKalmanTrack" || algoNames[i] == "pandoraCosmicKHit" || algoNames[i] == "pmtrack") && trackPlotNames[j] == "ntracks"){
+      if ((algoNames[i] == "pandoraCosmic" || algoNames[i] == "pandoraCosmicKalmanTrack" || algoNames[i] == "pandoraCosmicKHit" || algoNames[i] == "pmtrack" || algoNames[i] == "pandora") && trackPlotNames[j] == "ntracks"){
 
         trackPlotValues[j] = {50.0, 0, 100.0};
 
