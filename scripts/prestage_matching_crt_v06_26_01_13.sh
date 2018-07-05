@@ -8,8 +8,8 @@
 #
 # prestage_matching_crt_v06_26_01_13.sh [options]
 #
-# --defname  <arg> - TPC sam dataset definition name.
-# --filename <arg> - TPC filename.
+# --defname     <arg> - TPC sam dataset definition name.
+# --snapshot_id <arg> - TPC sam snapshot id.
 #
 # End options.
 #
@@ -20,7 +20,7 @@
 # Parse arguments.
 
 DEFNAME=""
-FILENAME=""
+SNAPID=""
 
 while [ $# -gt 0 ]; do
   case "$1" in
@@ -40,9 +40,9 @@ while [ $# -gt 0 ]; do
       ;;
 
     # Sam dataset definition name.
-    --filename )
+    --snapshot_id )
       if [ $# -gt 1 ]; then
-        FILENAME=$2
+        SNAPID=$2
         shift
       fi
       ;;
@@ -57,70 +57,112 @@ done
 
 # Done with arguments.
 
-if [ x$DEFNAME = x -a x$FILENAME = x ]; then
-  echo "Must specify either dataset or file name."
+if [ x$DEFNAME = x -a x$SNAPID = x ]; then
+  echo "Must specify dataset or snapshot."
   exit 1
 fi
 
-# Generate list of TPC files to process.
+# Find the earliest start time.
 
-files=`mktemp`
-times=`mktemp`
-if [ x$FILENAME != x ]; then
-  echo $FILENAME > $files
-elif [ x$DEFNAME != x ]; then
-  samweb list-files "defname: $DEFNAME" > $files
-fi
-n=`cat $files | wc -l`
-echo "$n TPC files."
-if [ $n -eq 0 ]; then
-  exit 0
-fi
-
-while read filename
+t0=0
+t1=4000000000
+while [ $t1 -ne $t0 ]; 
 do
-  echo $filename
+  #echo $t0
+  #echo $t1
+  t2=$(( ( $t0 + $t1 ) / 2 ))
+  if [ $t2 -eq $t0 -o $t2 -eq $t1 ]; then
+    break
+  fi
+  t0s=`date +%Y-%m-%dT%H:%M:%S -d@$t0`
+  t1s=`date +%Y-%m-%dT%H:%M:%S -d@$t1`
+  t2s=`date +%Y-%m-%dT%H:%M:%S -d@$t2`
+  if [ x$DEFNAME != x ]; then
+    dim="defname: $DEFNAME and start_time>='$t0s' and start_time<='$t2s'"
+  else
+    dim="snapshot_id $SNAPID and start_time>='$t0s' and start_time<='$t2s'"
+  fi
+  #echo $dim
+  n=`samweb list-files --summary "$dim" | awk '/File count:/{print $3}'`
+  #echo "$n files."
+  echo -n .
+  if [ $n -eq 0 ]; then
+    t0=$t2
+  else
+    t1=$t2
+  fi
+done
+early_time=$t0
+echo "Early time: `date +%Y-%m-%dT%H:%M:%S -d@$early_time`"
 
-  # Loop over raw ancestors.
+# Find the latest end time
 
-  samweb file-lineage rawancestors $filename | while read raw
-  do
+t0=0
+t1=4000000000
+while [ $t1 -ne $t0 ]; 
+do
+  #echo $t0
+  #echo $t1
+  t2=$(( ( $t0 + $t1 ) / 2 ))
+  if [ $t2 -eq $t0 -o $t2 -eq $t1 ]; then
+    break
+  fi
+  t0s=`date +%Y-%m-%dT%H:%M:%S -d@$t0`
+  t1s=`date +%Y-%m-%dT%H:%M:%S -d@$t1`
+  t2s=`date +%Y-%m-%dT%H:%M:%S -d@$t2`
+  if [ x$DEFNAME != x ]; then
+    dim="defname: $DEFNAME and end_time>='$t2s' and end_time<='$t1s'"
+  else
+    dim="snapshot_id $SNAPID and end_time>='$t2s' and end_time<='$t1s'"
+  fi
+  #echo $dim
+  n=`samweb list-files --summary "$dim" | awk '/File count:/{print $3}'`
+  #echo "$n files."
+  echo -n .
+  if [ $n -eq 0 ]; then
+    t1=$t2
+  else
+    t0=$t2
+  fi
+done
+late_time=$t1
+echo "Late time:  `date +%Y-%m-%dT%H:%M:%S -d@$late_time`"
 
-    # Loop over times (start and stop).
+# Make an array of times to query.
 
-    samweb get-metadata $raw | egrep 'Start Time:|End Time:' | awk '{print $3}' >> $times
-  done
-done < $files
-rm -f $files
+declare -a times
+n=0
+while [ $early_time -lt $late_time ];
+do
+  times[$n]=$early_time
+  early_time=$(( $early_time + 7200 ))
+  n=$(( $n + 1 ))
+done
+times[$n]=$late_time
+
+echo "All times:"
+for t in ${times[*]}
+do
+  date +%Y-%m-%dT%H:%M:%S -d@$t
+done
 
 # Loop over times.
 # Extract crt binary and crt swizzled files.
 
+echo
 swf=`mktemp`
-t0=0
-sort -u $times | while read t
+for t in ${times[*]}
 do
-  echo $t
-  t1=`echo $t | cut -d+ -f1`
-  #echo $t1
-  t2=`date +%s -d $t1`
-  #echo $t2
-  dt=$(( $t2 - $t0 ))
-  #echo $dt
-  if [ $dt -lt 300 ]; then
-    #echo "Skipping this time because it is less than 300 seconds later than previous time."
-    continue
-  fi
-  t0=$t2
+  ts=`date +%Y-%m-%dT%H:%M:%S -d@$t`
+  echo "Looking for CRT files matching time $ts"
 
   # Get crt binary files.
 
-  crt_binary_files=(`samweb list-files "file_type data and file_format crt-binaryraw and data_tier raw and start_time <= '$t' and end_time >= '$t'"`)
+  crt_binary_files=(`samweb list-files "file_type data and file_format crt-binaryraw and start_time <= '$ts' and end_time >= '$ts'"`)
   nb=${#crt_binary_files[*]}
+  echo "Found $nb CRT files."
   if [ $nb -ne 4 ]; then
     echo "Number of matched binary files is ${nb}, which is not 4."
-    rm -f $swf
-    rm -f $times
     break
   fi
   crt_dim_files=`echo ${crt_binary_files[*]} | tr ' ' ,`
@@ -131,8 +173,6 @@ do
   ns=${#crt_swizzled_files[*]}
   if [ $ns -ne 6 ]; then
     echo "Number of matched swizzled files is ${ns}, which is not 6."
-    rm -f $swf
-    rm -f $times
     break
   fi
   echo ${crt_swizzled_files[*]} | tr ' ' '\n' >> $swf
@@ -155,4 +195,3 @@ if [ $ncrt -gt 0 ]; then
   samweb prestage-dataset --defname $defname
 fi
 rm -f $swf
-rm -f $times
