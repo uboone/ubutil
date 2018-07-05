@@ -59,19 +59,23 @@ void getTrackInformation(TString file1name, TString file1_dataormc, TString file
     trackPlotNames = {
       "ntracks",
       "trktheta",
-      "trkphi"
+      "trkphi",
+      "trkntraj"
     };
 
     trackPlotValues = {
       /*ntracks*/     {30.0, 0.0, 30.0},
       /*trktheta*/  {50.0, 0.0, 3.3},
-      /*trkphi*/  {50.0, -3.3, 3.3}
+      /*trkphi*/  {50.0, -3.3, 3.3},
+      /*trkntraj*/ {150,0.0,3000}
+
     };
 
     comments = {
       /*ntracks_pandoraCosmic*/ {"ntracks_pandoraCosmic. Number of tracks reconstructed by the pandoraCosmic algorithm.",
       /*trktheta_pandoraCosmic*/ "trktheta_pandoraCosmic. Track theta angle for tracks greater than 5 cm in length, as reconstructed by pandoraCosmic. Theta = 0 means the track is going in the beam direction, Theta  = pi means the track is going in the anti-beam direction.",
-      /*trkphi_pandoraCosmic*/ "trkphi_pandoraCosmic. Track phi angle for tracks greater than 5 cm in length, as reconstructed by pandoraCosmic. Phi = -pi/2 means the track is downwards-going, Phi = pi/2 means the track is upwards-going. "}
+      /*trkphi_pandoraCosmic*/ "trkphi_pandoraCosmic. Track phi angle for tracks greater than 5 cm in length, as reconstructed by pandoraCosmic. Phi = -pi/2 means the track is downwards-going, Phi = pi/2 means the track is upwards-going. ",
+      /*trkntraj_pandoraCosmic*/ "trkntraj_pandoraCosmic. Number of trajectory points per track in the pandoraCosmic algorithm. There is a one-to-one correspondence between trajectory points and hits so this also represents the number of hits per track."}
     };
 
   }
@@ -90,6 +94,7 @@ void getTrackInformation(TString file1name, TString file1_dataormc, TString file
       "trkstartz",
       "trkendz",
       "trklen",
+      "trkntraj",
       "trktheta",
       "trkthetaxz",
       "trkthetayz",
