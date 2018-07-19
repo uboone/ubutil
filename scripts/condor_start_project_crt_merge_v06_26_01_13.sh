@@ -362,23 +362,81 @@ if [ $npre -gt 0 ]; then
 fi
 
 # Check CRT files.
-# Loop over files in this dataset.  Extract start and stop times.
 
-tf=times.txt
-rm -f $tf
+# Find the earliest start time in the TPC dataset.
 
-samweb list-files "defname: $SAM_DEFNAME" | while read filename
+t0=0
+t1=4000000000
+while [ $t1 -ne $t0 ]; 
 do
+  #echo $t0
+  #echo $t1
+  t2=$(( ( $t0 + $t1 ) / 2 ))
+  if [ $t2 -eq $t0 -o $t2 -eq $t1 ]; then
+    break
+  fi
+  t0s=`date +%Y-%m-%dT%H:%M:%S -d@$t0`
+  t1s=`date +%Y-%m-%dT%H:%M:%S -d@$t1`
+  t2s=`date +%Y-%m-%dT%H:%M:%S -d@$t2`
+  dim="defname: $SAM_DEFNAME and start_time>='$t0s' and start_time<='$t2s'"
+  #echo $dim
+  n=`samweb list-files --summary "$dim" | awk '/File count:/{print $3}'`
+  #echo "$n files."
+  echo -n .
+  if [ $n -eq 0 ]; then
+    t0=$t2
+  else
+    t1=$t2
+  fi
+done
+early_time=$t0
+echo "Early time: `date +%Y-%m-%dT%H:%M:%S -d@$early_time`"
 
-  # Loop over raw ancestors.
+# Find the latest end time in the TPC dataset.
 
-  samweb file-lineage rawancestors $filename | while read raw
-  do
+t0=0
+t1=4000000000
+while [ $t1 -ne $t0 ]; 
+do
+  #echo $t0
+  #echo $t1
+  t2=$(( ( $t0 + $t1 ) / 2 ))
+  if [ $t2 -eq $t0 -o $t2 -eq $t1 ]; then
+    break
+  fi
+  t0s=`date +%Y-%m-%dT%H:%M:%S -d@$t0`
+  t1s=`date +%Y-%m-%dT%H:%M:%S -d@$t1`
+  t2s=`date +%Y-%m-%dT%H:%M:%S -d@$t2`
+  dim="defname: $SAM_DEFNAME and end_time>='$t2s' and end_time<='$t1s'"
+  #echo $dim
+  n=`samweb list-files --summary "$dim" | awk '/File count:/{print $3}'`
+  #echo "$n files."
+  echo -n .
+  if [ $n -eq 0 ]; then
+    t1=$t2
+  else
+    t0=$t2
+  fi
+done
+late_time=$t1
+echo "Late time:  `date +%Y-%m-%dT%H:%M:%S -d@$late_time`"
 
-    # Loop over times (start and stop).
+# Make an array of times to query.
 
-    samweb get-metadata $filename | egrep 'Start Time:|End Time:' | awk '{print $3}' >> $tf
-  done
+declare -a times
+n=0
+while [ $early_time -lt $late_time ];
+do
+  times[$n]=$early_time
+  early_time=$(( $early_time + 7200 ))
+  n=$(( $n + 1 ))
+done
+times[$n]=$late_time
+
+echo "All times:"
+for t in ${times[*]}
+do
+  date +%Y-%m-%dT%H:%M:%S -d@$t
 done
 
 # Loop over times.
@@ -386,26 +444,16 @@ done
 
 swf=crt_swizzled.txt
 rm -f $swf
-t0=0
-sort -u $tf | while read t
+for t in ${times[*]}
 do
-  echo $t
-  t1=`echo $t | cut -d+ -f1`
-  #echo $t1
-  t2=`date +%s -d $t1`
-  #echo $t2
-  dt=$(( $t2 - $t0 ))
-  #echo $dt
-  if [ $dt -lt 300 ]; then
-    #echo "Skipping this time because it is less than 300 seconds later than previous time."
-    continue
-  fi
-  t0=$t2
+  ts=`date +%Y-%m-%dT%H:%M:%S -d@$t`
+  echo "Looking for CRT files matching time $ts"
 
   # Get crt binary files.
 
-  crt_binary_files=(`samweb list-files "file_type data and file_format crt-binaryraw and data_tier raw and start_time <= '$t' and end_time >= '$t'"`)
+  crt_binary_files=(`samweb list-files "file_type data and file_format crt-binaryraw and start_time <= '$ts' and end_time >= '$ts'"`)
   nb=${#crt_binary_files[*]}
+  echo "Found $nb CRT files."
   if [ $nb -ne 4 ]; then
     echo "Number of matched binary files is ${nb}, which is not 4."
     rm $swf
@@ -427,7 +475,6 @@ do
   echo ${crt_swizzled_files[*]} | tr ' ' '\n' >> $swf
 
 done
-rm -f $tf
 
 ncrt=`sort -u $swf | wc -l`
 echo "Total CRT swizzled files: $ncrt"
