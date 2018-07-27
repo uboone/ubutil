@@ -76,7 +76,12 @@ add_subdirectory(validation)
 add_subdirectory(tools)
 
 # FCL module
+## skip fclmodule until it is updated for e17
+if( ${qualifier} STREQUAL "e17" )
+  message(STATUS "UBUTIL: skipping fclmodule for the e17 build")
+else()
 add_subdirectory(fclmodule)
+endif()
 
 # Root batch framework.
 add_subdirectory(root_batch)
