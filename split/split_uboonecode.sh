@@ -558,7 +558,7 @@ EOF
     for dep in ${ups_deps[$i]}; do
       extra_quals=''
       if [ $dep = artdaq_core -o $dep = ifdh_art ]; then
-        extra_quals=":s68"
+        extra_quals=":s70"
       fi
       printf "%-15s" ${qual}${extra_quals} >> ups/product_deps
     done
