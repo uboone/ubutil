@@ -33,11 +33,21 @@ cet_cmake_env()
 
 set_install_root()
 
+# -Wno-register is not recognized by e15
+if( ${qualifier} STREQUAL "e17" )
 cet_set_compiler_flags(DIAGS CAUTIOUS
   WERROR
   NO_UNDEFINED
   EXTRA_FLAGS -pedantic -Wno-error=register -Wno-register
 )
+else()
+cet_set_compiler_flags(DIAGS CAUTIOUS
+  WERROR
+  NO_UNDEFINED
+  EXTRA_FLAGS -pedantic
+)
+endif()
+
 
 cet_report_compiler_flags()
 
