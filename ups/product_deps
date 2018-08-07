@@ -2,7 +2,7 @@
 
 # The *parent* line must the first non-commented line and defines this product and version
 # The version should be of the form vxx_yy_zz (e.g. v01_02_03)
-parent ubutil v06_84_00
+parent ubutil v06_85_00
 
 defaultqual e15
 
@@ -43,11 +43,11 @@ table_fragment_end
 # Add the dependent product and version
 
 product          version
-art             v2_11_02
-larbatch        v01_42_02
+art             v2_11_03
+larbatch        v01_43_00
 pycurl          -		-	optional
 
-cetbuildtools	v7_03_03	-	only_for_build
+cetbuildtools	v7_04_00	-	only_for_build
 end_product_list
 
 
@@ -60,6 +60,10 @@ c2:prof		c2:prof		-nq-		-nq-
 e15:debug	e15:debug	-nq-		-nq-
 e15:opt		e15:opt		-nq-		-nq-
 e15:prof	e15:prof	-nq-		-nq-
+e17:debug       e17:debug       -nq-            -nq-
+e17:opt         e17:opt         -nq-            -nq-
+e17:prof        e17:prof        -nq-            -nq-
+
 end_qualifier_list
 
 # Preserve tabs and formatting in emacs and vi / vim:
