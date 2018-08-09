@@ -36,7 +36,7 @@ set_install_root()
 cet_set_compiler_flags(DIAGS CAUTIOUS
   WERROR
   NO_UNDEFINED
-  EXTRA_FLAGS -pedantic
+  EXTRA_FLAGS -pedantic -Wno-error=register -Wno-register
 )
 
 cet_report_compiler_flags()
