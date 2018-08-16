@@ -56,7 +56,7 @@ void getCalorimetryInformation(TString file1name, TString file1_dataormc, TStrin
   if (isCI == 1){
 
     // define vector of algo names
-    algoNames = {"pandora"};
+    algoNames = {"pandora", "pandoraNu"};
 
     // and define plots
     caloPlotNames = {
