@@ -1071,15 +1071,18 @@ void DrawComparison( std::vector<TH1D> vector1, std::vector<TH1D> vector2, std::
 	// Print all chisq to file
 	std::ofstream ChisqFile;
 	ChisqFile.open("ChisqValues.txt", std::ios_base::app);
-	ChisqFile << c1.GetName() << "_" << algorithm << " " << chisqv << "\n";
+	ChisqFile << c1.GetName() << "_" << algorithm << " " << chisqv/double(nBins) << "\n";
 	ChisqFile.close();
 
 	// If chisq is large, print plot name to a different file
-	if (chisqv >= chisqNotifierCut/100.0){
+	if (chisqv/(double)nBins >= chisqNotifierCut/100.0){
 	  std::ofstream highChisqFile;
 	  highChisqFile.open("highChisqPlots.txt", std::ios_base::app);
-	  highChisqFile << c1.GetName() << " (" << algorithm << "): chisq = " << chisqv << "\n";
+	  highChisqFile << c1.GetName() << " (" << algorithm << "): chisq = " << chisqv/(double)nBins << "\n";
 	  highChisqFile.close();
+
+		// If chisq is large, change background colour of canvas to make it really obvious
+		c1.SetFillColor(kOrange-2);
 	}
 
 	// Make legend
@@ -1089,7 +1092,8 @@ void DrawComparison( std::vector<TH1D> vector1, std::vector<TH1D> vector2, std::
 	legend->AddEntry((TObject*)0, chisq, "");
 	legend->AddEntry((TObject*)0, NDF, "");
 	legend->AddEntry((TObject*)0, chisqNDFstr, "");
-	legend->SetLineWidth(0);
+	// legend->SetLineWidth(0);
+  legend->SetFillColor(c1.GetFillColor());
 	legend->Draw();
 
 	outfile.cd();
