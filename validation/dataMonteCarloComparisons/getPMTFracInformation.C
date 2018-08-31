@@ -25,7 +25,7 @@ void getPMTFracInformation(TString file1name, TString file1_dataormc, TString fi
   TString outputFile(outDir+"fOutputPMTFrac.root");
   TFile f_output(outputFile,"RECREATE");
 
-  // define input 
+  // define input
   TFile file1(file1name,"READ"); //file without threshold
   TFile file2(file2name,"READ"); //file with threshold
 
@@ -46,9 +46,9 @@ void getPMTFracInformation(TString file1name, TString file1_dataormc, TString fi
 
   // define vector of algo names
   std::vector< std::string > algoNames = {
-    "opflashBeam", 
-    "opflashCosmic", 
-    "simpleFlashBeam", 
+    "opflashBeam",
+    "opflashCosmic",
+    "simpleFlashBeam",
     "simpleFlashCosmic"};
 
   std::vector< std::vector < double > > flashPlotValues = {
@@ -61,8 +61,8 @@ void getPMTFracInformation(TString file1name, TString file1_dataormc, TString fi
 
     TString fileName = TString::Format("PMTFrac_%s", algoNames[i].c_str());
 
-    TH1D *hFile1 = new TH1D(fileName+"_file1", "", (int)flashPlotValues[0][0], flashPlotValues[0][1], flashPlotValues[0][2]); 
-    TH1D *hFile2 = new TH1D(fileName+"_file2", "", (int)flashPlotValues[0][0], flashPlotValues[0][1], flashPlotValues[0][2]); 
+    TH1D *hFile1 = new TH1D(fileName+"_file1", "", (int)flashPlotValues[0][0], flashPlotValues[0][1], flashPlotValues[0][2]);
+    TH1D *hFile2 = new TH1D(fileName+"_file2", "", (int)flashPlotValues[0][0], flashPlotValues[0][1], flashPlotValues[0][2]);
 
     for (int j = 0; j < nPMTs; j++) {
 
@@ -87,7 +87,7 @@ void getPMTFracInformation(TString file1name, TString file1_dataormc, TString fi
     // histogram styling
     TString yAxisTitle("Fraction of Flashes");
 
-    // here 0 = nominal 
+    // here 0 = nominal
 
     if (file1_dataormc == "DATA" && file2_dataormc == "MC"){
 
@@ -203,7 +203,7 @@ void getPMTFracInformation(TString file1name, TString file1_dataormc, TString fi
 
     double chisqv = calculateChiSqDistance(hFile1, hFile2);
     TString chisq = Form("#chi^{2}: %g", chisqv);
-    int nBins = std::max(getNBins(hFile1),getNBins(hFile2)); 
+    int nBins = std::max(getNBins(hFile1),getNBins(hFile2));
     TString NDF = Form("No. Bins: %i", nBins);
     topPad->cd();
     TPaveText *pt = new TPaveText(0.5, 0.78, 0.9, 0.88, "NDC");
@@ -247,29 +247,34 @@ void getPMTFracInformation(TString file1name, TString file1_dataormc, TString fi
     pt2->SetTextAlign(11);
     pt2->Draw("same");
 
+    // Print all chi2 values to a file for tracking over time
+    std::ofstream ChisqFile;
+    ChisqFile.open(outDir+"ChisqValues.txt", std::ios_base::app);
+    ChisqFile << fileName << " " << chisqv/(double)nBins << "\n";
+    ChisqFile.close();
+
+    // Print names of plots with high chi2 to a separate file
+    if (chisqv/(double)nBins >= chisqNotifierCut){
+
+      std::ofstream highChisqFile;
+      highChisqFile.open(outDir+"highChisqPlots.txt", std::ios_base::app);
+      highChisqFile << fileName <<  " " << chisqv/(double)nBins << " is larger than "<< chisqNotifierCut << "\n";
+      highChisqFile.close();
+
+      // If chisq is large, change background colour of canvas to make it really obvious
+      c1->SetFillColor(kOrange-2);
+      topPad->SetFillColor(kOrange-2);
+      bottomPad->SetFillColor(kOrange-2);
+
+    }
+
 
     TString saveString = Form(outDir+"7PMT_"+fileName+".png");
-    c1->SaveAs(saveString, "png"); 
+    c1->SaveAs(saveString, "png");
 
     f_output.cd();
     hFile1->Write();
     hFile2->Write();
-
-    // Print all chi2 values to a file for tracking over time
-    std::ofstream ChisqFile;
-    ChisqFile.open(outDir+"ChisqValues.txt", std::ios_base::app);
-    ChisqFile << fileName << " " << chisqv << "\n";
-    ChisqFile.close();
-
-    // Print names of plots with high chi2 to a separate file
-    if (chisqv >= chisqNotifierCut){
-
-      std::ofstream highChisqFile;
-      highChisqFile.open(outDir+"highChisqPlots.txt", std::ios_base::app);
-      highChisqFile << fileName <<  " " << chisqv << " is larger than "<< chisqNotifierCut << "\n";
-      highChisqFile.close();
-
-    }
 
   }
 
@@ -282,7 +287,7 @@ int main(int argc, char* argv[]){
   TString file1name(argv[1]);
   TString file1_dataormc(argv[2]);
   TString file1_label(argv[3]);
-  TString file2name(argv[4]);    
+  TString file2name(argv[4]);
   TString file2_dataormc(argv[5]);
   TString file2_label(argv[6]);
   TString outDir(argv[7]);

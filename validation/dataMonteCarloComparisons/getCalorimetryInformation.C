@@ -27,7 +27,7 @@ void getCalorimetryInformation(TString file1name, TString file1_dataormc, TStrin
   TString outputFile(outDir+"fOutputCalorimetrys.root");
   TFile f_output(outputFile,"RECREATE");
 
-  // define input 
+  // define input
   TChain *fChainFile1 = new TChain("analysistree/anatree");
   TChain *fChainFile2 = new TChain("analysistree/anatree");
   fChainFile1->Add(file1name);
@@ -73,7 +73,7 @@ void getCalorimetryInformation(TString file1name, TString file1_dataormc, TStrin
     comments = {
       /*trkdqdx_u_pandora*/ {"trkdqdx_u. Track dQ/dx values on the U (first induction) plane as reconstructed by the pandora algorithm.",
         /*trkdqdx_v_pandora*/  "trkdqdx_v. Track dQ/dx values on the V (second induction) plane as reconstructed by the pandora algorithm.",
-        /*trkdqdx_y_pandora*/  "trkdqdx_y. Track dQ/dx values on the Y (collection) plane as reconstructed by the pandora algorithm."} 
+        /*trkdqdx_y_pandora*/  "trkdqdx_y. Track dQ/dx values on the Y (collection) plane as reconstructed by the pandora algorithm."}
     };
 
   }
@@ -120,8 +120,8 @@ void getCalorimetryInformation(TString file1name, TString file1_dataormc, TStrin
         dqdx_it++;
       }
 
-      TH1D *hFile1 = new TH1D(fileName+"_file1", "", (int)caloPlotValues[j][0], caloPlotValues[j][1], caloPlotValues[j][2]); 
-      TH1D *hFile2 = new TH1D(fileName+"_file2", "", (int)caloPlotValues[j][0], caloPlotValues[j][1], caloPlotValues[j][2]); 
+      TH1D *hFile1 = new TH1D(fileName+"_file1", "", (int)caloPlotValues[j][0], caloPlotValues[j][1], caloPlotValues[j][2]);
+      TH1D *hFile2 = new TH1D(fileName+"_file2", "", (int)caloPlotValues[j][0], caloPlotValues[j][1], caloPlotValues[j][2]);
 
       TString file1DrawString(fileName+" >> "+fileName+"_file1");
       TString file2DrawString(fileName+" >> "+fileName+"_file2");
@@ -147,14 +147,14 @@ void getCalorimetryInformation(TString file1name, TString file1_dataormc, TStrin
       double maxext = getMax(hFile1, hFile2);
       hFile2->SetMaximum(maxext);
 
-      // here 0 = nominal 
+      // here 0 = nominal
 
       if (file1_dataormc == "DATA" && file2_dataormc == "MC"){
 
         setStyle(hFile1, 0, yAxisTitle);
         setStyle(hFile2, 1, yAxisTitle);
 
-        topPad->cd(); 
+        topPad->cd();
         // draw MC histo error bars...
         hFile2->Draw("e2");
 
@@ -192,7 +192,7 @@ void getCalorimetryInformation(TString file1name, TString file1_dataormc, TStrin
       else if (file1_dataormc == "MC" && file2_dataormc == "MC"){
         setStyle(hFile1, 3, yAxisTitle);
         setStyle(hFile2, 1, yAxisTitle);
-        topPad->cd(); 
+        topPad->cd();
 
         // draw MC histo error bars...
         hFile2->Draw("e2");
@@ -236,7 +236,7 @@ void getCalorimetryInformation(TString file1name, TString file1_dataormc, TStrin
       else if (file1_dataormc == "DATA" && file2_dataormc == "DATA"){
         setStyle(hFile1, 0, yAxisTitle);
         setStyle(hFile2, 2, yAxisTitle);
-        topPad->cd(); 
+        topPad->cd();
 
         hFile2->Draw("e1");
         hFile1->Draw("e1same");
@@ -260,7 +260,7 @@ void getCalorimetryInformation(TString file1name, TString file1_dataormc, TStrin
 
       double chisqv = calculateChiSqDistance(hFile1, hFile2);
       TString chisq = Form("#chi^{2}: %g", chisqv);
-      int nBins = std::max(getNBins(hFile1),getNBins(hFile2)); 
+      int nBins = std::max(getNBins(hFile1),getNBins(hFile2));
       TString NDF = Form("No. Bins: %i", nBins);
       topPad->cd();
       TPaveText *pt = new TPaveText(0.5, 0.78, 0.9, 0.88, "NDC");
@@ -308,9 +308,6 @@ void getCalorimetryInformation(TString file1name, TString file1_dataormc, TStrin
       pt2->SetTextAlign(11);
       pt2->Draw("same");
 
-      TString saveString = Form(outDir+"4CALO_"+fileName+".png");
-      c1->SaveAs(saveString, "png"); 
-
       if (isCI){
         std::ofstream commentsFile;
         commentsFile.open(outDir+"4CALO_"+fileName+".comment");
@@ -318,27 +315,35 @@ void getCalorimetryInformation(TString file1name, TString file1_dataormc, TStrin
         commentsFile.close();
       }
 
-      hFile1->Write();
-      hFile2->Write();
-
       // check chisq if MC/MC comparison
       if (file1_dataormc == "MC" && file2_dataormc == "MC"){
 
         // Print all chi2 values to a file for tracking over time
         std::ofstream ChisqFile;
         ChisqFile.open(outDir+"ChisqValues.txt", std::ios_base::app);
-        ChisqFile << Form(fileName.Remove((int)fileName.Length()-7)+"%i", dqdx_it) << " " << chisqv << "\n";
+        ChisqFile << Form(fileName.Remove((int)fileName.Length()-7)+"%i", dqdx_it) << " " << chisqv/(double)nBins << "\n";
         ChisqFile.close();
 
         // Print names of plots with high chi2 to a separate file
-        if (chisqv >= chisqNotifierCut){
+        if (chisqv/(double)nBins >= chisqNotifierCut){
 
           std::ofstream highChisqFile;
           highChisqFile.open(outDir+"highChisqPlots.txt", std::ios_base::app);
-          highChisqFile << Form(fileName+"%i", dqdx_it) << " " << chisqv << " is larger than " << chisqNotifierCut<< "\n";
+          highChisqFile << Form(fileName+"%i", dqdx_it) << " " << chisqv/(double)nBins << " is larger than " << chisqNotifierCut<< "\n";
           highChisqFile.close();
 
+      		// If chisq is large, change background colour of canvas to make it really obvious
+      		c1->SetFillColor(kOrange-2);
+      		topPad->SetFillColor(kOrange-2);
+      		bottomPad->SetFillColor(kOrange-2);
+
         }
+
+        TString saveString = Form(outDir+"4CALO_"+fileName+".png");
+        c1->SaveAs(saveString, "png");
+
+        hFile1->Write();
+        hFile2->Write();
       }
     }
   }
@@ -352,7 +357,7 @@ int main(int argc, char* argv[]){
   TString file1name(argv[1]);
   TString file1_dataormc(argv[2]);
   TString file1_label(argv[3]);
-  TString file2name(argv[4]);    
+  TString file2name(argv[4]);
   TString file2_dataormc(argv[5]);
   TString file2_label(argv[6]);
   TString outDir(argv[7]);

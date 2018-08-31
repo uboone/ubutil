@@ -26,7 +26,7 @@ void getFlashInformation(TString file1name, TString file1_dataormc, TString file
   TString outputFile(outDir+"fOutputFlashes.root");
   TFile f_output(outputFile,"RECREATE");
 
-  // define input 
+  // define input
   TChain *fChainFile1 = new TChain("analysistree/anatree");
   TChain *fChainFile2 = new TChain("analysistree/anatree");
   fChainFile1->Add(file1name);
@@ -56,7 +56,7 @@ void getFlashInformation(TString file1name, TString file1_dataormc, TString file
 
     // define vector of algo names
     algoNames = {
-      "simpleFlashBeam", 
+      "simpleFlashBeam",
       "simpleFlashCosmic"
     };
 
@@ -87,14 +87,14 @@ void getFlashInformation(TString file1name, TString file1_dataormc, TString file
   else {
     // define vector of algo names
     algoNames = {
-      "opflashBeam", 
-      "opflashCosmic", 
-      "simpleFlashBeam", 
+      "opflashBeam",
+      "opflashCosmic",
+      "simpleFlashBeam",
       "simpleFlashCosmic"};
 
     // and define plots
     flashPlotNames = {
-      "nfls", 
+      "nfls",
       "flsTime",
       "flsPe",
       "flsZcenter",
@@ -120,8 +120,8 @@ void getFlashInformation(TString file1name, TString file1_dataormc, TString file
 
       TString fileName(flashPlotNames[j]+"_"+algoNames[i]);
 
-      TH1D *hFile1 = new TH1D(fileName+"_file1", "", (int)flashPlotValues[j][i][0], flashPlotValues[j][i][1], flashPlotValues[j][i][2]); 
-      TH1D *hFile2 = new TH1D(fileName+"_file2", "", (int)flashPlotValues[j][i][0], flashPlotValues[j][i][1], flashPlotValues[j][i][2]); 
+      TH1D *hFile1 = new TH1D(fileName+"_file1", "", (int)flashPlotValues[j][i][0], flashPlotValues[j][i][1], flashPlotValues[j][i][2]);
+      TH1D *hFile2 = new TH1D(fileName+"_file2", "", (int)flashPlotValues[j][i][0], flashPlotValues[j][i][1], flashPlotValues[j][i][2]);
 
       TString file1DrawString(fileName+" >> "+fileName+"_file1");
       TString file2DrawString(fileName+" >> "+fileName+"_file2");
@@ -158,7 +158,7 @@ void getFlashInformation(TString file1name, TString file1_dataormc, TString file
       // histogram styling
       TString yAxisTitle("# Flashes [arb]");
 
-      // here 0 = nominal 
+      // here 0 = nominal
 
       if (file1_dataormc == "DATA" && file2_dataormc == "MC"){
 
@@ -274,7 +274,7 @@ void getFlashInformation(TString file1name, TString file1_dataormc, TString file
 
       double chisqv = calculateChiSqDistance(hFile1, hFile2);
       TString chisq = Form("#chi^{2}: %g", chisqv);
-      int nBins = std::max(getNBins(hFile1),getNBins(hFile2)); 
+      int nBins = std::max(getNBins(hFile1),getNBins(hFile2));
       TString NDF = Form("No. Bins: %i", nBins);
       topPad->cd();
       TPaveText *pt = new TPaveText(0.5, 0.78, 0.9, 0.88, "NDC");
@@ -318,13 +318,6 @@ void getFlashInformation(TString file1name, TString file1_dataormc, TString file
       pt2->SetTextAlign(11);
       pt2->Draw("same");
 
-
-      TString saveString = Form(outDir+"5FLASH_"+fileName+".png");
-      c1->SaveAs(saveString, "png"); 
-
-      hFile1->Write();
-      hFile2->Write();
-
       if (isCI){
         std::ofstream commentsFile;
         commentsFile.open(outDir+"5FLASH_"+fileName+".comment");
@@ -335,18 +328,30 @@ void getFlashInformation(TString file1name, TString file1_dataormc, TString file
       // Print all chi2 values to a file for tracking over time
       std::ofstream ChisqFile;
       ChisqFile.open(outDir+"ChisqValues.txt", std::ios_base::app);
-      ChisqFile << fileName << " " << chisqv << "\n";
+      ChisqFile << fileName << " " << chisqv/(double)nBins << "\n";
       ChisqFile.close();
 
       // Print names of plots with high chi2 to a separate file
-      if (chisqv >= chisqNotifierCut){
+      if (chisqv/(double)nBins >= chisqNotifierCut){
 
         std::ofstream highChisqFile;
         highChisqFile.open(outDir+"highChisqPlots.txt", std::ios_base::app);
-        highChisqFile << fileName << " " << chisqv << " is larger than "<< chisqNotifierCut << "\n";
+        highChisqFile << fileName << " " << chisqv/(double)nBins << " is larger than "<< chisqNotifierCut << "\n";
         highChisqFile.close();
 
+        // If chisq is large, change background colour of canvas to make it really obvious
+        c1->SetFillColor(kOrange-2);
+    		topPad->SetFillColor(kOrange-2);
+    		bottomPad->SetFillColor(kOrange-2);
+
       }
+
+
+      TString saveString = Form(outDir+"5FLASH_"+fileName+".png");
+      c1->SaveAs(saveString, "png");
+
+      hFile1->Write();
+      hFile2->Write();
     }
   }
 
@@ -359,7 +364,7 @@ int main(int argc, char* argv[]){
   TString file1name(argv[1]);
   TString file1_dataormc(argv[2]);
   TString file1_label(argv[3]);
-  TString file2name(argv[4]);    
+  TString file2name(argv[4]);
   TString file2_dataormc(argv[5]);
   TString file2_label(argv[6]);
   TString outDir(argv[7]);

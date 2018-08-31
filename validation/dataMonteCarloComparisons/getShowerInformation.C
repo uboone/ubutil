@@ -26,7 +26,7 @@ void getShowerInformation(TString file1name, TString file1_dataormc, TString fil
   TString outputFile(outDir+"fOutputShowers.root");
   TFile f_output(outputFile,"RECREATE");
 
-  // define input 
+  // define input
   TChain *fChainFile1 = new TChain("analysistree/anatree");
   TChain *fChainFile2 = new TChain("analysistree/anatree");
   fChainFile1->Add(file1name);
@@ -138,8 +138,8 @@ void getShowerInformation(TString file1name, TString file1_dataormc, TString fil
 
       TString fileName(showerPlotNames[j]+"_"+algoNames[i]);
 
-      TH1D *hFile1 = new TH1D(fileName+"_file1", "", (int)showerPlotValues[j][0], showerPlotValues[j][1], showerPlotValues[j][2]); 
-      TH1D *hFile2 = new TH1D(fileName+"_file2", "", (int)showerPlotValues[j][0], showerPlotValues[j][1], showerPlotValues[j][2]); 
+      TH1D *hFile1 = new TH1D(fileName+"_file1", "", (int)showerPlotValues[j][0], showerPlotValues[j][1], showerPlotValues[j][2]);
+      TH1D *hFile2 = new TH1D(fileName+"_file2", "", (int)showerPlotValues[j][0], showerPlotValues[j][1], showerPlotValues[j][2]);
 
       TString file1DrawString(fileName+" >> "+fileName+"_file1");
       TString file2DrawString(fileName+" >> "+fileName+"_file2");
@@ -165,14 +165,14 @@ void getShowerInformation(TString file1name, TString file1_dataormc, TString fil
       double maxext = getMax(hFile1, hFile2);
       hFile2->SetMaximum(maxext);
 
-      // here 0 = nominal 
+      // here 0 = nominal
 
       if (file1_dataormc == "DATA" && file2_dataormc == "MC"){
 
         setStyle(hFile1, 0, yAxisTitle);
         setStyle(hFile2, 1, yAxisTitle);
 
-        topPad->cd(); 
+        topPad->cd();
         // draw MC histo error bars...
         hFile2->Draw("e2");
 
@@ -210,7 +210,7 @@ void getShowerInformation(TString file1name, TString file1_dataormc, TString fil
       else if (file1_dataormc == "MC" && file2_dataormc == "MC"){
         setStyle(hFile1, 3, yAxisTitle);
         setStyle(hFile2, 1, yAxisTitle);
-        topPad->cd(); 
+        topPad->cd();
 
         // draw MC histo error bars...
         hFile2->Draw("e2");
@@ -254,7 +254,7 @@ void getShowerInformation(TString file1name, TString file1_dataormc, TString fil
       else if (file1_dataormc == "DATA" && file2_dataormc == "DATA"){
         setStyle(hFile1, 0, yAxisTitle);
         setStyle(hFile2, 2, yAxisTitle);
-        topPad->cd(); 
+        topPad->cd();
 
         hFile2->Draw("e1");
         hFile1->Draw("e1same");
@@ -278,7 +278,7 @@ void getShowerInformation(TString file1name, TString file1_dataormc, TString fil
 
       double chisqv = calculateChiSqDistance(hFile1, hFile2);
       TString chisq = Form("#chi^{2}: %g", chisqv);
-      int nBins = std::max(getNBins(hFile1),getNBins(hFile2)); 
+      int nBins = std::max(getNBins(hFile1),getNBins(hFile2));
       TString NDF = Form("No. Bins: %i", nBins);
       topPad->cd();
       TPaveText *pt = new TPaveText(0.5, 0.78, 0.9, 0.88, "NDC");
@@ -322,12 +322,6 @@ void getShowerInformation(TString file1name, TString file1_dataormc, TString fil
       pt2->SetTextAlign(11);
       pt2->Draw("same");
 
-      TString saveString = Form(outDir+"2SHOWER_"+fileName+".png");
-      c1->SaveAs(saveString, "png"); 
-
-      hFile1->Write();
-      hFile2->Write();
-
       if (isCI){
         std::ofstream commentsFile;
         commentsFile.open(outDir+"2SHOWER_"+fileName+".comment");
@@ -338,18 +332,29 @@ void getShowerInformation(TString file1name, TString file1_dataormc, TString fil
       // Print all chi2 values to a file for tracking over time
       std::ofstream ChisqFile;
       ChisqFile.open(outDir+"ChisqValues.txt", std::ios_base::app);
-      ChisqFile << fileName << " " << chisqv << "\n";
+      ChisqFile << fileName << " " << chisqv/(double)nBins << "\n";
       ChisqFile.close();
 
       // Print names of plots with high chi2 to a separate file
-      if (chisqv >= chisqNotifierCut){
+      if (chisqv/double(nBins) >= chisqNotifierCut){
 
         std::ofstream highChisqFile;
         highChisqFile.open(outDir+"highChisqPlots.txt", std::ios_base::app);
-        highChisqFile << fileName <<  " " << chisqv << " is larger than "<< chisqNotifierCut << "\n";
+        highChisqFile << fileName <<  " " << chisqv/double(nBins) << " is larger than "<< chisqNotifierCut << "\n";
         highChisqFile.close();
 
+    		// If chisq is large, change background colour of canvas to make it really obvious
+    		c1->SetFillColor(kOrange-2);
+    		topPad->SetFillColor(kOrange-2);
+    		bottomPad->SetFillColor(kOrange-2);
+
       }
+
+      TString saveString = Form(outDir+"2SHOWER_"+fileName+".png");
+      c1->SaveAs(saveString, "png");
+
+      hFile1->Write();
+      hFile2->Write();
 
     }
   }
@@ -363,7 +368,7 @@ int main(int argc, char* argv[]){
   TString file1name(argv[1]);
   TString file1_dataormc(argv[2]);
   TString file1_label(argv[3]);
-  TString file2name(argv[4]);    
+  TString file2name(argv[4]);
   TString file2_dataormc(argv[5]);
   TString file2_label(argv[6]);
   TString outDir(argv[7]);
