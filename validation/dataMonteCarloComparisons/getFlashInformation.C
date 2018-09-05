@@ -153,7 +153,6 @@ void getFlashInformation(TString file1name, TString file1_dataormc, TString file
 
       // set max extent of histogram
       double maxext = getMax(hFile1, hFile2);
-      hFile2->SetMaximum(maxext);
 
       // histogram styling
       TString yAxisTitle("# Flashes [arb]");
@@ -168,6 +167,7 @@ void getFlashInformation(TString file1name, TString file1_dataormc, TString file
         topPad->cd();
         // draw MC histo error bars...
         hFile2->Draw("e2");
+        hFile2->GetYaxis()->SetRangeUser(0,maxext);
 
         // clone, and draw as histogram
         TH1F* hFile2c = (TH1F*)hFile2->Clone("hFile2c");
@@ -209,6 +209,7 @@ void getFlashInformation(TString file1name, TString file1_dataormc, TString file
         topPad->cd();
         // draw MC histo error bars...
         hFile2->Draw("e2");
+        hFile2->GetYaxis()->SetRangeUser(0,maxext);
 
         // clone, and draw as histogram
         TH1F* hFile2c = (TH1F*)hFile2->Clone("hFile2c");
@@ -254,6 +255,7 @@ void getFlashInformation(TString file1name, TString file1_dataormc, TString file
 
         topPad->cd();
         hFile2->Draw("e1");
+        hFile2->GetYaxis()->SetRangeUser(0,maxext);
         hFile1->Draw("e1same");
 
         setLegend(hFile1, 0, file1_label, hFile2, 2, file2_label);
@@ -272,14 +274,14 @@ void getFlashInformation(TString file1name, TString file1_dataormc, TString file
 
       }
 
-      double chisqv = calculateChiSqDistance(hFile1, hFile2);
-      TString chisq = Form("#chi^{2}: %g", chisqv);
-      int nBins = std::max(getNBins(hFile1),getNBins(hFile2));
-      TString NDF = Form("No. Bins: %i", nBins);
+      double chisqv = calculatePearsonChiSq(hFile1, hFile2);
+      int nBins = std::max(getNBins(hFile1),getNBins(hFile2))-1;
+      TString chisq = Form("Shape #chi^{2}/No. Bins - 1: %g / %i", chisqv,nBins);
+      TString chisqNDF = Form("= %g",chisqv/nBins);
       topPad->cd();
-      TPaveText *pt = new TPaveText(0.5, 0.78, 0.9, 0.88, "NDC");
+      TPaveText *pt = new TPaveText(0.4, 0.78, 0.9, 0.88, "NDC");
       pt->AddText(chisq);
-      pt->AddText(NDF);
+      pt->AddText(chisqNDF);
       pt->SetFillStyle(0);
       pt->SetBorderSize(0);
       pt->SetTextAlign(31);
@@ -344,6 +346,11 @@ void getFlashInformation(TString file1name, TString file1_dataormc, TString file
     		topPad->SetFillColor(kOrange-2);
     		bottomPad->SetFillColor(kOrange-2);
 
+      }
+      else{ // Canvas background should be white
+        c1->SetFillColor(kWhite);
+    		topPad->SetFillColor(kWhite);
+    		bottomPad->SetFillColor(kWhite);
       }
 
 
