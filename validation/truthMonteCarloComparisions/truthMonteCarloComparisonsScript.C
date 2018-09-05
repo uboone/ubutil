@@ -388,9 +388,9 @@ void FillPlots_MC( TTree* tree, std::vector<TH1D> &hvector, std::string tracking
    histoname = "hlrangemc_" + version;
    TH1D *hlrangemc = new TH1D(histoname.c_str(), "Track length Range True (start point - end point); Track range [cm];", 50, 0, 1000);
    histoname = "hldiff_" + version;
-   TH1D *hldiff = new TH1D(histoname.c_str(), "Track length - Track range (Reco); Track length - track range [cm];", 200, -100, 100);
+   TH1D *hldiff = new TH1D(histoname.c_str(), "Track length - Track range (Reco); Track length - track range [cm];", 20, -10, 10);
    histoname = "hldiffmc_" + version;
-   TH1D *hldiffmc = new TH1D(histoname.c_str(), "Track length - Track range (True); Track length - track range [cm];", 200, -100, 100);
+   TH1D *hldiffmc = new TH1D(histoname.c_str(), "Track length - Track range (True); Track length - track range [cm];", 20, -10, 10);
    histoname = "hlres_" + version;
    TH1D *hlres = new TH1D(histoname.c_str(), "Track length (Reco) - Track length (True); Track length reco - track length true  [cm];", 100, -50, 50);
    histoname = "hlresrange_" + version;
@@ -906,54 +906,54 @@ void FillPlots_MC( TTree* tree, std::vector<TH1D> &hvector, std::string tracking
      hvector.push_back(*htrue_mclen);
      hvector.push_back(*hreco_mcmom);
      hvector.push_back(*htrue_mcmom);
-     hvector.push_back(*heff_muon_mctheta);
-     hvector.push_back(*hreco_muon_mctheta);
-     hvector.push_back(*htrue_muon_mctheta);
-     hvector.push_back(*heff_muon_mcphi);
-     hvector.push_back(*hreco_muon_mcphi);
-     hvector.push_back(*htrue_muon_mcphi);
-     hvector.push_back(*heff_muon_mclen);
-     hvector.push_back(*hreco_muon_mclen);
-     hvector.push_back(*htrue_muon_mclen);
-     hvector.push_back(*heff_muon_mcmom);
-     hvector.push_back(*hreco_muon_mcmom);
-     hvector.push_back(*htrue_muon_mcmom);
-     hvector.push_back(*heff_pion_mctheta);
-     hvector.push_back(*hreco_pion_mctheta);
-     hvector.push_back(*htrue_pion_mctheta);
-     hvector.push_back(*heff_pion_mcphi);
-     hvector.push_back(*hreco_pion_mcphi);
-     hvector.push_back(*htrue_pion_mcphi);
-     hvector.push_back(*heff_pion_mclen);
-     hvector.push_back(*hreco_pion_mclen);
-     hvector.push_back(*htrue_pion_mclen);
-     hvector.push_back(*heff_pion_mcmom);
-     hvector.push_back(*hreco_pion_mcmom);
-     hvector.push_back(*htrue_pion_mcmom);
-     hvector.push_back(*heff_kaon_mctheta);
-     hvector.push_back(*hreco_kaon_mctheta);
-     hvector.push_back(*htrue_kaon_mctheta);
-     hvector.push_back(*heff_kaon_mcphi);
-     hvector.push_back(*hreco_kaon_mcphi);
-     hvector.push_back(*htrue_kaon_mcphi);
-     hvector.push_back(*heff_kaon_mclen);
-     hvector.push_back(*hreco_kaon_mclen);
-     hvector.push_back(*htrue_kaon_mclen);
-     hvector.push_back(*heff_kaon_mcmom);
-     hvector.push_back(*hreco_kaon_mcmom);
-     hvector.push_back(*htrue_kaon_mcmom);
-     hvector.push_back(*heff_proton_mctheta);
-     hvector.push_back(*hreco_proton_mctheta);
-     hvector.push_back(*htrue_proton_mctheta);
-     hvector.push_back(*heff_proton_mcphi);
-     hvector.push_back(*hreco_proton_mcphi);
-     hvector.push_back(*htrue_proton_mcphi);
-     hvector.push_back(*heff_proton_mclen);
-     hvector.push_back(*hreco_proton_mclen);
-     hvector.push_back(*htrue_proton_mclen);
-     hvector.push_back(*heff_proton_mcmom);
-     hvector.push_back(*hreco_proton_mcmom);
-     hvector.push_back(*htrue_proton_mcmom);
+     // hvector.push_back(*heff_muon_mctheta);
+     // hvector.push_back(*hreco_muon_mctheta);
+     // hvector.push_back(*htrue_muon_mctheta);
+     // hvector.push_back(*heff_muon_mcphi);
+     // hvector.push_back(*hreco_muon_mcphi);
+     // hvector.push_back(*htrue_muon_mcphi);
+     // hvector.push_back(*heff_muon_mclen);
+     // hvector.push_back(*hreco_muon_mclen);
+     // hvector.push_back(*htrue_muon_mclen);
+     // hvector.push_back(*heff_muon_mcmom);
+     // hvector.push_back(*hreco_muon_mcmom);
+     // hvector.push_back(*htrue_muon_mcmom);
+     // hvector.push_back(*heff_pion_mctheta);
+     // hvector.push_back(*hreco_pion_mctheta);
+     // hvector.push_back(*htrue_pion_mctheta);
+     // hvector.push_back(*heff_pion_mcphi);
+     // hvector.push_back(*hreco_pion_mcphi);
+     // hvector.push_back(*htrue_pion_mcphi);
+     // hvector.push_back(*heff_pion_mclen);
+     // hvector.push_back(*hreco_pion_mclen);
+     // hvector.push_back(*htrue_pion_mclen);
+     // hvector.push_back(*heff_pion_mcmom);
+     // hvector.push_back(*hreco_pion_mcmom);
+     // hvector.push_back(*htrue_pion_mcmom);
+     // // hvector.push_back(*heff_kaon_mctheta);
+     // // hvector.push_back(*hreco_kaon_mctheta);
+     // // hvector.push_back(*htrue_kaon_mctheta);
+     // // hvector.push_back(*heff_kaon_mcphi);
+     // // hvector.push_back(*hreco_kaon_mcphi);
+     // // hvector.push_back(*htrue_kaon_mcphi);
+     // // hvector.push_back(*heff_kaon_mclen);
+     // // hvector.push_back(*hreco_kaon_mclen);
+     // // hvector.push_back(*htrue_kaon_mclen);
+     // // hvector.push_back(*heff_kaon_mcmom);
+     // // hvector.push_back(*hreco_kaon_mcmom);
+     // // hvector.push_back(*htrue_kaon_mcmom);
+     // hvector.push_back(*heff_proton_mctheta);
+     // hvector.push_back(*hreco_proton_mctheta);
+     // hvector.push_back(*htrue_proton_mctheta);
+     // hvector.push_back(*heff_proton_mcphi);
+     // hvector.push_back(*hreco_proton_mcphi);
+     // hvector.push_back(*htrue_proton_mcphi);
+     // hvector.push_back(*heff_proton_mclen);
+     // hvector.push_back(*hreco_proton_mclen);
+     // hvector.push_back(*htrue_proton_mclen);
+     // hvector.push_back(*heff_proton_mcmom);
+     // hvector.push_back(*hreco_proton_mcmom);
+     // hvector.push_back(*htrue_proton_mcmom);
      // Note: for now, nuvtxx/nuvtxy/nuvtxz are only available in analysistree from pandoraNu
      // So only make these plots for pandoraNu!
      // Also do pandora for consolidated output (I think this will work...)
@@ -1019,7 +1019,7 @@ double calculateShapeChiSq(TH1D O, TH1D E){
 
 // ------- Function to draw histograms (not comparison: one MC version only) -------- //
 
-void DrawHistos ( std::vector<TH1D> hvector , std::string tag, std::string algorithm ) {
+void DrawHistos ( std::vector<TH1D> hvector , std::string tag, std::string algorithm, bool comparison ) {
   std::string outroot = "MCcomparison_" + tag + "_" + algorithm + ".root";
   TFile outfile (outroot.c_str(), "recreate");
 
@@ -1035,7 +1035,8 @@ void DrawHistos ( std::vector<TH1D> hvector , std::string tag, std::string algor
 
     std::string plotname = string(hvector[i].GetName()).substr(0, string(hvector[i].GetName()).size() - tag.size() -1 );
       std::string outname = string("MCplots_" + plotname + "_" + tag + "_" + algorithm + ".png");
-    c1.Print(outname.c_str(),"png");
+      // Only make pngs if not doing comparison, otherwise it's way too many plots!
+    if (!comparison) c1.Print(outname.c_str(),"png");
   }
   outfile.Close();
 }
@@ -1070,7 +1071,7 @@ void DrawComparison( std::vector<TH1D> vector1, std::vector<TH1D> vector2, std::
 	// Resize y axis to show both histograms
 	double maxval = vector1[i].GetMaximum();
 	if (vector2[i].GetMaximum() > maxval){ maxval = vector2[i].GetMaximum(); }
-	vector1[i].GetYaxis()->SetRangeUser(0,maxval*1.1);
+	vector1[i].GetYaxis()->SetRangeUser(0,maxval*1.3);
 
 	// Calculate chi2 between two plots and put in format for legend
 	// double chisqv = calculateChiSqDistance(vector1[i], vector2[i]);
@@ -1091,7 +1092,7 @@ void DrawComparison( std::vector<TH1D> vector1, std::vector<TH1D> vector2, std::
 	if (chisqNDF >= chisqNotifierCut/100.0){
 	  std::ofstream highChisqFile;
 	  highChisqFile.open("highChisqPlots.txt", std::ios_base::app);
-	  highChisqFile << c1.GetName() << " (" << algorithm << "): chisq = " << chisqv/(double)nBins << "\n";
+	  highChisqFile << c1.GetName() << " (" << algorithm << "): chisq/NDF = " << chisqNDF << "\n";
 	  highChisqFile.close();
 
 		// If chisq is large, change background colour of canvas to make it really obvious
@@ -1200,7 +1201,7 @@ int main ( int argc, char** argv ) {
 	}
 	}
 
-	std::vector<std::string> algorithm = { "pandora" };
+	std::vector<std::string> algorithm = { "pandora", "pandoraNu" };
 	if ( short_long == "long" ) {
 	        algorithm.push_back ( "pandoraNu" );
 	        algorithm.push_back ( "pandoraCosmic" );
@@ -1218,10 +1219,9 @@ int main ( int argc, char** argv ) {
 	  FillPlots_MC ( tree1, vector1, algorithm[ algorithms ], tag1, short_long, comments );
 
 
-	  // In "long" mode, draw both sets of histograms separately as well as the comparison
-	  // Also do this if you're not doing a comparison
+	  // Draw both sets of histograms separately if you're not doing a comparison, or if you're in long mode
 	  if (short_long == "long" || !comparison){
-	    DrawHistos( vector1, tag1, algorithm[ algorithms ]);
+	    DrawHistos( vector1, tag1, algorithm[ algorithms ], comparison);
 	  }
 
 	  if (!comparison) continue;
@@ -1231,7 +1231,7 @@ int main ( int argc, char** argv ) {
 	  FillPlots_MC ( tree2, vector2, algorithm[ algorithms ], tag2, short_long, comments );
 	  // In "long" mode, draw both sets of histograms separately as well as the comparison
 	  if (short_long == "long"){
-	    DrawHistos( vector2, tag2, algorithm[ algorithms ] );
+	    DrawHistos( vector2, tag2, algorithm[ algorithms ], comparison);
 	  }
 
 	  DrawComparison( vector1, vector2, tag1, tag2, algorithm[ algorithms ], comments );
