@@ -994,16 +994,16 @@ double calculateChiSqDistance(TH1D O, TH1D E){
 
 // ------- Function to calculate something similar to a chi2 for shape comparison only -------- //
 
-double calculateShapeChiSq(TH1D O, TH1D E){
+double calculateShapeChiSq(TH1D* O, TH1D* E){
 
-    double O_norm = O.Integral();
-    double E_norm = E.Integral();
+    double O_norm = O->Integral();
+    double E_norm = E->Integral();
 
     double chisq = 0;
-    for (int i = 1; i < O.GetNbinsX()+1; i++){
+    for (int i = 1; i < O->GetNbinsX()+1; i++){
 
-        double O_i = O.GetBinContent(i);
-        double E_i = E.GetBinContent(i);
+        double O_i = O->GetBinContent(i);
+        double E_i = E->GetBinContent(i);
 
         if ((O_i == 0 && E_i == 0)){
             chisq += 0;
@@ -1054,16 +1054,34 @@ void DrawComparison( std::vector<TH1D> vector1, std::vector<TH1D> vector2, std::
 	TFile outfile (outroot.c_str(), "recreate");
 
 	for (unsigned i=0; i<vector1.size(); i++) {
+    // Make clones before normalizing so we can use these for shape-only chi2 comparison
+    TH1D *tmp_v1 = (TH1D*)vector1[i].Clone();
+    TH1D *tmp_v2 = (TH1D*)vector2[i].Clone();
+
 	TCanvas c1;
 	vector1[i].SetLineWidth(2);
 	vector1[i].SetStats(0);
 	vector1[i].Sumw2();
-	vector1[i].DrawNormalized("hist e0");
+  if(string(vector1[i].GetName()).find("eff") != std::string::npos){ // Don't normalise efficiency histograms (they're already normalised!)
+    // do nothing
+  }
+  else{
+    double integral1 = vector1[i].Integral();
+    vector1[i].Scale(1.0/integral1);
+  }
+	vector1[i].Draw("hist e0");
 	vector2[i].SetLineWidth(2);
 	vector2[i].SetLineColor(2);
 	vector2[i].SetStats(0);
 	vector2[i].Sumw2();
-	vector2[i].DrawNormalized("hist e0 same");
+  if(string(vector2[i].GetName()).find("eff") != std::string::npos){ // Don't normalise efficiency histograms (they're already normalised!)
+    // do nothing
+  }
+  else{
+    double integral2 = vector2[i].Integral();
+    vector2[i].Scale(1.0/integral2);
+  }
+	vector2[i].Draw("hist e0 same");
 	std::string plotname = string(vector1[i].GetName()).substr(0, string(vector1[i].GetName()).size() - tag1.size() -1 );
 	c1.SetName(plotname.c_str());
 	c1.SetTitle(plotname.c_str());
@@ -1075,7 +1093,7 @@ void DrawComparison( std::vector<TH1D> vector1, std::vector<TH1D> vector2, std::
 
 	// Calculate chi2 between two plots and put in format for legend
 	// double chisqv = calculateChiSqDistance(vector1[i], vector2[i]);
-	double chisqv = calculateShapeChiSq(vector1[i], vector2[i]);
+	double chisqv = calculateShapeChiSq(tmp_v1, tmp_v2);
 	TString chisq = Form("Shape #chi^{2}: %g", chisqv);
 	int nBins = std::max(vector1[i].GetNbinsX(), vector2[i].GetNbinsX());
 	TString NDF = Form("No. Bins: %i", nBins);
@@ -1201,9 +1219,9 @@ int main ( int argc, char** argv ) {
 	}
 	}
 
-	std::vector<std::string> algorithm = { "pandora", "pandoraNu" };
+	std::vector<std::string> algorithm = { /*"pandora",*/ "pandoraNu" };
 	if ( short_long == "long" ) {
-	        algorithm.push_back ( "pandoraNu" );
+	        // algorithm.push_back ( "pandoraNu" );
 	        algorithm.push_back ( "pandoraCosmic" );
 		algorithm.push_back ( "pandoraNuKHit" );
 		algorithm.push_back ( "pandoraCosmicKHit" );
