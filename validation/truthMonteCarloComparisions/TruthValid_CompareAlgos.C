@@ -74,8 +74,15 @@ void CompareAlgos(TString rootfile1, TString algoname1, TString rootfile2, TStri
     h_alg2->SetLineColor(2);
     h_alg2->SetStats(0);
     h_alg2->Sumw2();
-    h_alg1->DrawNormalized("hist e0");
-    h_alg2->DrawNormalized("hist e0 same");
+    if (string(h_alg1->GetName()).find("eff") != std::string::npos){ // Don't normalise efficiency histograms (they're already normalised!)
+      h_alg1->Draw("hist e0");
+      h_alg2->Draw("hist e0 same");
+    }
+    else{
+      h_alg1->DrawNormalized("hist e0");
+      h_alg2->DrawNormalized("hist e0 same");
+    }
+
 
   	// Resize y axis to show both histograms
   	double maxval = h_alg1->GetMaximum();
