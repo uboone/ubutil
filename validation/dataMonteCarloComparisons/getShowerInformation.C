@@ -55,7 +55,7 @@ void getShowerInformation(TString file1name, TString file1_dataormc, TString fil
   if (isCI == 1){
 
     // define vector of algo names
-    algoNames = {"pandoraCosmic"};
+    algoNames = {"pandora"};
 
     // and define plots
     showerPlotNames = {
@@ -78,18 +78,18 @@ void getShowerInformation(TString file1name, TString file1_dataormc, TString fil
     };
 
     comments = {
-      /*nshowers_pandoraCosmic*/       {"nshowers_pandoraCosmic. Number of showers reconstructed by the pandoraCosmic algorithm.",
-      /*shwr_theta_pandoraCosmic*/      "shwr_theta_pandoraCosmic. Shower theta angle as reconstructed by pandoraCosmic. Theta = 0 means the shower is going in the beam direction, Theta = pi means the shower is going in the anti-beam direction.",
-      /*shwr_phi_pandoraCosmic*/        "shwr_phi_pandoraCosmic. Shower phi angle as reconstructed by pandoraCosmic. Phi = -pi/2 means the shower is downwards-going, Phi = pi/2 means the shower is upwards-going."}
-      ///*shwr_startdcosx_pandoraCosmic*/ "shwr_startdcosx_pandoraCosmic",
-      ///*shwr_startdcosy_pandoraCosmic*/ "shwr_startdcosy_pandoraCosmic",
-      ///*shwr_startcosz_pandoraCosmic*/  ""}
+      /*nshowers_pandora*/       {"nshowers_pandora. Number of showers reconstructed by the pandora algorithm.",
+      /*shwr_theta_pandora*/      "shwr_theta_pandora. Shower theta angle as reconstructed by pandora. Theta = 0 means the shower is going in the beam direction, Theta = pi means the shower is going in the anti-beam direction.",
+      /*shwr_phi_pandora*/        "shwr_phi_pandora. Shower phi angle as reconstructed by pandora. Phi = -pi/2 means the shower is downwards-going, Phi = pi/2 means the shower is upwards-going."}
+      ///*shwr_startdcosx_pandora*/ "shwr_startdcosx_pandora",
+      ///*shwr_startdcosy_pandora*/ "shwr_startdcosy_pandora",
+      ///*shwr_startcosz_pandora*/  ""}
     };
 
   }
   else {
     // define vector of algo names
-    algoNames = {"pandoraCosmic", "pandoraNu", "showerrecopandora"};
+    algoNames = {"pandoraCosmic", "pandoraNu", "showerrecopandora","pandora"};
 
     // and define plots
     showerPlotNames = {
@@ -126,7 +126,7 @@ void getShowerInformation(TString file1name, TString file1_dataormc, TString fil
 
     for (int j = 0; j < showerPlotNames.size(); j++) {
 
-      if (algoNames[i] == "pandoraCosmic" && showerPlotNames[j] == "nshowers"){
+      if ((algoNames[i] == "pandoraCosmic" || algoNames[i] == "pandora") && showerPlotNames[j] == "nshowers"){
 
         showerPlotValues[j] = {40,0,160};
 

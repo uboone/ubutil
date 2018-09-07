@@ -24,17 +24,14 @@
 #   all the plots we can produce.
 
 # ------------------------------------------------------------------------------------- #
-    
+
 
 g++ $(root-config --cflags --glibs) ${UBUTIL_DIR}/bin/truthMonteCarloComparisonsScript.C -o truthMonteCarloComparisons
 
 if [ -z "$4" ]; then
     ./truthMonteCarloComparisons ${1} ${2} ${3}
 else
-    ./truthMonteCarloComparisons ${1} ${2} ${3} ${4} "200" ${5}
+    ./truthMonteCarloComparisons ${1} ${2} ${3} ${4} "100" ${5}
 fi
-    
+
 rm truthMonteCarloComparisons
-
-
-

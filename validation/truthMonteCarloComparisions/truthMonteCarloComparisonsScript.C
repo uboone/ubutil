@@ -859,7 +859,8 @@ void FillPlots_MC( TTree* tree, std::vector<TH1D> &hvector, std::string tracking
    comments.push_back("Number of reco tracks matched to a single geant track, for true charged pions, kaons, muons, and protons. Gives some information about numbers of unmatched/broken tracks.");
    // Note: for now, nuvtxx/nuvtxy/nuvtxz are only available in analysistree from pandoraNu
    // So only make these plots for pandoraNu!
-   if (tracking_algorithm == "pandoraNu"){
+   // Also do pandora for consolidated output (I think this will work...)
+   if (tracking_algorithm == "pandoraNu" || tracking_algorithm == "pandora"){
      hvector.push_back(*hvertres);
      comments.push_back("Distance between true vertex position and reconstructed vertex position. In theory should peak at 0, but usually we see the peak is actually in the second bin (0.5-1 cm). This is nothing to worry about. Width tells you about the resolution.");
    }
@@ -955,7 +956,8 @@ void FillPlots_MC( TTree* tree, std::vector<TH1D> &hvector, std::string tracking
      hvector.push_back(*htrue_proton_mcmom);
      // Note: for now, nuvtxx/nuvtxy/nuvtxz are only available in analysistree from pandoraNu
      // So only make these plots for pandoraNu!
-     if (tracking_algorithm == "pandoraNu"){
+     // Also do pandora for consolidated output (I think this will work...)
+     if (tracking_algorithm == "pandoraNu" || tracking_algorithm == "pandora"){
        hvector.push_back(*hvertresx);
        hvector.push_back(*hvertresy);
        hvector.push_back(*hvertresz);
@@ -1069,15 +1071,18 @@ void DrawComparison( std::vector<TH1D> vector1, std::vector<TH1D> vector2, std::
 	// Print all chisq to file
 	std::ofstream ChisqFile;
 	ChisqFile.open("ChisqValues.txt", std::ios_base::app);
-	ChisqFile << c1.GetName() << "_" << algorithm << " " << chisqv << "\n";
+	ChisqFile << c1.GetName() << "_" << algorithm << " " << chisqv/double(nBins) << "\n";
 	ChisqFile.close();
 
 	// If chisq is large, print plot name to a different file
-	if (chisqv >= chisqNotifierCut/100.0){
+	if (chisqv/(double)nBins >= chisqNotifierCut/100.0){
 	  std::ofstream highChisqFile;
 	  highChisqFile.open("highChisqPlots.txt", std::ios_base::app);
-	  highChisqFile << c1.GetName() << " (" << algorithm << "): chisq = " << chisqv << "\n";
+	  highChisqFile << c1.GetName() << " (" << algorithm << "): chisq = " << chisqv/(double)nBins << "\n";
 	  highChisqFile.close();
+
+		// If chisq is large, change background colour of canvas to make it really obvious
+		c1.SetFillColor(kOrange-2);
 	}
 
 	// Make legend
@@ -1087,7 +1092,8 @@ void DrawComparison( std::vector<TH1D> vector1, std::vector<TH1D> vector2, std::
 	legend->AddEntry((TObject*)0, chisq, "");
 	legend->AddEntry((TObject*)0, NDF, "");
 	legend->AddEntry((TObject*)0, chisqNDFstr, "");
-	legend->SetLineWidth(0);
+	// legend->SetLineWidth(0);
+  legend->SetFillColor(c1.GetFillColor());
 	legend->Draw();
 
 	outfile.cd();
@@ -1183,6 +1189,7 @@ int main ( int argc, char** argv ) {
 
 	std::vector<std::string> algorithm = { "pandoraNu" };
 	if ( short_long == "long" ) {
+	        // algorithm.push_back ( "pandoraNu" );
 	        algorithm.push_back ( "pandoraCosmic" );
 		algorithm.push_back ( "pandoraNuKHit" );
 		algorithm.push_back ( "pandoraCosmicKHit" );
