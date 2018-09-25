@@ -25,7 +25,7 @@ void CompareAlgos(TString rootfile, float chisqNotifierCut)
   gStyle->SetOptStat(0);
   // List names of algorithms to compare. Every algorithm in Algos1 will be compared to every algorithm in Algos2
   std::vector<std::string> Algos1 = {"pandora"};
-  std::vector<std::string> Algos2 = {"pandoraNu","pandoraCosmic"};
+  std::vector<std::string> Algos2 = {"pandoraCosmic"};
 
   TCanvas *c1 = new TCanvas("c1", "c1", 500, 500);
   TPad *topPad = new TPad("topPad", "", 0.005, 0.3, 0.995, 0.995);
