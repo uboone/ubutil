@@ -1219,9 +1219,9 @@ int main ( int argc, char** argv ) {
 	}
 	}
 
-	std::vector<std::string> algorithm = { /*"pandora",*/ "pandoraNu" };
+	std::vector<std::string> algorithm = { "pandora" };
 	if ( short_long == "long" ) {
-	        // algorithm.push_back ( "pandoraNu" );
+	        algorithm.push_back ( "pandoraNu" );
 	        algorithm.push_back ( "pandoraCosmic" );
 		algorithm.push_back ( "pandoraNuKHit" );
 		algorithm.push_back ( "pandoraCosmicKHit" );
