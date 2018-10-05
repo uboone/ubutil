@@ -24,6 +24,7 @@ void setLegend(TH1* hfile1, int file1_dmc, TString file1_label, TH1* hfile2, int
         TLegend* legfile1 = new TLegend(0.11, 0.91, 0.5, 1.0);
         legfile1->AddEntry(hfile1, file1_label, "lep");
         legfile1->SetBorderSize(0);
+        legfile1->SetFillStyle(0);
         legfile1->SetTextAlign(12);
         legfile1->SetTextSize(0.05);
         legfile1->Draw("same");
@@ -31,6 +32,7 @@ void setLegend(TH1* hfile1, int file1_dmc, TString file1_label, TH1* hfile2, int
         TLegend* legfile2 = new TLegend(0.5, 0.91, 0.89, 1.0);
         legfile2->AddEntry(hfile2, file2_label);
         legfile2->SetTextAlign(12);
+        legfile2->SetFillStyle(0);
         legfile2->SetTextSize(0.05);
         legfile2->SetBorderSize(0);
         legfile2->Draw("same");
@@ -42,6 +44,7 @@ void setLegend(TH1* hfile1, int file1_dmc, TString file1_label, TH1* hfile2, int
         legfile1->SetBorderSize(0);
         legfile1->SetTextAlign(12);
         legfile1->SetTextSize(0.05);
+        legfile1->SetFillStyle(0);
         legfile1->Draw("same");
 
         TLegend* legfile2 = new TLegend(0.50, 0.91, 0.89, 1.0);
@@ -49,6 +52,7 @@ void setLegend(TH1* hfile1, int file1_dmc, TString file1_label, TH1* hfile2, int
         legfile2->SetTextAlign(12);
         legfile2->SetTextSize(0.05);
         legfile2->SetBorderSize(0);
+        legfile2->SetFillStyle(0);
         legfile2->Draw("same");
     }
 
@@ -58,6 +62,7 @@ void setLegend(TH1* hfile1, int file1_dmc, TString file1_label, TH1* hfile2, int
         legfile1->SetBorderSize(0);
         legfile1->SetTextAlign(12);
         legfile1->SetTextSize(0.05);
+        legfile1->SetFillStyle(0);
         legfile1->Draw("same");
 
         TLegend* legfile2 = new TLegend(0.5, 0.91, 0.89, 1.0);
@@ -65,10 +70,10 @@ void setLegend(TH1* hfile1, int file1_dmc, TString file1_label, TH1* hfile2, int
         legfile2->SetTextAlign(12);
         legfile2->SetTextSize(0.05);
         legfile2->SetBorderSize(0);
+        legfile2->SetFillStyle(0);
         legfile2->Draw("same");
     }
 
 
 
 }
-

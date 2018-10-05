@@ -27,7 +27,7 @@ void getCalorimetryInformation(TString file1name, TString file1_dataormc, TStrin
   TString outputFile(outDir+"fOutputCalorimetrys.root");
   TFile f_output(outputFile,"RECREATE");
 
-  // define input 
+  // define input
   TChain *fChainFile1 = new TChain("analysistree/anatree");
   TChain *fChainFile2 = new TChain("analysistree/anatree");
   fChainFile1->Add(file1name);
@@ -56,7 +56,7 @@ void getCalorimetryInformation(TString file1name, TString file1_dataormc, TStrin
   if (isCI == 1){
 
     // define vector of algo names
-    algoNames = {"pandora", "pandoraNu"};
+    algoNames = {"pandora"};
 
     // and define plots
     caloPlotNames = {
@@ -71,9 +71,9 @@ void getCalorimetryInformation(TString file1name, TString file1_dataormc, TStrin
       /*trkdqdx_y*/     {50, 0.1, 600}};
 
     comments = {
-      /*trkdqdx_u_pandora*/ {"trkdqdx_u. Track dQ/dx values on the U (first induction) plane as reconstructed by the pandora algorithm.",
-        /*trkdqdx_v_pandora*/  "trkdqdx_v. Track dQ/dx values on the V (second induction) plane as reconstructed by the pandora algorithm.",
-        /*trkdqdx_y_pandora*/  "trkdqdx_y. Track dQ/dx values on the Y (collection) plane as reconstructed by the pandora algorithm."} 
+      {/*trkdqdx_u_pandora*/ "trkdqdx_u. Track dQ/dx values on the U (first induction) plane as reconstructed by the pandora algorithm.",
+       /*trkdqdx_v_pandora*/  "trkdqdx_v. Track dQ/dx values on the V (second induction) plane as reconstructed by the pandora algorithm.",
+       /*trkdqdx_y_pandora*/  "trkdqdx_y. Track dQ/dx values on the Y (collection) plane as reconstructed by the pandora algorithm."}
     };
 
   }
@@ -120,8 +120,8 @@ void getCalorimetryInformation(TString file1name, TString file1_dataormc, TStrin
         dqdx_it++;
       }
 
-      TH1D *hFile1 = new TH1D(fileName+"_file1", "", (int)caloPlotValues[j][0], caloPlotValues[j][1], caloPlotValues[j][2]); 
-      TH1D *hFile2 = new TH1D(fileName+"_file2", "", (int)caloPlotValues[j][0], caloPlotValues[j][1], caloPlotValues[j][2]); 
+      TH1D *hFile1 = new TH1D(fileName+"_file1", "", (int)caloPlotValues[j][0], caloPlotValues[j][1], caloPlotValues[j][2]);
+      TH1D *hFile2 = new TH1D(fileName+"_file2", "", (int)caloPlotValues[j][0], caloPlotValues[j][1], caloPlotValues[j][2]);
 
       TString file1DrawString(fileName+" >> "+fileName+"_file1");
       TString file2DrawString(fileName+" >> "+fileName+"_file2");
@@ -132,7 +132,6 @@ void getCalorimetryInformation(TString file1name, TString file1_dataormc, TStrin
       // Keep error while scaling
       hFile1->Sumw2();
       hFile2->Sumw2();
-
 
       // arb units
       if (hFile1->Integral() > 0 && compType == 0) {
@@ -145,18 +144,18 @@ void getCalorimetryInformation(TString file1name, TString file1_dataormc, TStrin
 
       // set max extent of histogram
       double maxext = getMax(hFile1, hFile2);
-      hFile2->SetMaximum(maxext);
 
-      // here 0 = nominal 
+      // here 0 = nominal
 
       if (file1_dataormc == "DATA" && file2_dataormc == "MC"){
 
         setStyle(hFile1, 0, yAxisTitle);
         setStyle(hFile2, 1, yAxisTitle);
 
-        topPad->cd(); 
+        topPad->cd();
         // draw MC histo error bars...
         hFile2->Draw("e2");
+        hFile2->GetYaxis()->SetRangeUser(0,maxext);
 
         // clone, and draw as histogram
         TH1F* hFile2c = (TH1F*)hFile2->Clone("hFile2c");
@@ -192,10 +191,11 @@ void getCalorimetryInformation(TString file1name, TString file1_dataormc, TStrin
       else if (file1_dataormc == "MC" && file2_dataormc == "MC"){
         setStyle(hFile1, 3, yAxisTitle);
         setStyle(hFile2, 1, yAxisTitle);
-        topPad->cd(); 
+        topPad->cd();
 
         // draw MC histo error bars...
         hFile2->Draw("e2");
+        hFile2->GetYaxis()->SetRangeUser(0,maxext);
 
         // clone, and draw as histogram
         TH1F* hFile2c = (TH1F*)hFile2->Clone("hFile2c");
@@ -236,9 +236,10 @@ void getCalorimetryInformation(TString file1name, TString file1_dataormc, TStrin
       else if (file1_dataormc == "DATA" && file2_dataormc == "DATA"){
         setStyle(hFile1, 0, yAxisTitle);
         setStyle(hFile2, 2, yAxisTitle);
-        topPad->cd(); 
+        topPad->cd();
 
         hFile2->Draw("e1");
+        hFile2->GetYaxis()->SetRangeUser(0,maxext);
         hFile1->Draw("e1same");
 
         setLegend(hFile1, 0, file1_label, hFile2, 2, file2_label);
@@ -258,14 +259,14 @@ void getCalorimetryInformation(TString file1name, TString file1_dataormc, TStrin
 
       }
 
-      double chisqv = calculateChiSqDistance(hFile1, hFile2);
-      TString chisq = Form("#chi^{2}: %g", chisqv);
-      int nBins = std::max(getNBins(hFile1),getNBins(hFile2)); 
-      TString NDF = Form("No. Bins: %i", nBins);
+      double chisqv = calculatePearsonChiSq(hFile1, hFile2);
+      int nBins = std::max(getNBins(hFile1),getNBins(hFile2))-1;
+      TString chisq = Form("Shape #chi^{2}/No. Bins - 1: %g / %i", chisqv,nBins);
+      TString chisqNDF = Form("= %g",chisqv/nBins);
       topPad->cd();
-      TPaveText *pt = new TPaveText(0.5, 0.78, 0.9, 0.88, "NDC");
+      TPaveText *pt = new TPaveText(0.4, 0.78, 0.9, 0.88, "NDC");
       pt->AddText(chisq);
-      pt->AddText(NDF);
+      pt->AddText(chisqNDF);
       pt->SetFillStyle(0);
       pt->SetBorderSize(0);
       pt->SetTextAlign(31);
@@ -308,18 +309,13 @@ void getCalorimetryInformation(TString file1name, TString file1_dataormc, TStrin
       pt2->SetTextAlign(11);
       pt2->Draw("same");
 
-      TString saveString = Form(outDir+"4CALO_"+fileName+".png");
-      c1->SaveAs(saveString, "png"); 
-
       if (isCI){
         std::ofstream commentsFile;
         commentsFile.open(outDir+"4CALO_"+fileName+".comment");
+        std::cout << "Comment " << i << "," << j << ": " << comments.at(i).at(j) << std::endl;
         textWrap(comments.at(i).at(j), commentsFile, 70);
         commentsFile.close();
       }
-
-      hFile1->Write();
-      hFile2->Write();
 
       // check chisq if MC/MC comparison
       if (file1_dataormc == "MC" && file2_dataormc == "MC"){
@@ -327,18 +323,35 @@ void getCalorimetryInformation(TString file1name, TString file1_dataormc, TStrin
         // Print all chi2 values to a file for tracking over time
         std::ofstream ChisqFile;
         ChisqFile.open(outDir+"ChisqValues.txt", std::ios_base::app);
-        ChisqFile << Form(fileName.Remove((int)fileName.Length()-7)+"%i", dqdx_it) << " " << chisqv << "\n";
+        TString fileName_dummy(fileName);
+        ChisqFile << Form(fileName_dummy.Remove((int)fileName_dummy.Length()-7)+"%i", dqdx_it) << " " << chisqv/(double)nBins << "\n";
         ChisqFile.close();
 
         // Print names of plots with high chi2 to a separate file
-        if (chisqv >= chisqNotifierCut){
+        if (chisqv/(double)(nBins-1) >= chisqNotifierCut){
 
           std::ofstream highChisqFile;
           highChisqFile.open(outDir+"highChisqPlots.txt", std::ios_base::app);
-          highChisqFile << Form(fileName+"%i", dqdx_it) << " " << chisqv << " is larger than " << chisqNotifierCut<< "\n";
+          highChisqFile << Form(fileName_dummy+"%i", dqdx_it) << " " << chisqv/(double)(nBins-1) << " is larger than " << chisqNotifierCut<< "\n";
           highChisqFile.close();
 
+      		// If chisq is large, change background colour of canvas to make it really obvious
+      		c1->SetFillColor(kOrange-2);
+      		topPad->SetFillColor(kOrange-2);
+      		bottomPad->SetFillColor(kOrange-2);
+
         }
+        else{ // Canvas background should be white
+          c1->SetFillColor(kWhite);
+      		topPad->SetFillColor(kWhite);
+      		bottomPad->SetFillColor(kWhite);
+        }
+
+        TString saveString = Form(outDir+"4CALO_"+fileName+".png");
+        c1->SaveAs(saveString, "png");
+
+        hFile1->Write();
+        hFile2->Write();
       }
     }
   }
@@ -352,7 +365,7 @@ int main(int argc, char* argv[]){
   TString file1name(argv[1]);
   TString file1_dataormc(argv[2]);
   TString file1_label(argv[3]);
-  TString file2name(argv[4]);    
+  TString file2name(argv[4]);
   TString file2_dataormc(argv[5]);
   TString file2_label(argv[6]);
   TString outDir(argv[7]);

@@ -364,33 +364,33 @@ void FillPlots_MC( TTree* tree, std::vector<TH1D> &hvector, std::string tracking
    histoname = "hntrue_" + version;
    TH1D *hntrue = new TH1D(histoname.c_str(), "Number of true tracks; # True tracks;", 50, 0, 50);
    histoname = "hstartx_" + version;
-   TH1D *hstartx = new TH1D(histoname.c_str(), "Track start X position; x [cm];", 100, -200, 500);
+   TH1D *hstartx = new TH1D(histoname.c_str(), "Track start X position; x [cm];", 50, -200, 500);
    histoname = "hstarty_" + version;
    TH1D *hstarty = new TH1D(histoname.c_str(), "Track start Y position; y [cm];", 100, -150, 150);
    histoname = "hstartz_" + version;
    TH1D *hstartz = new TH1D(histoname.c_str(), "Track start Z position; z [cm];", 100, -500, 1500);
    histoname = "hendx_" + version;
-   TH1D *hendx = new TH1D(histoname.c_str(), "Track end X position; x [cm];", 100, -200, 500);
+   TH1D *hendx = new TH1D(histoname.c_str(), "Track end X position; x [cm];", 50, -200, 500);
    histoname = "hendy_" + version;
    TH1D *hendy = new TH1D(histoname.c_str(), "Track end Y position; y [cm];", 100, -150, 150);
    histoname = "hendz_" + version;
    TH1D *hendz = new TH1D(histoname.c_str(), "Track end Z position; z [cm];", 100, -500, 1500);
    histoname = "hlreco_" + version;
-   TH1D *hlreco = new TH1D(histoname.c_str(), "Track length Reco; Track length [cm];", 100, 0, 1000);
+   TH1D *hlreco = new TH1D(histoname.c_str(), "Track length Reco; Track length [cm];", 50, 0, 1000);
    histoname = "hlrange_" + version;
-   TH1D *hlrange = new TH1D(histoname.c_str(), "Track length Range (start point - end point); Track range [cm];", 100, 0, 1000);
+   TH1D *hlrange = new TH1D(histoname.c_str(), "Track length Range (start point - end point); Track range [cm];", 50, 0, 1000);
    histoname = "htrkpurity_" + version;
    TH1D *htrkpurity = new TH1D(histoname.c_str(), "Track Purity based on hit information", 100, 0, 1);
    histoname = "htrkcompleteness_" + version;
    TH1D *htrkcompleteness = new TH1D(histoname.c_str(), "Track Completeness based on hit information", 100, 0, 1);
    histoname = "hlmc_" + version;
-   TH1D *hlmc = new TH1D(histoname.c_str(), "Track length True; Track length [cm];", 100, 0, 1000);
+   TH1D *hlmc = new TH1D(histoname.c_str(), "Track length True; Track length [cm];", 50, 0, 1000);
    histoname = "hlrangemc_" + version;
-   TH1D *hlrangemc = new TH1D(histoname.c_str(), "Track length Range True (start point - end point); Track range [cm];", 100, 0, 1000);
+   TH1D *hlrangemc = new TH1D(histoname.c_str(), "Track length Range True (start point - end point); Track range [cm];", 50, 0, 1000);
    histoname = "hldiff_" + version;
-   TH1D *hldiff = new TH1D(histoname.c_str(), "Track length - Track range (Reco); Track length - track range [cm];", 200, -100, 100);
+   TH1D *hldiff = new TH1D(histoname.c_str(), "Track length - Track range (Reco); Track length - track range [cm];", 20, -10, 10);
    histoname = "hldiffmc_" + version;
-   TH1D *hldiffmc = new TH1D(histoname.c_str(), "Track length - Track range (True); Track length - track range [cm];", 200, -100, 100);
+   TH1D *hldiffmc = new TH1D(histoname.c_str(), "Track length - Track range (True); Track length - track range [cm];", 20, -10, 10);
    histoname = "hlres_" + version;
    TH1D *hlres = new TH1D(histoname.c_str(), "Track length (Reco) - Track length (True); Track length reco - track length true  [cm];", 100, -50, 50);
    histoname = "hlresrange_" + version;
@@ -400,27 +400,27 @@ void FillPlots_MC( TTree* tree, std::vector<TH1D> &hvector, std::string tracking
    histoname = "hresend_" + version;
    TH1D *hresend = new TH1D(histoname.c_str(), "Track end resolution; Track end position (reco) - track end position (true) [cm];", 100, -50, 50);
    histoname = "hresostartx_" + version;
-   TH1D *hresostartx = new TH1D(histoname.c_str(),"Track start resolution (x); Track start x-position (reco) - Track start x-position (true) [cm];", 2000, -20, 20);
+   TH1D *hresostartx = new TH1D(histoname.c_str(),"Track start resolution (x); Track start x-position (reco) - Track start x-position (true) [cm];", 40, -20, 20);
    histoname = "hresostarty_" + version;
-   TH1D *hresostarty = new TH1D(histoname.c_str(),"Track start resolution (y); Track start y-position (reco) - Track start y-position (true) R [cm];", 2000, -20, 20);
+   TH1D *hresostarty = new TH1D(histoname.c_str(),"Track start resolution (y); Track start y-position (reco) - Track start y-position (true) R [cm];", 40, -20, 20);
    histoname = "hresostartz_" + version;
-   TH1D *hresostartz = new TH1D(histoname.c_str(),"Track start resolution (z); Track start z-position (reco) - Track start z-position (true) [cm];", 2000, -20, 20);
+   TH1D *hresostartz = new TH1D(histoname.c_str(),"Track start resolution (z); Track start z-position (reco) - Track start z-position (true) [cm];", 40, -20, 20);
    histoname = "hresoendx_" + version;
-   TH1D *hresoendx = new TH1D(histoname.c_str(),"Track end resolution (x); Track end x-position (reco) - Track end x-position (true) [cm];", 2000, -20, 20);
+   TH1D *hresoendx = new TH1D(histoname.c_str(),"Track end resolution (x); Track end x-position (reco) - Track end x-position (true) [cm];", 40, -20, 20);
    histoname = "hresoendy_" + version;
-   TH1D *hresoendy = new TH1D(histoname.c_str(),"Track end resolution (y); Track end y-position (reco) - Track end y-position (true) [cm];", 2000, -20, 20);
+   TH1D *hresoendy = new TH1D(histoname.c_str(),"Track end resolution (y); Track end y-position (reco) - Track end y-position (true) [cm];", 40, -20, 20);
    histoname = "hresoendz_" + version;
-   TH1D *hresoendz = new TH1D(histoname.c_str(),"Track end resolution (z); Track end z-position (reco) - Track end z-position (true) [cm];", 2000, -20, 20);
+   TH1D *hresoendz = new TH1D(histoname.c_str(),"Track end resolution (z); Track end z-position (reco) - Track end z-position (true) [cm];", 40, -20, 20);
    histoname = "hresomomentum_range_" + version;
-   TH1D *hresomom_range = new TH1D(histoname.c_str(),"Momentum from range - momentum from MC; #Delta P [GeV/c];", 2000, -1, 1);
+   TH1D *hresomom_range = new TH1D(histoname.c_str(),"Momentum from range - momentum from MC; #Delta P [GeV/c];", 50, -1, 1);
    histoname = "hresomomentum_MCSfwd_" + version;
-   TH1D *hresomom_MCSfwd = new TH1D(histoname.c_str(),"Momentum from MCS forward-going track - momentum from MC; #Delta P [GeV/c];", 2000, -2, 2);
+   TH1D *hresomom_MCSfwd = new TH1D(histoname.c_str(),"Momentum from MCS forward-going track - momentum from MC; #Delta P [GeV/c];", 40, -2, 2);
    histoname = "hresomomentum_llhd_" + version;
-   TH1D *hresomom_MCSbwd = new TH1D(histoname.c_str(),"Momentum from MCS backward-going track - momentum from MC; #Delta P [GeV/c];", 2000, -2, 2);
+   TH1D *hresomom_MCSbwd = new TH1D(histoname.c_str(),"Momentum from MCS backward-going track - momentum from MC; #Delta P [GeV/c];", 40, -2, 2);
    histoname = "hresomomentum_contained_chi2_" + version;
-   TH1D *hresomom_contained_MCSfwd = new TH1D(histoname.c_str(),"Momentum from MCS forward-going track - momentum from MC for contained tracks; #Delta P [GeV/c];", 2000, -2, 2);
+   TH1D *hresomom_contained_MCSfwd = new TH1D(histoname.c_str(),"Momentum from MCS forward-going track - momentum from MC for contained tracks; #Delta P [GeV/c];", 50, -2, 2);
    histoname = "hresomomentum__contained_llhd_" + version;
-   TH1D *hresomom_contained_MCSbwd = new TH1D(histoname.c_str(),"Momentum from MCS backward-going track - momentum from MC for contained tracks; #Delta P [GeV/c];", 2000, -2, 2);
+   TH1D *hresomom_contained_MCSbwd = new TH1D(histoname.c_str(),"Momentum from MCS backward-going track - momentum from MC for contained tracks; #Delta P [GeV/c];", 50, -2, 2);
    histoname = "hpidpida_total_" + version;
    TH1D *hpidpida_total = new TH1D(histoname.c_str(),"PIDA for all reco tracks; PIDA;", 100, 0, 30);
    histoname = "hpidpida_muon_" + version;
@@ -906,54 +906,54 @@ void FillPlots_MC( TTree* tree, std::vector<TH1D> &hvector, std::string tracking
      hvector.push_back(*htrue_mclen);
      hvector.push_back(*hreco_mcmom);
      hvector.push_back(*htrue_mcmom);
-     hvector.push_back(*heff_muon_mctheta);
-     hvector.push_back(*hreco_muon_mctheta);
-     hvector.push_back(*htrue_muon_mctheta);
-     hvector.push_back(*heff_muon_mcphi);
-     hvector.push_back(*hreco_muon_mcphi);
-     hvector.push_back(*htrue_muon_mcphi);
-     hvector.push_back(*heff_muon_mclen);
-     hvector.push_back(*hreco_muon_mclen);
-     hvector.push_back(*htrue_muon_mclen);
-     hvector.push_back(*heff_muon_mcmom);
-     hvector.push_back(*hreco_muon_mcmom);
-     hvector.push_back(*htrue_muon_mcmom);
-     hvector.push_back(*heff_pion_mctheta);
-     hvector.push_back(*hreco_pion_mctheta);
-     hvector.push_back(*htrue_pion_mctheta);
-     hvector.push_back(*heff_pion_mcphi);
-     hvector.push_back(*hreco_pion_mcphi);
-     hvector.push_back(*htrue_pion_mcphi);
-     hvector.push_back(*heff_pion_mclen);
-     hvector.push_back(*hreco_pion_mclen);
-     hvector.push_back(*htrue_pion_mclen);
-     hvector.push_back(*heff_pion_mcmom);
-     hvector.push_back(*hreco_pion_mcmom);
-     hvector.push_back(*htrue_pion_mcmom);
-     hvector.push_back(*heff_kaon_mctheta);
-     hvector.push_back(*hreco_kaon_mctheta);
-     hvector.push_back(*htrue_kaon_mctheta);
-     hvector.push_back(*heff_kaon_mcphi);
-     hvector.push_back(*hreco_kaon_mcphi);
-     hvector.push_back(*htrue_kaon_mcphi);
-     hvector.push_back(*heff_kaon_mclen);
-     hvector.push_back(*hreco_kaon_mclen);
-     hvector.push_back(*htrue_kaon_mclen);
-     hvector.push_back(*heff_kaon_mcmom);
-     hvector.push_back(*hreco_kaon_mcmom);
-     hvector.push_back(*htrue_kaon_mcmom);
-     hvector.push_back(*heff_proton_mctheta);
-     hvector.push_back(*hreco_proton_mctheta);
-     hvector.push_back(*htrue_proton_mctheta);
-     hvector.push_back(*heff_proton_mcphi);
-     hvector.push_back(*hreco_proton_mcphi);
-     hvector.push_back(*htrue_proton_mcphi);
-     hvector.push_back(*heff_proton_mclen);
-     hvector.push_back(*hreco_proton_mclen);
-     hvector.push_back(*htrue_proton_mclen);
-     hvector.push_back(*heff_proton_mcmom);
-     hvector.push_back(*hreco_proton_mcmom);
-     hvector.push_back(*htrue_proton_mcmom);
+     // hvector.push_back(*heff_muon_mctheta);
+     // hvector.push_back(*hreco_muon_mctheta);
+     // hvector.push_back(*htrue_muon_mctheta);
+     // hvector.push_back(*heff_muon_mcphi);
+     // hvector.push_back(*hreco_muon_mcphi);
+     // hvector.push_back(*htrue_muon_mcphi);
+     // hvector.push_back(*heff_muon_mclen);
+     // hvector.push_back(*hreco_muon_mclen);
+     // hvector.push_back(*htrue_muon_mclen);
+     // hvector.push_back(*heff_muon_mcmom);
+     // hvector.push_back(*hreco_muon_mcmom);
+     // hvector.push_back(*htrue_muon_mcmom);
+     // hvector.push_back(*heff_pion_mctheta);
+     // hvector.push_back(*hreco_pion_mctheta);
+     // hvector.push_back(*htrue_pion_mctheta);
+     // hvector.push_back(*heff_pion_mcphi);
+     // hvector.push_back(*hreco_pion_mcphi);
+     // hvector.push_back(*htrue_pion_mcphi);
+     // hvector.push_back(*heff_pion_mclen);
+     // hvector.push_back(*hreco_pion_mclen);
+     // hvector.push_back(*htrue_pion_mclen);
+     // hvector.push_back(*heff_pion_mcmom);
+     // hvector.push_back(*hreco_pion_mcmom);
+     // hvector.push_back(*htrue_pion_mcmom);
+     // // hvector.push_back(*heff_kaon_mctheta);
+     // // hvector.push_back(*hreco_kaon_mctheta);
+     // // hvector.push_back(*htrue_kaon_mctheta);
+     // // hvector.push_back(*heff_kaon_mcphi);
+     // // hvector.push_back(*hreco_kaon_mcphi);
+     // // hvector.push_back(*htrue_kaon_mcphi);
+     // // hvector.push_back(*heff_kaon_mclen);
+     // // hvector.push_back(*hreco_kaon_mclen);
+     // // hvector.push_back(*htrue_kaon_mclen);
+     // // hvector.push_back(*heff_kaon_mcmom);
+     // // hvector.push_back(*hreco_kaon_mcmom);
+     // // hvector.push_back(*htrue_kaon_mcmom);
+     // hvector.push_back(*heff_proton_mctheta);
+     // hvector.push_back(*hreco_proton_mctheta);
+     // hvector.push_back(*htrue_proton_mctheta);
+     // hvector.push_back(*heff_proton_mcphi);
+     // hvector.push_back(*hreco_proton_mcphi);
+     // hvector.push_back(*htrue_proton_mcphi);
+     // hvector.push_back(*heff_proton_mclen);
+     // hvector.push_back(*hreco_proton_mclen);
+     // hvector.push_back(*htrue_proton_mclen);
+     // hvector.push_back(*heff_proton_mcmom);
+     // hvector.push_back(*hreco_proton_mcmom);
+     // hvector.push_back(*htrue_proton_mcmom);
      // Note: for now, nuvtxx/nuvtxy/nuvtxz are only available in analysistree from pandoraNu
      // So only make these plots for pandoraNu!
      // Also do pandora for consolidated output (I think this will work...)
@@ -991,9 +991,35 @@ double calculateChiSqDistance(TH1D O, TH1D E){
 
 }
 
+
+// ------- Function to calculate something similar to a chi2 for shape comparison only -------- //
+
+double calculateShapeChiSq(TH1D* O, TH1D* E){
+
+    double O_norm = O->Integral();
+    double E_norm = E->Integral();
+
+    double chisq = 0;
+    for (int i = 1; i < O->GetNbinsX()+1; i++){
+
+        double O_i = O->GetBinContent(i);
+        double E_i = E->GetBinContent(i);
+
+        if ((O_i == 0 && E_i == 0)){
+            chisq += 0;
+        }
+        else{
+            chisq += (std::pow((O_i/O_norm)-(E_i/E_norm),2))/((O_i/std::pow(O_norm,2))+(E_i/std::pow(E_norm,2)));
+        }
+    }
+
+    return chisq;
+
+}
+
 // ------- Function to draw histograms (not comparison: one MC version only) -------- //
 
-void DrawHistos ( std::vector<TH1D> hvector , std::string tag, std::string algorithm ) {
+void DrawHistos ( std::vector<TH1D> hvector , std::string tag, std::string algorithm, bool comparison ) {
   std::string outroot = "MCcomparison_" + tag + "_" + algorithm + ".root";
   TFile outfile (outroot.c_str(), "recreate");
 
@@ -1009,7 +1035,8 @@ void DrawHistos ( std::vector<TH1D> hvector , std::string tag, std::string algor
 
     std::string plotname = string(hvector[i].GetName()).substr(0, string(hvector[i].GetName()).size() - tag.size() -1 );
       std::string outname = string("MCplots_" + plotname + "_" + tag + "_" + algorithm + ".png");
-    c1.Print(outname.c_str(),"png");
+      // Only make pngs if not doing comparison, otherwise it's way too many plots!
+    if (!comparison) c1.Print(outname.c_str(),"png");
   }
   outfile.Close();
 }
@@ -1027,29 +1054,33 @@ void DrawComparison( std::vector<TH1D> vector1, std::vector<TH1D> vector2, std::
 	TFile outfile (outroot.c_str(), "recreate");
 
 	for (unsigned i=0; i<vector1.size(); i++) {
+    // Make clones before normalizing so we can use these for shape-only chi2 comparison
+    TH1D *tmp_v1 = (TH1D*)vector1[i].Clone();
+    TH1D *tmp_v2 = (TH1D*)vector2[i].Clone();
+
 	TCanvas c1;
 	vector1[i].SetLineWidth(2);
 	vector1[i].SetStats(0);
 	vector1[i].Sumw2();
-	if(string(vector1[i].GetName()).find("eff") != std::string::npos){ // Don't normalise efficiency histograms (they're already normalised!)
-	  // do nothing
-	}
-	else{
-	  double integral1 = vector1[i].Integral();
-	  vector1[i].Scale(1.0/integral1);
-	}
+  if(string(vector1[i].GetName()).find("eff") != std::string::npos){ // Don't normalise efficiency histograms (they're already normalised!)
+    // do nothing
+  }
+  else{
+    double integral1 = vector1[i].Integral();
+    vector1[i].Scale(1.0/integral1);
+  }
 	vector1[i].Draw("hist e0");
 	vector2[i].SetLineWidth(2);
 	vector2[i].SetLineColor(2);
 	vector2[i].SetStats(0);
 	vector2[i].Sumw2();
-	if(string(vector2[i].GetName()).find("eff") != std::string::npos){ // Don't normalise efficiency histograms (they're already normalised!)
-	  // do nothing
-	}
-	else{
-	  double integral2 = vector2[i].Integral();
-	  vector2[i].Scale(1.0/integral2);
-	}
+  if(string(vector2[i].GetName()).find("eff") != std::string::npos){ // Don't normalise efficiency histograms (they're already normalised!)
+    // do nothing
+  }
+  else{
+    double integral2 = vector2[i].Integral();
+    vector2[i].Scale(1.0/integral2);
+  }
 	vector2[i].Draw("hist e0 same");
 	std::string plotname = string(vector1[i].GetName()).substr(0, string(vector1[i].GetName()).size() - tag1.size() -1 );
 	c1.SetName(plotname.c_str());
@@ -1058,27 +1089,28 @@ void DrawComparison( std::vector<TH1D> vector1, std::vector<TH1D> vector2, std::
 	// Resize y axis to show both histograms
 	double maxval = vector1[i].GetMaximum();
 	if (vector2[i].GetMaximum() > maxval){ maxval = vector2[i].GetMaximum(); }
-	vector1[i].GetYaxis()->SetRangeUser(0,maxval*1.1);
+	vector1[i].GetYaxis()->SetRangeUser(0,maxval*1.3);
 
 	// Calculate chi2 between two plots and put in format for legend
-	double chisqv = calculateChiSqDistance(vector1[i], vector2[i]);
-	TString chisq = Form("#chi^{2}: %g", chisqv);
+	// double chisqv = calculateChiSqDistance(vector1[i], vector2[i]);
+	double chisqv = calculateShapeChiSq(tmp_v1, tmp_v2);
+	TString chisq = Form("Shape #chi^{2}: %g", chisqv);
 	int nBins = std::max(vector1[i].GetNbinsX(), vector2[i].GetNbinsX());
 	TString NDF = Form("No. Bins: %i", nBins);
-	double chisqNDF = chisqv/(double)nBins;
-	TString chisqNDFstr = Form("#chi^{2}/No. bins: %g", chisqNDF);
+	double chisqNDF = chisqv/(double)(nBins-1);
+	TString chisqNDFstr = Form("Shape #chi^{2}/(No. bins - 1): %g", chisqNDF);
 
 	// Print all chisq to file
 	std::ofstream ChisqFile;
 	ChisqFile.open("ChisqValues.txt", std::ios_base::app);
-	ChisqFile << c1.GetName() << "_" << algorithm << " " << chisqv/double(nBins) << "\n";
+	ChisqFile << c1.GetName() << "_" << algorithm << " " << chisqv << "\n";
 	ChisqFile.close();
 
 	// If chisq is large, print plot name to a different file
-	if (chisqv/(double)nBins >= chisqNotifierCut/100.0){
+	if (chisqNDF >= chisqNotifierCut/100.0){
 	  std::ofstream highChisqFile;
 	  highChisqFile.open("highChisqPlots.txt", std::ios_base::app);
-	  highChisqFile << c1.GetName() << " (" << algorithm << "): chisq = " << chisqv/(double)nBins << "\n";
+	  highChisqFile << c1.GetName() << " (" << algorithm << "): chisq/NDF = " << chisqNDF << "\n";
 	  highChisqFile.close();
 
 		// If chisq is large, change background colour of canvas to make it really obvious
@@ -1187,9 +1219,9 @@ int main ( int argc, char** argv ) {
 	}
 	}
 
-	std::vector<std::string> algorithm = { "pandoraNu" };
+	std::vector<std::string> algorithm = { "pandora" };
 	if ( short_long == "long" ) {
-	        // algorithm.push_back ( "pandoraNu" );
+	        algorithm.push_back ( "pandoraNu" );
 	        algorithm.push_back ( "pandoraCosmic" );
 		algorithm.push_back ( "pandoraNuKHit" );
 		algorithm.push_back ( "pandoraCosmicKHit" );
@@ -1205,10 +1237,9 @@ int main ( int argc, char** argv ) {
 	  FillPlots_MC ( tree1, vector1, algorithm[ algorithms ], tag1, short_long, comments );
 
 
-	  // In "long" mode, draw both sets of histograms separately as well as the comparison
-	  // Also do this if you're not doing a comparison
+	  // Draw both sets of histograms separately if you're not doing a comparison, or if you're in long mode
 	  if (short_long == "long" || !comparison){
-	    DrawHistos( vector1, tag1, algorithm[ algorithms ]);
+	    DrawHistos( vector1, tag1, algorithm[ algorithms ], comparison);
 	  }
 
 	  if (!comparison) continue;
@@ -1218,7 +1249,7 @@ int main ( int argc, char** argv ) {
 	  FillPlots_MC ( tree2, vector2, algorithm[ algorithms ], tag2, short_long, comments );
 	  // In "long" mode, draw both sets of histograms separately as well as the comparison
 	  if (short_long == "long"){
-	    DrawHistos( vector2, tag2, algorithm[ algorithms ] );
+	    DrawHistos( vector2, tag2, algorithm[ algorithms ], comparison);
 	  }
 
 	  DrawComparison( vector1, vector2, tag1, tag2, algorithm[ algorithms ], comments );

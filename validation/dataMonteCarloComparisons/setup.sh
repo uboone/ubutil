@@ -13,7 +13,7 @@
 export IS_CI=1
 
 # value of chisq which defines a bad plot which should be checked by hand
-export CHISQ_NOTIFIER="3"
+export CHISQ_NOTIFIER="0.005"
 
 # should be either data, or base MC to compare to
 export FILE1=$1
