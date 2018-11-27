@@ -57,7 +57,8 @@ void getFlashInformation(TString file1name, TString file1_dataormc, TString file
     // define vector of algo names
     algoNames = {
       "simpleFlashBeam",
-      "simpleFlashCosmic"
+      "simpleFlashCosmic",
+      "simpleFlashBeamLowPE"
     };
 
     // and define plots
@@ -87,10 +88,9 @@ void getFlashInformation(TString file1name, TString file1_dataormc, TString file
   else {
     // define vector of algo names
     algoNames = {
-      "opflashBeam",
-      "opflashCosmic",
       "simpleFlashBeam",
-      "simpleFlashCosmic"};
+      "simpleFlashCosmic",
+      "simpleFlashBeamLowPE"};
 
     // and define plots
     flashPlotNames = {

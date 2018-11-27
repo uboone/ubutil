@@ -94,7 +94,7 @@ void getHitInformation(TString file1name, TString file1_dataormc, TString file1_
       "hit_ph",
       "hit_goodnessOfFit",
       //"hit_trueX",
-      "hit_nelec",
+      //"hit_nelec",
       "hit_energy",
       "hit_multiplicity"
     };
@@ -110,7 +110,7 @@ void getHitInformation(TString file1name, TString file1_dataormc, TString file1_
       /*hit_ph*/             {50, 0, 120},
       /*hit_goodnessOfFit*/  {50, 0, 50},
       // /*hit_trueX*/          {50, 0, 256},
-      /*hit_nelec*/          {50, 0, 1500e3},
+      // /*hit_nelec*/          {50, 0, 1500e3},
       /*hit_energy*/         {50, 0, 100},
       /*hit_multiplicity*/   {50, 0, 50}
     };

@@ -79,7 +79,7 @@ void getCalorimetryInformation(TString file1name, TString file1_dataormc, TStrin
   }
   else {
     // define vector of algo names
-    algoNames = {"pandoraNu", "pandoraNuPMA", "pandoraCosmic", "pandoraCosmicKHit", "pandoraNuKHit", "pandoraNuKalmanTrack", "pmtrack", "pandoraNuKalmanShower","pandora"};
+    algoNames = {"pandoraNu", "pandoraKalmanTrack", "pmtrack", "pandoraKalmanShower","pandora"};
 
     // and define plots
     caloPlotNames = {
