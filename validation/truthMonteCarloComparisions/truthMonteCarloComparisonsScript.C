@@ -1222,10 +1222,9 @@ int main ( int argc, char** argv ) {
 	std::vector<std::string> algorithm = { "pandora" };
 	if ( short_long == "long" ) {
 	        algorithm.push_back ( "pandoraNu" );
-	        algorithm.push_back ( "pandoraCosmic" );
-		algorithm.push_back ( "pandoraNuKHit" );
-		algorithm.push_back ( "pandoraCosmicKHit" );
-		algorithm.push_back ( "pandoraNuKalmanTrack" );
+	        algorithm.push_back ( "pandoraKalmanTrack" );
+		algorithm.push_back ( "pmtrack" );
+		algorithm.push_back ( "pandoraKalmanShower" );
 		}
 
 	// Vector of strings to save comments for CI dashboard
