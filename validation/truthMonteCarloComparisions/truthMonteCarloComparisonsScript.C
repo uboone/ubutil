@@ -571,6 +571,9 @@ void FillPlots_MC( TTree* tree, std::vector<TH1D> &hvector, std::string tracking
    mutrue = 0;
    Int_t matchedtracks[geant_list_size] = {0};
    for (int recoTracks = 0; recoTracks < ntracks; recoTracks++){
+     // Only consider MC tracks (i.e. tracks with a valid g4ID). This is relevant for the overlay because we only want these plots to include the MC tracks, not the cosmics
+     Int_t g4ID = trkg4id[recoTracks];
+     if (g4ID<0) continue;
 
      // Reco-only plots
      hstartx -> Fill(trkstartx[recoTracks]);
@@ -589,7 +592,6 @@ void FillPlots_MC( TTree* tree, std::vector<TH1D> &hvector, std::string tracking
 
      // Now move on to plots that include comparison to truth-level variables
      // Need to match to a truth track
-     Int_t g4ID = trkg4id[recoTracks];
      Int_t mcID = 99999999;
      bool is_found = false;
      for (Int_t j = 0; j < geant_list_size; j++){
