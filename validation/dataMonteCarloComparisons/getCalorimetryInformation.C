@@ -56,7 +56,7 @@ void getCalorimetryInformation(TString file1name, TString file1_dataormc, TStrin
   if (isCI == 1){
 
     // define vector of algo names
-    algoNames = {"pandora", "pandoraNu"};
+    algoNames = {"pandora"};
 
     // and define plots
     caloPlotNames = {
@@ -71,12 +71,9 @@ void getCalorimetryInformation(TString file1name, TString file1_dataormc, TStrin
       /*trkdqdx_y*/     {50, 0.1, 600}};
 
     comments = {
-      /*trkdqdx_u_pandora*/ {"trkdqdx_u. Track dQ/dx values on the U (first induction) plane as reconstructed by the pandora algorithm.",
-        /*trkdqdx_v_pandora*/  "trkdqdx_v. Track dQ/dx values on the V (second induction) plane as reconstructed by the pandora algorithm.",
-        /*trkdqdx_y_pandora*/  "trkdqdx_y. Track dQ/dx values on the Y (collection) plane as reconstructed by the pandora algorithm."},
-        /*trkdqdx_u_pandoraNu*/ {"trkdqdx_u. Track dQ/dx values on the U (first induction) plane as reconstructed by the pandoraNu algorithm.",
-        /*trkdqdx_v_pandoraNu*/  "trkdqdx_v. Track dQ/dx values on the V (second induction) plane as reconstructed by the pandoraNu algorithm.",
-        /*trkdqdx_y_pandoraNu*/  "trkdqdx_y. Track dQ/dx values on the Y (collection) plane as reconstructed by the pandoraNu algorithm."}
+      {/*trkdqdx_u_pandora*/ "trkdqdx_u. Track dQ/dx values on the U (first induction) plane as reconstructed by the pandora algorithm.",
+       /*trkdqdx_v_pandora*/  "trkdqdx_v. Track dQ/dx values on the V (second induction) plane as reconstructed by the pandora algorithm.",
+       /*trkdqdx_y_pandora*/  "trkdqdx_y. Track dQ/dx values on the Y (collection) plane as reconstructed by the pandora algorithm."}
     };
 
   }
@@ -151,7 +148,7 @@ void getCalorimetryInformation(TString file1name, TString file1_dataormc, TStrin
       // here 0 = nominal
 
       if (file1_dataormc == "DATA" && file2_dataormc == "MC"){
-
+        
         setStyle(hFile1, 0, yAxisTitle);
         setStyle(hFile2, 1, yAxisTitle);
 
@@ -321,41 +318,39 @@ void getCalorimetryInformation(TString file1name, TString file1_dataormc, TStrin
       }
 
       // check chisq if MC/MC comparison
-      if (file1_dataormc == "MC" && file2_dataormc == "MC"){
 
-        // Print all chi2 values to a file for tracking over time
-        std::ofstream ChisqFile;
-        ChisqFile.open(outDir+"ChisqValues.txt", std::ios_base::app);
-        TString fileName_dummy(fileName);
-        ChisqFile << Form(fileName_dummy.Remove((int)fileName_dummy.Length()-7)+"%i", dqdx_it) << " " << chisqv/(double)nBins << "\n";
-        ChisqFile.close();
+      // Print all chi2 values to a file for tracking over time
+      std::ofstream ChisqFile;
+      ChisqFile.open(outDir+"ChisqValues.txt", std::ios_base::app);
+      TString fileName_dummy(fileName);
+      ChisqFile << Form(fileName_dummy.Remove((int)fileName_dummy.Length()-7)+"%i", dqdx_it) << " " << chisqv/(double)nBins << "\n";
+      ChisqFile.close();
 
-        // Print names of plots with high chi2 to a separate file
-        if (chisqv/(double)(nBins-1) >= chisqNotifierCut){
+      // Print names of plots with high chi2 to a separate file
+      if (chisqv/(double)(nBins-1) >= chisqNotifierCut){
 
-          std::ofstream highChisqFile;
-          highChisqFile.open(outDir+"highChisqPlots.txt", std::ios_base::app);
-          highChisqFile << Form(fileName_dummy+"%i", dqdx_it) << " " << chisqv/(double)(nBins-1) << " is larger than " << chisqNotifierCut<< "\n";
-          highChisqFile.close();
+	std::ofstream highChisqFile;
+	highChisqFile.open(outDir+"highChisqPlots.txt", std::ios_base::app);
+	highChisqFile << Form(fileName_dummy+"%i", dqdx_it) << " " << chisqv/(double)(nBins-1) << " is larger than " << chisqNotifierCut<< "\n";
+	highChisqFile.close();
 
-      		// If chisq is large, change background colour of canvas to make it really obvious
-      		c1->SetFillColor(kOrange-2);
-      		topPad->SetFillColor(kOrange-2);
-      		bottomPad->SetFillColor(kOrange-2);
+	// If chisq is large, change background colour of canvas to make it really obvious
+	c1->SetFillColor(kOrange-2);
+	topPad->SetFillColor(kOrange-2);
+	bottomPad->SetFillColor(kOrange-2);
 
-        }
-        else{ // Canvas background should be white
-          c1->SetFillColor(kWhite);
-      		topPad->SetFillColor(kWhite);
-      		bottomPad->SetFillColor(kWhite);
-        }
-
-        TString saveString = Form(outDir+"4CALO_"+fileName+".png");
-        c1->SaveAs(saveString, "png");
-
-        hFile1->Write();
-        hFile2->Write();
       }
+      else{ // Canvas background should be white
+	c1->SetFillColor(kWhite);
+	topPad->SetFillColor(kWhite);
+	bottomPad->SetFillColor(kWhite);
+      }
+      
+      TString saveString = Form(outDir+"4CALO_"+fileName+".png");
+      c1->SaveAs(saveString, "png");
+
+      hFile1->Write();
+      hFile2->Write();
     }
   }
 
