@@ -241,9 +241,9 @@ void FillPlots_MC( TTree* tree, std::vector<TH1D> &hvector, std::string tracking
    tree -> SetBranchStatus("TrackId",1);
    tree -> SetBranchAddress("TrackId", TrackId);
    // Don't use space charge correction
-   // Note: this is only really true if you're looking at BNB
-   // For cosmics you will want to edit this to use space charge correction
-   tree -> SetBranchStatus("StartPointx_tpcAV",1);
+   // Note: this is only really true if you're looking at MCC 8 BNB
+   // For MCC9 and cosmics you will want to edit this to use space charge correction
+   /*tree -> SetBranchStatus("StartPointx_tpcAV",1);
    tree -> SetBranchAddress("StartPointx_tpcAV", StartX);
    tree -> SetBranchStatus("StartPointy_tpcAV",1);
    tree -> SetBranchAddress("StartPointy_tpcAV", StartY);
@@ -283,38 +283,38 @@ void FillPlots_MC( TTree* tree, std::vector<TH1D> &hvector, std::string tracking
    branch_name = "nuvtxz_" + tracking_algorithm;
    tree -> SetBranchStatus(branch_name.c_str(),1);
    tree -> SetBranchAddress(branch_name.c_str(), &nuvtxz);
-
+   */
      // This is what you would do if you wanted to use space charge correction
-     /*std::cout << "Using space charge correction for start/end points and vertices" << std::endl;
-     tree -> SetBranchStatus("sp_charge_corrected*",1);
-     tree -> SetBranchAddress("sp_charge_corrected_StartPointx_tpcAV", StartX);
-     tree -> SetBranchAddress("sp_charge_corrected_StartPointy_tpcAV", StartY);
-     tree -> SetBranchAddress("sp_charge_corrected_StartPointz_tpcAV", StartZ);
-     tree -> SetBranchAddress("sp_charge_corrected_EndPointx_tpcAV", EndX);
-     tree -> SetBranchAddress("sp_charge_corrected_EndPointy_tpcAV", EndY);
-     tree -> SetBranchAddress("sp_charge_corrected_EndPointz_tpcAV", EndZ);
-     tree -> SetBranchAddress("sp_charge_corrected_StartPointx", real_StartX);
-     tree -> SetBranchAddress("sp_charge_corrected_StartPointy", real_StartY);
-     tree -> SetBranchAddress("sp_charge_corrected_StartPointz", real_StartZ);
-     tree -> SetBranchAddress("sp_charge_corrected_EndPointx", real_EndX);
-     tree -> SetBranchAddress("sp_charge_corrected_EndPointy", real_EndY);
-     tree -> SetBranchAddress("sp_charge_corrected_EndPointz", real_EndZ);
-     tree -> SetBranchAddress("sp_charge_corrected_nuvtxx_truth", nuvtxx_truth);
-     tree -> SetBranchAddress("sp_charge_corrected_nuvtxy_truth", nuvtxy_truth);
-     tree -> SetBranchAddress("sp_charge_corrected_nuvtxz_truth", nuvtxz_truth);
-     branch_name = "nnuvtx_" + tracking_algorithm;
-     tree -> SetBranchStatus(branch_name.c_str(),1);
-     tree -> SetBranchAddress(branch_name.c_str(), &nnuvtx);
-     branch_name = "nuvtxx_" + tracking_algorithm;
-     tree -> SetBranchStatus(branch_name.c_str(),1);
-     tree -> SetBranchAddress(branch_name.c_str(), &nuvtxx);
-     branch_name = "nuvtxy_" + tracking_algorithm;
-     tree -> SetBranchStatus(branch_name.c_str(),1);
-     tree -> SetBranchAddress(branch_name.c_str(), &nuvtxy);
-     branch_name = "nuvtxz_" + tracking_algorithm;
-     tree -> SetBranchStatus(branch_name.c_str(),1);
-     tree -> SetBranchAddress(branch_name.c_str(), &nuvtxz);*/
-
+     //std::cout << "Using space charge correction for start/end points and vertices" << std::endl;
+   tree -> SetBranchStatus("sp_charge_corrected*",1);
+   tree -> SetBranchAddress("sp_charge_corrected_StartPointx_tpcAV", StartX);
+   tree -> SetBranchAddress("sp_charge_corrected_StartPointy_tpcAV", StartY);
+   tree -> SetBranchAddress("sp_charge_corrected_StartPointz_tpcAV", StartZ);
+   tree -> SetBranchAddress("sp_charge_corrected_EndPointx_tpcAV", EndX);
+   tree -> SetBranchAddress("sp_charge_corrected_EndPointy_tpcAV", EndY);
+   tree -> SetBranchAddress("sp_charge_corrected_EndPointz_tpcAV", EndZ);
+   tree -> SetBranchAddress("sp_charge_corrected_StartPointx", real_StartX);
+   tree -> SetBranchAddress("sp_charge_corrected_StartPointy", real_StartY);
+   tree -> SetBranchAddress("sp_charge_corrected_StartPointz", real_StartZ);
+   tree -> SetBranchAddress("sp_charge_corrected_EndPointx", real_EndX);
+   tree -> SetBranchAddress("sp_charge_corrected_EndPointy", real_EndY);
+   tree -> SetBranchAddress("sp_charge_corrected_EndPointz", real_EndZ);
+   tree -> SetBranchAddress("sp_charge_corrected_nuvtxx_truth", nuvtxx_truth);
+   tree -> SetBranchAddress("sp_charge_corrected_nuvtxy_truth", nuvtxy_truth);
+   tree -> SetBranchAddress("sp_charge_corrected_nuvtxz_truth", nuvtxz_truth);
+   branch_name = "nnuvtx_" + tracking_algorithm;
+   tree -> SetBranchStatus(branch_name.c_str(),1);
+   tree -> SetBranchAddress(branch_name.c_str(), &nnuvtx);
+   branch_name = "nuvtxx_" + tracking_algorithm;
+   tree -> SetBranchStatus(branch_name.c_str(),1);
+   tree -> SetBranchAddress(branch_name.c_str(), &nuvtxx);
+   branch_name = "nuvtxy_" + tracking_algorithm;
+   tree -> SetBranchStatus(branch_name.c_str(),1);
+   tree -> SetBranchAddress(branch_name.c_str(), &nuvtxy);
+   branch_name = "nuvtxz_" + tracking_algorithm;
+   tree -> SetBranchStatus(branch_name.c_str(),1);
+   tree -> SetBranchAddress(branch_name.c_str(), &nuvtxz);
+   
    tree -> SetBranchStatus("mcevts_truth",1);
    tree -> SetBranchAddress("mcevts_truth", &mcevts_truth);
    tree -> SetBranchStatus("origin",1);
