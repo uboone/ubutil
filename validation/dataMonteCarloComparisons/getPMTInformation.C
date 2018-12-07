@@ -49,10 +49,9 @@ void getPMTInformation(TString file1name, TString file1_dataormc, TString file1_
 
   // define vector of algo names
   std::vector< std::string > algoNames = {
-    "opflashBeam",
-    "opflashCosmic",
     "simpleFlashBeam",
-    "simpleFlashCosmic"};
+    "simpleFlashCosmic",
+    "simpleFlashBeamLowPE"};
 
   // and define plots
   std::vector< std::string > flashPlotNames = {

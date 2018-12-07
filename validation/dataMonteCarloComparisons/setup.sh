@@ -10,7 +10,10 @@
 #!/bin/bash
 
 # is this continuous integration? If so produce subsample of plots
-export IS_CI=1
+if [ -z "$IS_CI" ]; then
+    echo "IS_CI is not set. Setting to 1"
+    export IS_CI=1
+fi
 
 # value of chisq which defines a bad plot which should be checked by hand
 export CHISQ_NOTIFIER="0.005"
