@@ -46,10 +46,9 @@ void getPMTFracInformation(TString file1name, TString file1_dataormc, TString fi
 
   // define vector of algo names
   std::vector< std::string > algoNames = {
-    "opflashBeam",
-    "opflashCosmic",
     "simpleFlashBeam",
-    "simpleFlashCosmic"};
+    "simpleFlashCosmic",
+    "simpleFlashBeamLowPE"};
 
   std::vector< std::vector < double > > flashPlotValues = {
     /*number of PMTs*/     {32, 0, 32}

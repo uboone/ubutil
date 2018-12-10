@@ -81,7 +81,7 @@ void getTrackInformation(TString file1name, TString file1_dataormc, TString file
 
   else{
     // define vector of algo names
-    algoNames = {"pandoraNu", "pandoraNuPMA", "pandoraCosmic", "pandoraCosmicKHit","pandoraCosmicKalmanTrack", "pandoraNuKHit", "pandoraNuKalmanTrack", "pmtrack", "pandoraNuKalmanShower","pandora"};
+    algoNames = {"pandoraNu", "pandoraKalmanTrack", "pmtrack", "pandoraKalmanShower","pandora"};
 
     // and define plots
     trackPlotNames = {
