@@ -256,7 +256,7 @@ else
   echo "Input dataset contains $nf files."
 fi
 if [ $MAX_FILES -ne 0 -a $nf -gt $MAX_FILES ]; then 
-  limitdef=${SAM_DEFNAME}_limit_$MAX_FILES
+  limitdef=${SAM_PROJECT}_limit_$MAX_FILES
 
   # Check whether limit def already exists.
   # Have to parse command output because ifdh returns wrong status.
@@ -279,6 +279,49 @@ if [ $MAX_FILES -ne 0 -a $nf -gt $MAX_FILES ]; then
   nf=$MAX_FILES
 fi
 
+# If recursive flag, force snapshot of input dataset.
+
+forcedef=$SAM_DEFNAME
+if [ $RECUR -ne 0 ]; then
+  echo "Forcing snapshot"
+  forcedef=${SAM_DEFNAME}:force
+fi
+
+# Start the project.
+
+nostart=1
+echo "Starting project ${SAM_PROJECT}."
+ifdh startProject $SAM_PROJECT $SAM_STATION $forcedef $SAM_USER $SAM_GROUP
+if [ $? -eq 0 ]; then
+  echo "Project successfully started."
+  nostart=0
+else
+  echo "Start project error status $?"
+fi
+
+# Check the project snapshot.
+
+nf=0
+if [ $nostart -eq 0 ]; then
+  nf=`ifdh translateConstraints "snapshot_for_project_name $SAM_PROJECT" | wc -l`
+  echo "Project snapshot contains $nf files."
+fi
+
+# Abort if snapshot contains zero files.  Stop project and eventually exit with error status.
+
+if [ $nostart -eq 0 -a $nf -eq 0 ]; then
+  echo "Stopping project."
+  nostart=1
+  PURL=`ifdh findProject $SAM_PROJECT $SAM_STATION`
+  if [ x$PURL != x ]; then
+    echo "Project url: $PURL"
+    ifdh endProject $PURL
+    if [ $? -eq 0 ]; then
+      echo "Project successfully stopped."
+    fi
+  fi
+fi
+
 # Calculate the number of files to prestage.
 
 npre=`echo "$PRESTAGE_FRACTION * $nf / 1" | bc`
@@ -296,7 +339,7 @@ if [ $npre -gt 0 ]; then
 
   # Start prestage project.
 
-  ifdh startProject $prjname $SAM_STATION $SAM_DEFNAME $SAM_USER $SAM_GROUP
+  ifdh startProject $prjname $SAM_STATION ${SAM_DEFNAME}:latest $SAM_USER $SAM_GROUP
   if [ $? -ne 0 ]; then
     echo "Failed to start prestage project."
     exit 1
@@ -361,180 +404,59 @@ if [ $npre -gt 0 ]; then
 
 fi
 
-# Check CRT files.
+# Prestage all matching CRT files.
 
-# Find the earliest start time in the TPC dataset.
+# First loop over binary raw ancestors of files in snapshot and find matching crt binary files.
 
-t0=0
-t1=4000000000
-while [ $t1 -ne $t0 ]; 
+echo
+echo "Files in snapshot:"
+echo
+ifdh translateConstraints "snapshot_for_project_name $SAM_PROJECT with availability physical"
+echo
+echo "Raw binary ancestors of snapshot files:"
+echo
+
+ifdh translateConstraints "file_type data and file_format binary% and data_tier raw and isancestorof: ( snapshot_for_project_name $SAM_PROJECT with availability physical )" > bin.txt
+ifdh translateConstraints "file_type data and file_format binary% and data_tier raw and snapshot_for_project_name $SAM_PROJECT" >> bin.txt
+while read bin
 do
-  #echo $t0
-  #echo $t1
-  t2=$(( ( $t0 + $t1 ) / 2 ))
-  if [ $t2 -eq $t0 -o $t2 -eq $t1 ]; then
-    break
-  fi
-  t0s=`date +%Y-%m-%dT%H:%M:%S -d@$t0`
-  t1s=`date +%Y-%m-%dT%H:%M:%S -d@$t1`
-  t2s=`date +%Y-%m-%dT%H:%M:%S -d@$t2`
-  dim="defname: $SAM_DEFNAME and start_time>='$t0s' and start_time<='$t2s'"
-  #echo $dim
-  n=`samweb list-files --summary "$dim" | awk '/File count:/{print $3}'`
-  #echo "$n files."
-  echo -n .
-  if [ $n -eq 0 ]; then
-    t0=$t2
-  else
-    t1=$t2
-  fi
-done
-early_time=$t0
-echo "Early time: `date +%Y-%m-%dT%H:%M:%S -d@$early_time`"
+  echo $bin
+  ifdh getMetadata $bin > md.txt
+  start=`awk '/Start Time:/{print $3}' md.txt | cut -d+ -f1`
+  end=`awk '/End Time:/{print $3}' md.txt | cut -d+ -f1`
+  ifdh translateConstraints "file_type data and file_format crt-binaryraw and data_tier raw and start_time<='$start' and end_time>='$end'" >> crtraw.txt
+done < bin.txt
 
-# Find the latest end time in the TPC dataset.
+# Loop over crt binary files and find matching crt swizzled files.
 
-t0=0
-t1=4000000000
-while [ $t1 -ne $t0 ]; 
+echo
+echo "Matching CRT binary files:"
+echo
+sort -u crtraw.txt | while read crtbin
 do
-  #echo $t0
-  #echo $t1
-  t2=$(( ( $t0 + $t1 ) / 2 ))
-  if [ $t2 -eq $t0 -o $t2 -eq $t1 ]; then
-    break
-  fi
-  t0s=`date +%Y-%m-%dT%H:%M:%S -d@$t0`
-  t1s=`date +%Y-%m-%dT%H:%M:%S -d@$t1`
-  t2s=`date +%Y-%m-%dT%H:%M:%S -d@$t2`
-  dim="defname: $SAM_DEFNAME and end_time>='$t2s' and end_time<='$t1s'"
-  #echo $dim
-  n=`samweb list-files --summary "$dim" | awk '/File count:/{print $3}'`
-  #echo "$n files."
-  echo -n .
-  if [ $n -eq 0 ]; then
-    t1=$t2
-  else
-    t0=$t2
-  fi
-done
-late_time=$t1
-echo "Late time:  `date +%Y-%m-%dT%H:%M:%S -d@$late_time`"
-
-# Make an array of times to query.
-
-declare -a times
-n=0
-while [ $early_time -lt $late_time ];
-do
-  times[$n]=$early_time
-  early_time=$(( $early_time + 7200 ))
-  n=$(( $n + 1 ))
-done
-times[$n]=$late_time
-
-echo "All times:"
-for t in ${times[*]}
-do
-  date +%Y-%m-%dT%H:%M:%S -d@$t
+  echo $crtbin
+  ifdh translateConstraints "file_type data and file_format artroot and ub_project.version prod_v06_26_01_13 and ischildof: ( file_name $crtbin )"  >> crt_swizzled.txt
 done
 
-# Loop over times.
-# Extract crt binary and crt swizzled files.
+echo
+echo "Matching CRT swizzled files:"
+echo
+cat crt_swizzled.txt
 
-swf=crt_swizzled.txt
-rm -f $swf
-for t in ${times[*]}
-do
-  ts=`date +%Y-%m-%dT%H:%M:%S -d@$t`
-  echo "Looking for CRT files matching time $ts"
-
-  # Get crt binary files.
-
-  crt_binary_files=(`samweb list-files "file_type data and file_format crt-binaryraw and start_time <= '$ts' and end_time >= '$ts'"`)
-  nb=${#crt_binary_files[*]}
-  echo "Found $nb CRT files."
-  if [ $nb -ne 4 ]; then
-    echo "Number of matched binary files is ${nb}, which is not 4."
-    rm $swf
-    touch $swf
-    break
-  fi
-  crt_dim_files=`echo ${crt_binary_files[*]} | tr ' ' ,`
-
-  # Get crt swizzled files.
-
-  crt_swizzled_files=(`samweb list-files "file_type data and file_format artroot and data_tier raw and ub_project.version prod_v06_26_01_13 and ischildof: ( file_name ${crt_dim_files} )"`)
-  ns=${#crt_swizzled_files[*]}
-  if [ $ns -ne 6 ]; then
-    echo "Number of matched swizzled files is ${ns}, which is not 6."
-    rm $swf
-    touch $swf
-    break
-  fi
-  echo ${crt_swizzled_files[*]} | tr ' ' '\n' >> $swf
-
-done
-
-ncrt=`sort -u $swf | wc -l`
-echo "Total CRT swizzled files: $ncrt"
-sort -u $swf
+ncrt=`cat crt_swizzled.txt | wc -l`
+echo
+echo "Number of CRT swizzled files $ncrt"
+echo
 
 # Prestage crt swizzled files.
 
 if [ $ncrt -gt 0 ]; then
-  crt_swizzled_files=(`sort -u $swf`)
-  rm -f $swf
+  crt_swizzled_files=(`cat crt_swizzled.txt`)
   crt_dim_files=`echo ${crt_swizzled_files[*]} | tr ' ' ,`
   defname=${SAM_USER}_`uuidgen`
   echo "Creating dataset definition $defname"
   samweb create-definition $defname "file_name ${crt_dim_files}"
   samweb prestage-dataset --defname $defname
-fi
-rm -f $swf
-
-# If recursive flag, force snapshot of input dataset.
-
-if [ $RECUR -ne 0 ]; then
-  echo "Forcing snapshot"
-  SAM_DEFNAME=${SAM_DEFNAME}:force
-fi
-
-# Start the project.
-
-nostart=1
-if [ $ncrt -gt 0 ]; then
-  echo "Starting project ${SAM_PROJECT}."
-  ifdh startProject $SAM_PROJECT $SAM_STATION $SAM_DEFNAME $SAM_USER $SAM_GROUP
-  if [ $? -eq 0 ]; then
-    echo "Project successfully started."
-    nostart=0
-  else
-    echo "Start project error status $?"
-  fi
-fi
-
-# Check the project snapshot.
-
-nf=0
-if [ $nostart -eq 0 ]; then
-  nf=`ifdh translateConstraints "snapshot_for_project_name $SAM_PROJECT" | wc -l`
-  echo "Project snapshot contains $nf files."
-fi
-
-# Abort if snapshot contains zero files.  Stop project and eventually exit with error status.
-
-if [ $nostart -eq 0 -a $nf -eq 0 ]; then
-  echo "Stopping project."
-  nostart=1
-  PURL=`ifdh findProject $SAM_PROJECT $SAM_STATION`
-  if [ x$PURL != x ]; then
-    echo "Project url: $PURL"
-    ifdh endProject $PURL
-    if [ $? -eq 0 ]; then
-      echo "Project successfully stopped."
-    fi
-  fi
 fi
 
 # Stash all of the files we want to save in a local
