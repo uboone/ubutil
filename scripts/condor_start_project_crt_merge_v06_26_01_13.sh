@@ -243,75 +243,84 @@ echo "Scratch directory: $TMP"
 
 echo $SAM_PROJECT > sam_project.txt
 
-# Do some preliminary tests on the input dataset definition.
-# If dataset definition returns zero files at this point, abort the job.
-# If dataset definition returns too many files compared to --max_files, create
-# a new dataset definition by adding a "with limit" clause.
+# Test whether project is already started.
 
-nf=`ifdh translateConstraints "defname: $SAM_DEFNAME" | wc -l`
-if [ $nf -eq 0 ]; then
-  echo "Input dataset $SAM_DEFNAME is empty."
-  exit 1
-else
-  echo "Input dataset contains $nf files."
-fi
-if [ $MAX_FILES -ne 0 -a $nf -gt $MAX_FILES ]; then 
-  limitdef=${SAM_PROJECT}_limit_$MAX_FILES
+samweb project-summary $SAM_PROJECT > /dev/null 2> /dev/null
+started=$?
 
-  # Check whether limit def already exists.
-  # Have to parse command output because ifdh returns wrong status.
+# Following section only if project is not already started.
 
-  existdef=`ifdh describeDefinition $limitdef 2>/dev/null | grep 'Definition Name:' | wc -l`
-  if [ $existdef -gt 0 ]; then
-    echo "Using already created limited dataset definition ${limitdef}."
+if [ $started -ne 0 ]; then
+
+  # Do some preliminary tests on the input dataset definition.
+  # If dataset definition returns zero files at this point, abort the job.
+  # If dataset definition returns too many files compared to --max_files, create
+  # a new dataset definition by adding a "with limit" clause.
+
+  nf=`ifdh translateConstraints "defname: $SAM_DEFNAME" | wc -l`
+  if [ $nf -eq 0 ]; then
+    echo "Input dataset $SAM_DEFNAME is empty."
+    exit 1
   else
-    ifdh createDefinition $limitdef "defname: $SAM_DEFNAME with limit $MAX_FILES" $SAM_USER $SAM_GROUP
+    echo "Input dataset contains $nf files."
+  fi
+  if [ $MAX_FILES -ne 0 -a $nf -gt $MAX_FILES ]; then 
+    limitdef=${SAM_PROJECT}_limit_$MAX_FILES
 
-    # Assume command worked, because it returns the wrong status.
+    # Check whether limit def already exists.
+    # Have to parse command output because ifdh returns wrong status.
 
-    echo "Created limited dataset definition ${limitdef}."
+    existdef=`ifdh describeDefinition $limitdef 2>/dev/null | grep 'Definition Name:' | wc -l`
+    if [ $existdef -gt 0 ]; then
+      echo "Using already created limited dataset definition ${limitdef}."
+    else
+      ifdh createDefinition $limitdef "defname: $SAM_DEFNAME with limit $MAX_FILES" $SAM_USER $SAM_GROUP
+
+      # Assume command worked, because it returns the wrong status.
+
+      echo "Created limited dataset definition ${limitdef}."
+    fi
+
+    # If we get to here, we know that we want to user $limitdef instead of $SAM_DEFNAME
+    # as the input sam dataset definition.
+
+    SAM_DEFNAME=$limitdef
+    nf=$MAX_FILES
   fi
 
-  # If we get to here, we know that we want to user $limitdef instead of $SAM_DEFNAME
-  # as the input sam dataset definition.
+  # If recursive flag, force snapshot of input dataset.
 
-  SAM_DEFNAME=$limitdef
-  nf=$MAX_FILES
-fi
+  forcedef=$SAM_DEFNAME
+  if [ $RECUR -ne 0 ]; then
+    echo "Forcing snapshot"
+    forcedef=${SAM_DEFNAME}:force
+  fi
 
-# If recursive flag, force snapshot of input dataset.
+  # Start the project.
 
-forcedef=$SAM_DEFNAME
-if [ $RECUR -ne 0 ]; then
-  echo "Forcing snapshot"
-  forcedef=${SAM_DEFNAME}:force
-fi
-
-# Start the project.
-
-nostart=1
-echo "Starting project ${SAM_PROJECT}."
-ifdh startProject $SAM_PROJECT $SAM_STATION $forcedef $SAM_USER $SAM_GROUP
-if [ $? -eq 0 ]; then
-  echo "Project successfully started."
-  nostart=0
-else
-  echo "Start project error status $?"
+  echo "Starting project ${SAM_PROJECT}."
+  ifdh startProject $SAM_PROJECT $SAM_STATION $forcedef $SAM_USER $SAM_GROUP
+  if [ $? -eq 0 ]; then
+    echo "Project successfully started."
+    started=0
+  else
+    echo "Start project error status $?"
+  fi
 fi
 
 # Check the project snapshot.
 
 nf=0
-if [ $nostart -eq 0 ]; then
+if [ $started -eq 0 ]; then
   nf=`ifdh translateConstraints "snapshot_for_project_name $SAM_PROJECT" | wc -l`
   echo "Project snapshot contains $nf files."
 fi
 
 # Abort if snapshot contains zero files.  Stop project and eventually exit with error status.
 
-if [ $nostart -eq 0 -a $nf -eq 0 ]; then
+if [ $started -eq 0 -a $nf -eq 0 ]; then
   echo "Stopping project."
-  nostart=1
+  started=1
   PURL=`ifdh findProject $SAM_PROJECT $SAM_STATION`
   if [ x$PURL != x ]; then
     echo "Project url: $PURL"
@@ -482,4 +491,4 @@ fi
 
 # Done.  Set exit status to reflect whether project was started (0=success).
 
-exit $nostart
+exit $started
