@@ -70,34 +70,52 @@ for f in os.listdir('.'):
             if not duplicate:
                 mddict[f] = md
 
-# Organize files by stream with a maximum merged size.
+# Organize files by stream and run with a maximum merged size.
 
-stream_size = {}        # bytes = stream_size[stream][n]
-stream_files = {}       # file_list = stream_files[stream][n]
+stream_size = {}        # bytes = stream_size[stream][run][n]
+stream_files = {}       # file_list = stream_files[stream][run][n]
 max_size = 2000000000   # 2 GBytes
 
 # Job-specific metadata
 
-stream_prjname = {}     # Project name = stream_prjname[stream]
-stream_prjstage = {}    # Project stage = stream_prjstage[stream]
-stream_prjversion = {}  # Project version = stream_version[stream]
-stream_fcl = {}         # fcl name = stream_fcl[stream]
+stream_prjname = {}     # Project name = stream_prjname[stream][run]
+stream_prjstage = {}    # Project stage = stream_prjstage[stream][run]
+stream_prjversion = {}  # Project version = stream_version[stream][run]
+stream_fcl = {}         # fcl name = stream_fcl[stream][run]
 
 for f in mddict.keys():
     md = mddict[f]
     stream = md['data_stream']
+    run = md['runs'][0][0]
     if not stream_size.has_key(stream):
-        stream_size[stream] = []
+        stream_size[stream] = {}
+    if not stream_size[stream].has_key(run):
+        stream_size[stream][run] = []
+
     if not stream_files.has_key(stream):
-        stream_files[stream] = []
+        stream_files[stream] = {}
+    if not stream_files[stream].has_key(run):
+        stream_files[stream][run] = []
+
     if not stream_prjname.has_key(stream):
-        stream_prjname[stream] = md['ub_Project.Name']
+        stream_prjname[stream] = {}
+    if not stream_prjname[stream].has_key(run):
+        stream_prjname[stream][run] = md['ub_Project.Name']
+
     if not stream_prjstage.has_key(stream):
-        stream_prjstage[stream] = md['ub_Project.Stage']
+        stream_prjstage[stream] = {}
+    if not stream_prjstage[stream].has_key(run):
+        stream_prjstage[stream][run] = md['ub_Project.Stage']
+
     if not stream_prjversion.has_key(stream):
-        stream_prjversion[stream] = md['ub_Project.Version']
+        stream_prjversion[stream] = {}
+    if not stream_prjversion[stream].has_key(run):
+        stream_prjversion[stream][run] = md['ub_Project.Version']
+
     if not stream_fcl.has_key(stream):
-        stream_fcl[stream] = md['fcl.name']
+        stream_fcl[stream] = {}
+    if not stream_fcl[stream].has_key(run):
+        stream_fcl[stream][run] = md['fcl.name']
 
     # Get this file size.
 
@@ -106,26 +124,28 @@ for f in mddict.keys():
 
     # Decide if we should start a new list.
 
-    if len(stream_size[stream]) == 0 or stream_size[stream][-1] + size > max_size:
-        stream_size[stream].append(0)
-        stream_files[stream].append([])
+    if len(stream_size[stream][run]) == 0 or stream_size[stream][run][-1] + size > max_size:
+        stream_size[stream][run].append(0)
+        stream_files[stream][run].append([])
 
     # Add this file to the current stream list.
 
-    stream_size[stream][-1] += size
-    stream_files[stream][-1].append(f)
+    stream_size[stream][run][-1] += size
+    stream_files[stream][run][-1].append(f)
     
 
-# Make merging fcl files for each stream.
+# Make merging fcl files for each stream and run.
 # Generate these fcl files such that the internal metadata is as correct as possible,
-# meaning as close as possible to the internal metadata of the files being merged..
+# meaning as close as possible to the internal metadata of the files being merged.
 
 version=os.environ['UBOONECODE_VERSION']
 for stream in stream_size.keys():
 
-    stream_fcl_name = 'copy_raw_%s.fcl' % stream
-    fcl = open(stream_fcl_name, 'w')
-    fcl.write('''#include "services_microboone.fcl"
+    for run in stream_size[stream].keys():
+
+        stream_fcl_name = 'copy_raw_%s_%d.fcl' % (stream, run)
+        fcl = open(stream_fcl_name, 'w')
+        fcl.write('''#include "services_microboone.fcl"
 
 process_name: Copy
 
@@ -137,17 +157,17 @@ services:
 }
 
 ''')
-    fcl.write('services.FileCatalogMetadata.applicationVersion: "%s"\n' % version)
-    fcl.write('''services.FileCatalogMetadata.fileType: "data"
+        fcl.write('services.FileCatalogMetadata.applicationVersion: "%s"\n' % version)
+        fcl.write('''services.FileCatalogMetadata.fileType: "data"
 services.FileCatalogMetadata.runType: "physics"
 services.FileCatalogMetadataMicroBooNE: {
 ''')
-    fcl.write('  FCLName: "%s"\n' % stream_fcl[stream])
-    fcl.write('  FCLVersion: "%s"\n' % version)
-    fcl.write('  ProjectName: "%s"\n' % stream_prjname[stream])
-    fcl.write('  ProjectStage: "%s"\n' % stream_prjstage[stream])
-    fcl.write('  ProjectVersion: "%s"\n' % stream_prjversion[stream])
-    fcl.write('''}
+        fcl.write('  FCLName: "%s"\n' % stream_fcl[stream][run])
+        fcl.write('  FCLVersion: "%s"\n' % version)
+        fcl.write('  ProjectName: "%s"\n' % stream_prjname[stream][run])
+        fcl.write('  ProjectStage: "%s"\n' % stream_prjstage[stream][run])
+        fcl.write('  ProjectVersion: "%s"\n' % stream_prjversion[stream][run])
+        fcl.write('''}
 
 source:
 {
@@ -160,8 +180,8 @@ physics:
 
  #define the output stream, there could be more than one if using filters
 ''')
-    fcl.write(' stream1:  [ %s ]\n' % stream)
-    fcl.write(''' #end_paths is a keyword and contains the paths that do not modify the art::Event, 
+        fcl.write(' stream1:  [ %s ]\n' % stream)
+        fcl.write(''' #end_paths is a keyword and contains the paths that do not modify the art::Event, 
  #ie analyzers and output streams.  these all run simultaneously
  end_paths:     [ stream1 ]  
 }
@@ -169,108 +189,110 @@ physics:
 outputs:
 {
 ''')
-    fcl.write(' %s:\n' % stream)
-    fcl.write(''' {
+        fcl.write(' %s:\n' % stream)
+        fcl.write(''' {
    module_type: RootOutput
    fileName:    "%ifb_%tc_merged.root"
    dataTier:    "raw"
 ''')
-    fcl.write('   streamName:  "%s"\n' % stream)
-    fcl.write('''   compressionLevel: 3
+        fcl.write('   streamName:  "%s"\n' % stream)
+        fcl.write('''   compressionLevel: 3
  }
 }
 ''')
-    fcl.close()
+        fcl.close()
 
 # Merge files in each list.
 
 for stream in stream_files.keys():
 
     n = 0
-    for stream_list in stream_files[stream]:
+    for run in stream_files[stream].keys():
 
-        print 'Merging stream %s[%d]' % (stream, n)
-        parents = set()
-        outname = ''
+        for stream_list in stream_files[stream][run]:
 
-        # Loop over files in this stream.
-        # Make file list and merged metadata.
+            print 'Merging stream %s[%d][%d]' % (stream, run, n)
+            parents = set()
+            outname = ''
 
-        stream_list_name = 'files_%s_%d.list' % (stream, n)
-        fl = open(stream_list_name, 'w')
-        for f in stream_list:
-            print '  Merging file %s' % f
-            fl.write('%s\n' % f)
-            md = mddict[f]
-            if md.has_key('parents'):
-                for p in md['parents']:
-                    parent = p['file_name']
-                    if parent not in parents:
-                        parents.add(parent)
+            # Loop over files in this stream.
+            # Make file list and merged metadata.
 
-            if outname == '':
-                t = datetime.datetime.now()
-                ts = datetime.datetime.strftime(t, '%Y%m%d%H%M%S')
-                outname = '%s_%s_merged.root' % (os.path.basename(f)[:-5], ts)
-        fl.close()
+            stream_list_name = 'files_%s_%d_%d.list' % (stream, run, n)
+            fl = open(stream_list_name, 'w')
+            for f in stream_list:
+                print '  Merging file %s' % f
+                fl.write('%s\n' % f)
+                md = mddict[f]
+                if md.has_key('parents'):
+                    for p in md['parents']:
+                        parent = p['file_name']
+                        if parent not in parents:
+                            parents.add(parent)
 
-        # Merge files.
+                if outname == '':
+                    t = datetime.datetime.now()
+                    ts = datetime.datetime.strftime(t, '%Y%m%d%H%M%S')
+                    outname = '%s_%s_merged.root' % (os.path.basename(f)[:-5], ts)
+            fl.close()
 
-        stream_out_name = 'copy_raw_%s_%d.out' % (stream, n)
-        out = open(stream_out_name, 'w')
+            # Merge files.
 
-        stream_err_name = 'copy_raw_%s_%d.err' % (stream, n)
-        err = open(stream_err_name, 'w')
+            stream_out_name = 'copy_raw_%s_%d_%d.out' % (stream, run, n)
+            out = open(stream_out_name, 'w')
 
-        stream_fcl_name = 'copy_raw_%s.fcl' % stream
-        cmd = ['lar', '-c', './%s' % stream_fcl_name, '-S', stream_list_name, '-o', outname]
-        job = subprocess.Popen(cmd, stdout=out, stderr=err)
-        rc = job.wait()
-        out.close()
-        err.close()
-        print 'Exit status %d'% rc
+            stream_err_name = 'copy_raw_%s_%d_%d.err' % (stream, run, n)
+            err = open(stream_err_name, 'w')
 
-        if rc == 0:
+            stream_fcl_name = 'copy_raw_%s_%d.fcl' % (stream, run)
+            cmd = ['lar', '-c', './%s' % stream_fcl_name, '-S', stream_list_name, '-o', outname]
+            job = subprocess.Popen(cmd, stdout=out, stderr=err)
+            rc = job.wait()
+            out.close()
+            err.close()
+            print 'Exit status %d'% rc
 
-            # Save parents.
+            if rc == 0:
 
-            pfile = open('%s.parents' % outname, 'w')
-            plist = list(parents)
-            plist.sort()
-            for p in plist:
-                print 'Parent file: %s' % p
-                pfile.write('%s\n' % p)
-            pfile.close()
+                # Save parents.
 
-            # Extract metadata as python dictionary and update parentage.
+                pfile = open('%s.parents' % outname, 'w')
+                plist = list(parents)
+                plist.sort()
+                for p in plist:
+                    print 'Parent file: %s' % p
+                    pfile.write('%s\n' % p)
+                pfile.close()
 
-            m = extractor_dict.expMetaData(project_utilities.get_experiment(), outname)
-            md = m.getmetadata()
-            md['parents'] = []
-            for p in plist:
-                md['parents'].append({'file_name': p})
+                # Extract metadata as python dictionary and update parentage.
 
-            # Save metadata as json file.
+                m = extractor_dict.expMetaData(project_utilities.get_experiment(), outname)
+                md = m.getmetadata()
+                md['parents'] = []
+                for p in plist:
+                    md['parents'].append({'file_name': p})
 
-            #mdfilename = '%s.json' % outname
-            #mdfile = open(mdfilename, 'w')
-            #json.dump(md, mdfile, indent=2, sort_keys = True)
-            #mdfile.close()
+                # Save metadata as json file.
 
-            # Declare file to sam.
+                #mdfilename = '%s.json' % outname
+                #mdfile = open(mdfilename, 'w')
+                #json.dump(md, mdfile, indent=2, sort_keys = True)
+                #mdfile.close()
 
-            print 'Declaring %s.' % outname
-            samweb.declareFile(md=md)
+                # Declare file to sam.
 
-        # Delete all input files, whether or not merge job succeeded.
+                print 'Declaring %s.' % outname
+                samweb.declareFile(md=md)
 
-        for f in stream_list:
-            print '  Deleting file %s' % f        
-            os.remove(f)
+            # Delete all input files, whether or not merge job succeeded.
 
-        # Done with this list.
+            for f in stream_list:
+                print '  Deleting file %s' % f        
+                os.remove(f)
 
-        n += 1
+            # Done with this list.
+
+            n += 1
 
 # Generate external metadata for each newly generated artroot file.
 
