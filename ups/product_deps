@@ -2,7 +2,7 @@
 
 # The *parent* line must the first non-commented line and defines this product and version
 # The version should be of the form vxx_yy_zz (e.g. v01_02_03)
-parent ubutil v08_14_00
+parent ubutil v08_15_00_rc0
 
 defaultqual e17
 
@@ -43,7 +43,7 @@ table_fragment_end
 # Add the dependent product and version
 
 product          version
-art             v3_01_02
+art             v3_02_03
 larbatch        v01_50_00
 pycurl          -		-	optional
 
