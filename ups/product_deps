@@ -43,7 +43,7 @@ table_fragment_end
 # Add the dependent product and version
 
 product          version
-art             v3_02_03
+art             v3_02_04
 larbatch        v01_51_00
 pycurl          -		-	optional
 
