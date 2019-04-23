@@ -443,7 +443,7 @@ do
   ifdh getMetadata $bin > md.txt
   start=`awk '/Start Time:/{print $3}' md.txt | cut -d+ -f1`
   end=`awk '/End Time:/{print $3}' md.txt | cut -d+ -f1`
-  ifdh translateConstraints "file_type data and file_format crt-binaryraw and data_tier raw and start_time<='$start' and end_time>='$end'" >> crtraw.txt
+  ifdh translateConstraints "file_type data and file_format crt-binaryraw and data_tier raw and start_time<='$end' and end_time>='$start'" >> crtraw.txt
 done < bin.txt
 
 # Loop over crt binary files and find matching crt swizzled files.
