@@ -59,7 +59,7 @@ class PythonDictConverter : public fhicl::ParameterSetWalker
 public:
 
   using key_t = std::string;
-  using any_t = boost::any;
+  using any_t = std::any;
 
   // Public methods.
 
@@ -177,7 +177,7 @@ void PythonDictConverter::atom(key_t const& key, any_t const& any)
 
   // Extract atom as string.
 
-  const std::string& atom = boost::any_cast<const std::string&>(any);
+  const std::string& atom = std::any_cast<const std::string&>(any);
 
   // Get lower case version of argument string.
 
