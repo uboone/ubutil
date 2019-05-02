@@ -379,8 +379,16 @@ if [ $npre -gt 0 ]; then
   appfamily=prestage
   appname=prestage
 
+  # Make description, which is conventionally the jobsub job id.
+  # This can not be empty.
+
+  DESC=$JOBSUBJOBID
+  if [ x$DESC = x ]; then
+    DESC="Prestage"
+  fi
+
   echo "Starting consumer process."
-  cpid=`ifdh establishProcess $prjurl $appname 1 $node $SAM_USER $appfamily Prestage $npre`
+  cpid=`ifdh establishProcess $prjurl $appname 1 $node $SAM_USER $appfamily $DESC $npre`
   if [ x$cpid = x ]; then
     echo "Unable to start consumer process for project ${prjname}."
     exit 1
