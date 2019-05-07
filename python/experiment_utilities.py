@@ -12,6 +12,7 @@
 
 import os, pycurl
 from StringIO import StringIO
+import larbatch_posix
 
 # Don't fail (on import) if samweb is not available.
 
@@ -39,6 +40,8 @@ def get_dropbox(filename):
     file_type = ''
     group = ''
     data_tier = ''
+    run=0
+    subrun=0
 
     if md.has_key('file_type'):
         file_type = md['file_type']
@@ -46,6 +49,13 @@ def get_dropbox(filename):
         group = md['group']
     if md.has_key('data_tier'):
         data_tier = md['data_tier']
+    if md.has_key('runs'):
+        runs = md['runs']
+        if len(runs) > 0:
+            runid = runs[0]
+            if len(runid) > 1:
+                run = runid[0]
+                subrun = runid[1]
 
     if not file_type or not group or not data_tier:
         raise RuntimeError, 'Missing or invalid metadata for file %s.' % filename
@@ -58,6 +68,29 @@ def get_dropbox(filename):
     else:
         dropbox_root = '/pnfs/uboone/scratch/uboonepro/dropbox'
     path = '%s/%s/%s/%s' % (dropbox_root, file_type, group, data_tier)
+
+    # Make sure path exists.
+
+    if not larbatch_posix.exists(path):
+        larbatch_posix.makedirs(path)
+        larbatch_posix.chmod(path, 0775)
+
+    # Add run number to path.
+
+    if type(run) == type(0):
+        path = '%s/%d' % (path, run % 1000)
+        if not larbatch_posix.exists(path):
+            larbatch_posix.mkdir(path)
+            larbatch_posix.chmod(path, 0775)
+
+    # Add subrun number to path.
+
+    if type(subrun) == type(0):
+        path = '%s/%d' % (path, subrun % 1000)
+        if not larbatch_posix.exists(path):
+            larbatch_posix.mkdir(path)
+            larbatch_posix.chmod(path, 0775)
+
     return path
 
 # Return fcl configuration for experiment-specific sam metadata.
