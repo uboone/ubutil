@@ -83,8 +83,11 @@ add_subdirectory(validation)
 # Tools (programs)
 add_subdirectory(tools)
 
+## fclmodule is available from fhiclcpp
+## We remove it from here since the copy in fhiclcpp 
+## already knows how to find either python 2 or python 3 properly.
 # FCL module
-add_subdirectory(fclmodule)
+##add_subdirectory(fclmodule)
 
 # Root batch framework.
 add_subdirectory(root_batch)
