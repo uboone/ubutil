@@ -139,7 +139,9 @@ do
   samweb get-metadata $bin > $md
   start=`awk '/Start Time:/{print $3}' $md | cut -d+ -f1`
   end=`awk '/End Time:/{print $3}' $md | cut -d+ -f1`
-  samweb list-files "file_type data and file_format crt-binaryraw and data_tier raw and start_time<='$end' and end_time>='$start'" >> $crtraw
+  start_fn=`echo ProdRun$start | tr -d - | cut -dT -f1`
+  end_fn=`echo ProdRun$end | tr -d - | cut -dT -f1`
+  samweb list-files "file_type data and file_format crt-binaryraw and data_tier raw and start_time<='$end' and end_time>='$start' and file_name ${start_fn}%,${end_fn}%" >> $crtraw
 done < $binraw
 echo
 sort -u $crtraw
