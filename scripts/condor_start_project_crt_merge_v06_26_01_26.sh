@@ -451,7 +451,19 @@ do
   ifdh getMetadata $bin > md.txt
   start=`awk '/Start Time:/{print $3}' md.txt | cut -d+ -f1`
   end=`awk '/End Time:/{print $3}' md.txt | cut -d+ -f1`
-  ifdh translateConstraints "file_type data and file_format crt-binaryraw and data_tier raw and start_time<='$end' and end_time>='$start'" >> crtraw.txt
+
+  start_fn=`echo ProdRun$start | tr -d - | cut -dT -f1`
+
+  day=`echo $start | cut -dT -f1`
+  day_sec=`date -d $day +%s`
+
+  yesterday_sec=$(( $day_sec - 86400 ))
+  yesterday_fn=ProdRun`date -d @$yesterday_sec +%Y%m%d`
+
+  tomorrow_sec=$(( $day_sec + 86400 ))
+  tomorrow_fn=ProdRun`date -d @$tomorrow_sec +%Y%m%d`
+
+  ifdh translateConstraints "file_type data and file_format crt-binaryraw and data_tier raw and start_time<='$end' and end_time>='$start' and file_name ${yesterday_fn},${start_fn}%,${tomorrow_fn}%" >> crtraw.txt
 done < bin.txt
 
 # Loop over crt binary files and find matching crt swizzled files.
