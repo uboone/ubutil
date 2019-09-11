@@ -40,8 +40,9 @@ def get_dropbox(filename):
     file_type = ''
     group = ''
     data_tier = ''
-    run=0
-    subrun=0
+    run = 0
+    subrun = 0
+    merge = 0
 
     if md.has_key('file_type'):
         file_type = md['file_type']
@@ -56,6 +57,8 @@ def get_dropbox(filename):
             if len(runid) > 1:
                 run = runid[0]
                 subrun = runid[1]
+    if md.has_key('merge.merge'):
+        merge = md['merge.merge']
 
     if not file_type or not group or not data_tier:
         raise RuntimeError, 'Missing or invalid metadata for file %s.' % filename
@@ -65,6 +68,8 @@ def get_dropbox(filename):
     #path = '/uboone/data/uboonepro/dropbox/%s/%s/%s' % (file_type, group, data_tier)
     if os.environ.has_key('FTS_DROPBOX'):
         dropbox_root = os.environ['FTS_DROPBOX']
+    elif merge:
+        dropbox_root = '/pnfs/uboone/scratch/uboonepro/dropbox/merge'
     else:
         dropbox_root = '/pnfs/uboone/scratch/uboonepro/dropbox'
     path = '%s/%s/%s/%s' % (dropbox_root, file_type, group, data_tier)
@@ -78,7 +83,7 @@ def get_dropbox(filename):
     # Add run number to path.
 
     if type(run) == type(0):
-        path = '%s/%d' % (path, run % 1000)
+        path = '%s/%d' % (path, run % 100)
         if not larbatch_posix.exists(path):
             larbatch_posix.mkdir(path)
             larbatch_posix.chmod(path, 0775)
@@ -86,7 +91,7 @@ def get_dropbox(filename):
     # Add subrun number to path.
 
     if type(subrun) == type(0):
-        path = '%s/%d' % (path, subrun % 1000)
+        path = '%s/%d' % (path, subrun % 100)
         if not larbatch_posix.exists(path):
             larbatch_posix.mkdir(path)
             larbatch_posix.chmod(path, 0775)
@@ -109,6 +114,8 @@ def get_sam_metadata(project, stage):
     result = result + '  ProjectName: "%s"\n' % project.name
     result = result + '  ProjectStage: "%s"\n' % stage.name
     result = result + '  ProjectVersion: "%s"\n' % project.version
+    if stage.merge == '1':
+        result = result + '  Merge: 1\n'
     result = result + '}\n'
     result = result + 'services.TFileMetadataMicroBooNE: @local::microboone_tfile_metadata\n'
 
@@ -217,11 +224,16 @@ class MetaDataKey:
      self.expname = "ub"
 
    def metadataList(self):
-     return [self.expname + elt for elt in ('ProjectName', 'ProjectStage', 'ProjectVersion')]
+     result = [self.expname + elt for elt in ('ProjectName', 'ProjectStage', 'ProjectVersion')]
+     result.extend(['merge', 'merged'])
+     return result
 
 
    def translateKey(self, key):
-     prefix = key[:2]
-     stem = key[2:]
-     projNoun = stem.split("Project")
-     return prefix + "_Project." + projNoun[1]
+     if key.startswith('merge'):
+       return 'merge.%s' % key
+     else:
+       prefix = key[:2]
+       stem = key[2:]
+       projNoun = stem.split("Project")
+       return prefix + "_Project." + projNoun[1]
