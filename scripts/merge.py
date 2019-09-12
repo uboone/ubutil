@@ -119,6 +119,7 @@
 #       3 - Declared.
 #       4 - Located.
 #       5 - Finished.
+#       6 - Error.
 #
 # III. Table merge_group.
 #
@@ -138,7 +139,7 @@
 
 import sys, os, datetime, uuid, traceback
 import StringIO
-import project, project_utilities
+import project, project_utilities, larbatch_posix
 import sqlite3
 
 def help():
@@ -503,7 +504,7 @@ SELECT id FROM merge_groups WHERE
 
     # Update status of ongoing merges.
 
-    def update_merge_status(self):
+    def update_status(self):
 
         # In this function, we make a double loop over merged files and statuses.
 
@@ -541,16 +542,99 @@ SELECT id FROM merge_groups WHERE
                     ubstage = row[5]
                     ubversion = row[6]
 
-                    if status == 3:
+                    if merged_file != '':
+                        print '\nStatus=%d, file %s' % (status, merged_file)
+                    else:
+                        print '\nStatus=%d, unnamed file' % status
+
+                    if status == 6:
+
+                        print 'Error status for file %s' % merged_file
+
+                    elif status == 5:
+
+                        print 'Processing finished for file %s' % merged_file
+                        c = self.conn.cursor()
+                        q = 'DELETE FROM merged_files WHERE id=?'
+                        c.execute(q, (merge_id,))
+                        self.conn.commit()
+
+                    elif status == 4:
+
+                        # Do cleanup for this merged file.
+
+                        print 'Doing cleanup for merged file %s' % merged_file
+
+                        # First query unmerged files corresponsing to this merged file.
+
+                        unmerged_files = []
+                        q = 'SELECT name FROM unmerged_files WHERE merge_id=?'
+                        c.execute(q, (merge_id,))
+                        rows = c.fetchall()
+                        for row in rows:
+                            unmerged_files.append(row[0])
+
+                        # Loop over unmerged files.
+
+                        for f in unmerged_files:
+
+                            print 'Doing cleanup for unmerged file %s' % f
+
+                            # First modify the sam metadata of unmerged files 
+                            # to set merge.merged=1.  That will make this
+                            # unmerged file invisible to this script.
+
+                            mdmod = {'merge.merged': 1}
+                            print 'Updating metadata.'
+                            self.samweb.modifyFileMetadata(f, mdmod)
+
+                            # Remove (disk) locations of unmerged file.
+
+                            locs = self.samweb.locateFile(f)
+                            if len(locs) > 0:
+                                print 'Cleaning disk locations.'
+                                for loc in locs:
+                                    if loc['location_type'] == 'disk':
+
+                                        # Delete unmerged file from disk.
+
+                                        dir = os.path.join(loc['mount_point'], loc['subdir'])
+                                        fp = os.path.join(dir, f)
+                                        print 'Deleting file from disk.'
+                                        if larbatch_posix.exists(fp):
+                                            larbatch_posix.remove(fp)
+
+                                        # Remove location from sam.
+
+                                        print 'Removing location from sam.'
+                                        self.samweb.removeFileLocation(f, loc['location'])
+
+                            # Delete unmerged file from merge database.
+
+                            print 'Deleting file from merge database: %s' % f
+                            c = self.conn.cursor()
+                            q = 'DELETE FROM unmerged_files WHERE name=?'
+                            c.execute(q, (f,))
+
+                        # End of loop over unmerged files.
+                        # Cleaning done.
+                        # Update status of merged file to 5
+
+                        print 'Cleaning finished.'
+                        q = '''UPDATE merged_files SET status=? WHERE id=?;'''
+                        c.execute(q, (5, merge_id))
+                        self.conn.commit()
+
+                    elif status == 3:
 
                         # Check whether this file has a location.
 
                         print 'Checking location for file %s' % merged_file
-                        loc = self.samweb.locateFile(merged_file)
+                        locs = self.samweb.locateFile(merged_file)
 
                         # If file has been located, advance to state 4.
 
-                        if len(loc) > 0:
+                        if len(locs) > 0:
                             print 'File located.'
                             q = '''UPDATE merged_files SET status=? WHERE id=?;'''
                             c.execute(q, (4, merge_id))
@@ -558,7 +642,7 @@ SELECT id FROM merge_groups WHERE
                         else:
                             print 'File not located.'
 
-                    if status == 2:
+                    elif status == 2:
 
                         # Check whether this file has been declared to sam.
 
@@ -684,6 +768,7 @@ SELECT id FROM merge_groups WHERE
                             tstr = datetime.datetime.strftime(datetime.datetime.now(), 
                                                               '%Y%m%d%H%M%S')
                             output_name = '%s_%s_merged.root' % (input_name.split('.')[0], tstr)
+                            print 'Assigning name %s' % output_name
 
                             # Generate a fcl file customized for this merged file.
 
@@ -791,7 +876,7 @@ SELECT id FROM merge_groups WHERE
         self.probj.file_type = file_type
         self.probj.run_type = run_type
 
-        #self.stobj.name = ubstage
+        self.stobj.name = '%_merge' % ubstage
         self.stobj.inputdef = defname
         self.stobj.data_tier = data_tier
 
@@ -897,7 +982,7 @@ def main(argv):
                          database, max_size, min_size, max_age)
     engine.update_unmerged_files()
     engine.update_merges()
-    engine.update_merge_status()
+    engine.update_status()
 
     # Done.
 
