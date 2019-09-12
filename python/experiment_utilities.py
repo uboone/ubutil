@@ -116,6 +116,16 @@ def get_sam_metadata(project, stage):
     result = result + '  ProjectVersion: "%s"\n' % project.version
     if stage.merge == '1':
         result = result + '  Merge: 1\n'
+    if hasattr(stage, 'mixparents'):
+        n=0
+        for mixparent in stage.mixparents:
+            if n == 0:
+                result = result + '  Parameters: [ '
+            else:
+                result = result + ',\n                '
+            result = result + '"mixparent%d", "%s"' % (n, mixparent)
+            n += 1
+        result = result + ' ]\n'
     result = result + '}\n'
     result = result + 'services.TFileMetadataMicroBooNE: @local::microboone_tfile_metadata\n'
 
