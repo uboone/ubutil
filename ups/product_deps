@@ -26,7 +26,7 @@ defaultqual e19
 #
 incdir  -
 fcldir  product_dir    job
-libdir  product_dir    python
+libdir  fq_dir         python
 bindir  product_dir    bin
 
 # table fragment to set various environment variables.
@@ -37,6 +37,7 @@ table_fragment_begin
     envSet(SAM_EXPERIMENT, uboone)
     pathPrepend(PYTHONPATH, ${UPS_PROD_DIR}/bin)
     pathPrepend(PYTHONPATH, ${UPS_PROD_DIR}/python)
+    pathPrepend(PYTHONPATH, ${UBUTIL_FQ_DIR}/python)
 table_fragment_end
 
 # With "product  version" table below, we now define depdendencies
