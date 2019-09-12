@@ -647,6 +647,24 @@ SELECT id FROM merge_groups WHERE
                             for row in rows:
                                 unmerged_files.append(row[0])
 
+                            # Query parents of unmerged files (i.e. grandparents of merged file).
+
+                            grandparents = set([])
+                            for unmerged_file in unmerged_files:
+                                md = self.samweb.getMetadata(unmerged_file)
+                                for parent in md['parents']:
+                                    pname = parent['file_name']
+                                    if not pname in grandparents:
+                                        grandparents.add(pname)
+
+                            # Append the grandparent set to the stage object.
+                            # This attribute is checked by experiment_utilities.get_sam_metadata
+
+                            if hasattr(self.stobj, 'mixparents'):
+                                delattr(self.stobj, 'mixparents')
+                            if len(grandparents) > 0:
+                                self.stobj.mixparents = grandparents
+
                             # Query sam metadata from first unmerged file.
                             # We will use this to generate metadata for merged files.
 
@@ -683,14 +701,6 @@ SELECT id FROM merge_groups WHERE
                             fcl.write('    fileType: "%s"\n' % file_type)
                             fcl.write('    group: "%s"\n' % group)
                             fcl.write('    runType: "%s"\n' % run_type)
-                            fcl.write('  }\n')
-                            fcl.write('  FileCatalogMetadataMicroBooNE: {\n')
-                            fcl.write('    FCLName: "%s"\n' % os.path.basename(self.fclpath))
-                            fcl.write('    FCLVersion: "%s"\n' % self.probj.release_tag)
-                            fcl.write('    ProjectName: "%s"\n' % ubproject)
-                            fcl.write('    ProjectStage: "%s"\n' % ubstage)
-                            fcl.write('    ProjectVersion: "%s"\n' % ubversion)
-                            fcl.write('    Merge: 0\n')
                             fcl.write('  }\n')
                             fcl.write('}\n')
                             fcl.write('source:\n')
