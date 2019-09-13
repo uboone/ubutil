@@ -41,6 +41,7 @@ def get_dropbox(filename):
     file_type = ''
     group = ''
     data_tier = ''
+    size = 0
     run = 0
     subrun = 0
     merge = 0
@@ -51,6 +52,8 @@ def get_dropbox(filename):
         group = md['group']
     if 'data_tier' in md:
         data_tier = md['data_tier']
+    if 'file_size' in md:
+        size = md['file_size']
     if 'runs' in md:
         runs = md['runs']
         if len(runs) > 0:
@@ -69,7 +72,7 @@ def get_dropbox(filename):
     #path = '/uboone/data/uboonepro/dropbox/%s/%s/%s' % (file_type, group, data_tier)
     if 'FTS_DROPBOX' in os.environ:
         dropbox_root = os.environ['FTS_DROPBOX']
-    elif merge:
+    elif merge and size < 1000000000:
         dropbox_root = '/pnfs/uboone/scratch/uboonepro/dropbox/merge'
     else:
         dropbox_root = '/pnfs/uboone/scratch/uboonepro/dropbox'
