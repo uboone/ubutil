@@ -2,7 +2,7 @@
 
 # The *parent* line must the first non-commented line and defines this product and version
 # The version should be of the form vxx_yy_zz (e.g. v01_02_03)
-parent ubutil v06_26_01_34
+parent ubutil v06_26_01_35
 
 defaultqual e10
 
@@ -26,7 +26,7 @@ defaultqual e10
 #
 incdir  -
 fcldir  -
-libdir  fq_dir    python
+libdir  fq_dir	       python
 bindir  product_dir    bin
 
 # table fragment to set various environment variables.
