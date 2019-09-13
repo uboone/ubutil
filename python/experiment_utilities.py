@@ -165,7 +165,7 @@ def dimensions(project, stage, ana=False):
     dim = 'file_type %s' % project.file_type
     dim = dim + ' and data_tier %s' % data_tier
     dim = dim + ' and ub_project.name %s' % project.name
-    dim = dim + ' and ub_project.stage %s' % stage.name
+    dim = dim + ' and ub_project.stage %s%%' % stage.name
     dim = dim + ' and ub_project.version %s' % project.version
     if stage.pubs_output:
         first_subrun = True
