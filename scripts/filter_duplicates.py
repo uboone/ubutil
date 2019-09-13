@@ -51,7 +51,7 @@ for f in os.listdir('.'):
                         dim = 'ischildof: ( file_name %s with availability physical )' % pname
                         dim += ' and file_type %s' % md['file_type']
                         dim += ' and file_format %s' % md['file_format']
-                        dim += ' and data_tier %s' md ['data_tier']
+                        dim += ' and data_tier %s' % md ['data_tier']
                         dim += ' and data_stream %s' % md['data_stream']
                         dim += ' and ub_project.name %s' % md['ub_Project.Name']
                         dim += ' and ub_project.stage %s%%' % md['ub_Project.Stage']
