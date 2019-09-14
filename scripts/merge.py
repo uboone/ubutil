@@ -19,8 +19,8 @@
 # --stage <stage>     - Project stage.
 # --database <path>   - Path of sqlite database file (default "merge.db").
 # --max_size <bytes>  - Maximum merged file size in bytes (default 2.5e9).
-# --min_size <bytes>  - Minimum merged file size in bytes (default 5e8).
-# --max_age <seconds> - Maximum unmerged file age in seconds (default 24 hours).
+# --min_size <bytes>  - Minimum merged file size in bytes (default 1e9).
+# --max_age <seconds> - Maximum unmerged file age in seconds (default 72 hours).
 #                       Optionally use suffix 'h' for hours, 'd' for days.
 #
 ######################################################################
@@ -876,7 +876,7 @@ SELECT id FROM merge_groups WHERE
         self.probj.file_type = file_type
         self.probj.run_type = run_type
 
-        self.stobj.name = '%_merge' % ubstage
+        self.stobj.name = '%s_merge' % ubstage
         self.stobj.inputdef = defname
         self.stobj.data_tier = data_tier
 
@@ -938,8 +938,8 @@ def main(argv):
     stagename = ''
     database = 'merge.db'
     max_size = 2500000000
-    min_size = 500000000
-    max_age = 24*3600
+    min_size = 1000000000
+    max_age = 3*24*3600
 
     args = argv[1:]
     while len(args) > 0:
