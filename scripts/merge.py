@@ -927,9 +927,51 @@ SELECT id FROM merge_groups WHERE
 
         return jobid, sam_project
 
+
+# Check whether a similar process is already running.
+# Return true if yes.
+
+def check_running(argv):
+
+    result = 0
+
+    # Look over pids in /proc.
+
+    for pid in os.listdir('/proc'):
+        if pid.isdigit() and int(pid) != os.getpid():
+            procfile = os.path.join('/proc', pid)
+            try:
+                pstat = os.stat(procfile)
+
+                # Only look at processes that match this process uid.
+
+                if pstat.st_uid == os.getuid():
+
+                    # Get command line.
+
+                    cmdfile = os.path.join('/proc', pid, 'cmdline')
+                    cmd = open(cmdfile).read()
+                    words = cmd.split('\0')
+                    if len(words) > 0 and words[0].endswith('merge.py'):
+                        result = 1
+                    if len(words) > 1 and \
+                       words[0].endswith('python') and words[1].endswith('merge.py'):
+                        result = 1
+            except:
+                pass
+
+    # Done.
+
+    return result
+
+
 # Main procedure.
 
 def main(argv):
+
+    if check_running(argv):
+        print 'Quitting because similar process is already running.'
+        sys.exit(0)
 
     # Parse arguments.
 
