@@ -1118,6 +1118,7 @@ def main(argv):
 
     # Done.
 
+    print '\nFinished.'
     return 0
 
 if __name__ == '__main__':
