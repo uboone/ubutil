@@ -315,17 +315,43 @@ CREATE TABLE IF NOT EXISTS unmerged_files (
 
         if len(rows) == 0:
 
-            # File does not exist.  Add to database.
+            # File does not exist.
+            # First check location, whether this file is on tape yet or not.
 
-            print 'Adding unmerged file %s' % f
-            md = self.samweb.getMetadata(f)
-            group_id = self.merge_group(md)
-            size = md['file_size']
-            merge_id = 0
-            create_date = md['create_date']
-            q = '''INSERT INTO unmerged_files (name, merge_id, group_id, size, create_date)
-                   VALUES(?,?,?,?,?);'''
-            c.execute(q, (f, merge_id, group_id, size, create_date))
+            locs = self.samweb.locateFile(f)
+            on_tape = 0
+            for loc in locs:
+                if loc['location_type'] == 'tape':
+                    on_tape = 1
+            if on_tape:
+                print 'File %s is already on tape.' % f
+
+                # Since file is on tape, remove any disk locations.
+                # This shouldn't really ever happen.
+            
+                for loc in locs:
+                    if loc['location_type'] == 'disk':
+                        print 'Removing disk location.'
+                        self.samweb.removeFileLocation(f, loc['full_path'])
+
+                # Modify metadata to set merge.merged flag to be true, so that this
+                # file will become invisible to merging.
+
+                mdmod = {'merge.merged': 1}
+                print 'Updating metadata to set merged flag.'
+                self.samweb.modifyFileMetadata(f, mdmod)
+
+            else:
+
+                print 'Adding unmerged file %s' % f
+                md = self.samweb.getMetadata(f)
+                group_id = self.merge_group(md)
+                size = md['file_size']
+                merge_id = 0
+                create_date = md['create_date']
+                q = '''INSERT INTO unmerged_files (name, merge_id, group_id, size, create_date)
+                       VALUES(?,?,?,?,?);'''
+                c.execute(q, (f, merge_id, group_id, size, create_date))
 
         # Done.
 
@@ -500,6 +526,67 @@ SELECT id FROM merge_groups WHERE
         # Done.
 
         return
+
+
+    # Reset merged file.
+    # This function is called when an error or inconsistency has been detectored.
+    # This may be caused by a failed merging batch job.
+    # When this happens, we take the following remedial action.
+    # 
+    # 1.  Check locations of unmerged files.  If file location does not exist,
+    #     remove location from sam.
+    #
+    # 2.  Delete unmerged files from unmerged_files table.
+    #
+    # 3.  Delete merged file from merged_files table.
+    #
+    # Unmerged files with good locations will be rediscovered and merged on subsequent
+    # invocations of this merge.py.
+
+    def reset(self, merge_id):
+
+        print 'Resetting merged file.'
+
+        # Querey unmerged files.
+
+        c = self.conn.cursor()
+        q = 'SELECT id, name FROM unmerged_files WHERE merge_id=?'
+        c.execute(q, (merge_id,))
+        rows = c.fetchall()
+
+        # Loop over unmerged files.
+
+        for row in rows:
+            id = row[0]
+            f = row[1]
+            print 'Checking unmerged file: %s' % f
+
+            # Get location(s).
+
+            locs = self.samweb.locateFile(f)
+            for loc in locs:
+                if loc['location_type'] == 'disk':
+                    dir = os.path.join(loc['mount_point'], loc['subdir'])
+                    fp = os.path.join(dir, f)
+                    if larbatch_posix.exists(fp):
+                        print 'Location OK.'
+                    else:
+                        print 'Removing bad location from sam.'
+                        self.samweb.removeFileLocation(f, loc['full_path'])
+
+            # Delete unmerged file from database.
+
+            print 'Deleting unmerged file from database.'
+            q = 'DELETE FROM unmerged_files WHERE id=?'
+            c.execute(q, (id,))
+
+        # Delete merged file from database.
+
+        print 'Deleting merged file from database.'
+        q = 'DELETE FROM merged_files WHERE id=?'
+        c.execute(q, (merge_id,))
+        self.conn.commit()
+        return
         
 
     # Update status of ongoing merges.
@@ -607,7 +694,7 @@ SELECT id FROM merge_groups WHERE
                                         # Remove location from sam.
 
                                         print 'Removing location from sam.'
-                                        self.samweb.removeFileLocation(f, loc['location'])
+                                        self.samweb.removeFileLocation(f, loc['full_path'])
 
                             # Delete unmerged file from merge database.
 
@@ -670,18 +757,15 @@ SELECT id FROM merge_groups WHERE
                                 # If the project name is invalid, set the status
                                 # back to zero.
 
-                                print 'Resetting status to 0 because sam project not valid'
-                                q = 'UPDATE merged_files SET status=0 WHERE id=?;'
-                                c.execute(q, (merge_id,))
-                                self.conn.commit()
+                                print 'Malformed project name: %s' % prjname
+                                self.reset(merge_id)
 
                             else:
 
                                 # Rather than trying to monitor the batch system, we only
                                 # monitor the sam project.  If the project has been ended
                                 # for a minimum amount of time without the output file being
-                                # declared, assume the batch job failed, and reset the status
-                                # back to 0 (ready to merge).
+                                # declared, reset this merged file.
 
                                 prjstat = self.samweb.projectSummary(prjname)
                                 endstr = prjstat['project_end_time']
@@ -699,10 +783,16 @@ SELECT id FROM merge_groups WHERE
                                         # Batch job failed.
                                         # Set status back to 0.
 
-                                        print 'Resetting status to 0'
-                                        q = 'UPDATE merged_files SET status=0 WHERE id=?;'
-                                        c.execute(q, (merge_id,))
-                                        self.conn.commit()
+                                        print 'Project ended: %s' % prjname
+                                        self.reset(merge_id)
+
+                                    else:
+
+                                        print 'Project recently ended: %s' % prjname
+
+                                else:
+                                    print 'Project running: %s' % prjname
+
 
                     elif status == 0:
 
