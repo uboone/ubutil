@@ -17,6 +17,7 @@
 # --xml <-|file|url>  - A project.py-style xml file.
 # --project <project> - Project name.
 # --stage <stage>     - Project stage.
+# --defname <defname> - Process files belonging to this definition (optional).
 # --database <path>   - Path of sqlite database file (default "merge.db").
 # --max_size <bytes>  - Maximum merged file size in bytes (default 2.5e9).
 # --min_size <bytes>  - Minimum merged file size in bytes (default 1e9).
@@ -52,6 +53,7 @@
 #     may be able to be omitted in the xml file.  Here are the overridden elements:
 #
 #     <project name=?> - Set to match unmerged file metadata (ub_project.name).
+#     <stage name=?> - Derived from the original file metadata + "_merge".
 #     <version>   - Set to match unmerged file metadata (ub_project.version).
 #     <filetype>  - Set to match unmerged file metadata.
 #     <runtype>   - Set to match unmerged file metadata.
@@ -164,7 +166,7 @@ class MergeEngine:
 
     # Constructor.
 
-    def __init__(self, xmlfile, projectname, stagename,
+    def __init__(self, xmlfile, projectname, stagename, defname,
                  database, max_size, min_size, max_age):
 
         # Open database connection.
@@ -214,6 +216,7 @@ class MergeEngine:
 
         # Other tunable parameters.
 
+        self.defname = defname     # File selectionn dataset definition.
         self.max_size = max_size   # Maximum merge file size in bytes.
         self.min_size = min_size   # Minimum merge file size in bytes.
         self.max_age = max_age     # Maximum unmerged file age in seconds.
@@ -290,7 +293,11 @@ CREATE TABLE IF NOT EXISTS unmerged_files (
     def update_unmerged_files(self):
 
         print 'Querying unmerged files from sam.'
-        files = self.samweb.listFiles('merge.merge 1 and merge.merged 0 with availability physical')
+        extra_clause = ''
+        if self.defname != '':
+            extra_clause = 'and defname: %s' % self.defname
+        dim = 'merge.merge 1 and merge.merged 0 %s with availability physical' % extra_clause
+        files = self.samweb.listFiles(dim)
         print '%d unmerged files.' % len(files)
         print 'Updating unmerged_files table in database.'
         for f in files:
@@ -1069,6 +1076,7 @@ def main(argv):
     projectname = ''
     stagename = ''
     database = 'merge.db'
+    defname = ''
     max_size = 2500000000
     min_size = 1000000000
     max_age = 3*24*3600
@@ -1090,6 +1098,9 @@ def main(argv):
         elif args[0] == '--database' and len(args) > 1:
             database = args[1]
             del args[0:2]
+        elif args[0] == '--defname' and len(args) > 1:
+            defname = args[1]
+            del args[0:2]
         elif args[0] == '--max_size' and len(args) > 1:
             max_size = int(args[1])
             del args[0:2]
@@ -1110,7 +1121,7 @@ def main(argv):
 
     # Create merge engine.
 
-    engine = MergeEngine(xmlfile, projectname, stagename,
+    engine = MergeEngine(xmlfile, projectname, stagename, defname,
                          database, max_size, min_size, max_age)
     engine.update_unmerged_files()
     engine.update_merges()
