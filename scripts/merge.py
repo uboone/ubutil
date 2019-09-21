@@ -59,7 +59,7 @@
 #     <runtype>   - Set to match unmerged file metadata.
 #     <inputdef>  - Set to each job's specific input dataset.
 #     <datatier>  - Set to match unmerged file metadata.
-#     <prestart>  - Always true.
+#     <prestart>  - Always false.
 #     <numevents> - Set to a large number.
 #
 #     The value of <numjobs> in the original xml file specifies the maximum number
@@ -977,7 +977,7 @@ SELECT id FROM merge_groups WHERE
         self.stobj.inputdef = defname
         self.stobj.data_tier = data_tier
 
-        self.stobj.prestart = 1
+        self.stobj.prestart = 0
         self.stobj.num_events = 1000000000
         self.stobj.num_jobs = 1
 
