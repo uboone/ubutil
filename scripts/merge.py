@@ -59,7 +59,7 @@
 #     <runtype>   - Set to match unmerged file metadata.
 #     <inputdef>  - Set to each job's specific input dataset.
 #     <datatier>  - Set to match unmerged file metadata.
-#     <prestart>  - Always false.
+#     <prestart>  - Always true.
 #     <numevents> - Set to a large number.
 #
 #     The value of <numjobs> in the original xml file specifies the maximum number
@@ -977,7 +977,7 @@ SELECT id FROM merge_groups WHERE
         self.stobj.inputdef = defname
         self.stobj.data_tier = data_tier
 
-        self.stobj.prestart = 0
+        self.stobj.prestart = 1
         self.stobj.num_events = 1000000000
         self.stobj.num_jobs = 1
 
@@ -1023,6 +1023,17 @@ SELECT id FROM merge_groups WHERE
         # Done.
 
         return jobid, sam_project
+
+
+    # Return the number of status 0 files in the database.
+
+    def nstat0(self):
+        c = self.conn.cursor()
+        q = 'SELECT count(*) FROM merged_files WHERE status=0'
+        c.execute(q)
+        row = c.fetchone()
+        n0 = row[0]
+        return n0
 
 
 # Check whether a similar process is already running.
@@ -1123,8 +1134,10 @@ def main(argv):
 
     engine = MergeEngine(xmlfile, projectname, stagename, defname,
                          database, max_size, min_size, max_age)
-    engine.update_unmerged_files()
-    engine.update_merges()
+    n0 = engine.nstat0()
+    if n0 == 0:
+        engine.update_unmerged_files()
+        engine.update_merges()
     engine.update_status()
 
     # Done.
