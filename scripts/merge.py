@@ -1025,6 +1025,17 @@ SELECT id FROM merge_groups WHERE
         return jobid, sam_project
 
 
+    # Return the number of status 0 files in the database.
+
+    def nstat0(self):
+        c = self.conn.cursor()
+        q = 'SELECT count(*) FROM merged_files WHERE status=0'
+        c.execute(q)
+        row = c.fetchone()
+        n0 = row[0]
+        return n0
+
+
 # Check whether a similar process is already running.
 # Return true if yes.
 
@@ -1123,8 +1134,10 @@ def main(argv):
 
     engine = MergeEngine(xmlfile, projectname, stagename, defname,
                          database, max_size, min_size, max_age)
-    engine.update_unmerged_files()
-    engine.update_merges()
+    n0 = engine.nstat0()
+    if n0 == 0:
+        engine.update_unmerged_files()
+        engine.update_merges()
     engine.update_status()
 
     # Done.
