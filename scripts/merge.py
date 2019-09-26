@@ -53,7 +53,7 @@
 #     may be able to be omitted in the xml file.  Here are the overridden elements:
 #
 #     <project name=?> - Set to match unmerged file metadata (ub_project.name).
-#     <stage name=?> - Derived from the original file metadata + "_merge".
+#     <stage name=?> - Set to match unmerged file metadata (ub_project.stage).
 #     <version>   - Set to match unmerged file metadata (ub_project.version).
 #     <filetype>  - Set to match unmerged file metadata.
 #     <runtype>   - Set to match unmerged file metadata.
@@ -973,7 +973,7 @@ SELECT id FROM merge_groups WHERE
         self.probj.file_type = file_type
         self.probj.run_type = run_type
 
-        self.stobj.name = '%s_merge' % ubstage
+        self.stobj.name = ubstage
         self.stobj.inputdef = defname
         self.stobj.data_tier = data_tier
 
