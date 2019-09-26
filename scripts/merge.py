@@ -974,6 +974,7 @@ SELECT id FROM merge_groups WHERE
         self.probj.run_type = run_type
 
         self.stobj.name = ubstage
+        self.stobj.batchname = 'merge-%s-%s-%s' % (ubstage, ubproject, self.probj.release_tag)
         self.stobj.inputdef = defname
         self.stobj.data_tier = data_tier
 
