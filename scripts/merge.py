@@ -865,7 +865,15 @@ SELECT id FROM merge_groups WHERE
                             tstr = datetime.datetime.strftime(datetime.datetime.now(), 
                                                               '%Y%m%d%H%M%S')
                             output_name = '%s_%s_merged.root' % (input_name.split('.')[0], tstr)
+
+                            # Keep this name short enough so that condor_lar.sh won't shorten it.
+
+                            if len(output_name) > 190:
+                                output_name = '%s_%s.root' % (output_name[:140], uuid.uuid4())
                             print 'Assigning name %s' % output_name
+                            if len(output_name) > 190:
+                                print 'Output name is too long.'
+                                sys.exit(1)
 
                             # Generate a fcl file customized for this merged file.
 
