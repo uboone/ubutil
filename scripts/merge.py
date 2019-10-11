@@ -833,10 +833,11 @@ SELECT id FROM merge_groups WHERE
                             grandparents = set([])
                             for unmerged_file in unmerged_files:
                                 md = self.samweb.getMetadata(unmerged_file)
-                                for parent in md['parents']:
-                                    pname = parent['file_name']
-                                    if not pname in grandparents:
-                                        grandparents.add(pname)
+                                if md.has_key('parents'):
+                                    for parent in md['parents']:
+                                        pname = parent['file_name']
+                                        if not pname in grandparents:
+                                            grandparents.add(pname)
 
                             # Append the grandparent set to the stage object.
                             # This attribute is checked by experiment_utilities.get_sam_metadata
