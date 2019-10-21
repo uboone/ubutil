@@ -23,6 +23,8 @@
 # --min_size <bytes>  - Minimum merged file size in bytes (default 1e9).
 # --max_age <seconds> - Maximum unmerged file age in seconds (default 72 hours).
 #                       Optionally use suffix 'h' for hours, 'd' for days.
+# --min_status <status> - Minimum status (default 0).
+# --max_status <status> - Maximum status (default 6).
 #
 ######################################################################
 #
@@ -167,7 +169,8 @@ class MergeEngine:
     # Constructor.
 
     def __init__(self, xmlfile, projectname, stagename, defname,
-                 database, max_size, min_size, max_age):
+                 database, max_size, min_size, max_age,
+                 min_status, max_status):
 
         # Open database connection.
 
@@ -220,6 +223,8 @@ class MergeEngine:
         self.max_size = max_size   # Maximum merge file size in bytes.
         self.min_size = min_size   # Minimum merge file size in bytes.
         self.max_age = max_age     # Maximum unmerged file age in seconds.
+        self.min_status = min_status # Minimum status.
+        self.max_status = max_status # Maximum status.
 
         # Done.
 
@@ -237,7 +242,7 @@ class MergeEngine:
 
     def open_database(self, database):
 
-        conn = sqlite3.connect(database)
+        conn = sqlite3.connect(database, 60.)
 
         # Create tables.
 
@@ -606,7 +611,7 @@ SELECT id FROM merge_groups WHERE
 
         # First loop over statuses in reverse order.
 
-        for status in range(5,-1,-1):
+        for status in range(self.max_status, self.min_status-1, -1):
 
             # Query and loop over merged files with this status.
 
@@ -643,7 +648,14 @@ SELECT id FROM merge_groups WHERE
 
                     if status == 6:
 
-                        print 'Error status for file %s' % merged_file
+                        print 'Declaring file bad %s' % merged_file
+                        mdmod = {'content_status': 'bad'}
+                        print 'Updating metadata.'
+                        self.samweb.modifyFileMetadata(merged_file, mdmod)
+
+                        # Reset this merged file.
+
+                        self.reset(merge_id)
 
                     elif status == 5:
 
@@ -736,6 +748,25 @@ SELECT id FROM merge_groups WHERE
                         else:
                             print 'File not located.'
 
+                            # Check metadata of this file.
+
+                            md = self.samweb.getMetadata(merged_file)
+
+                            # Get age of this file.
+
+                            t = datetime.datetime.strptime(md['create_date'],
+                                                           '%Y-%m-%dT%H:%M:%S+00:00')
+                            now = datetime.datetime.utcnow()
+                            dt = now - t
+
+                            # If this file too old, set error status.
+
+                            if dt.total_seconds() > 3*24*3600:
+                                print 'File is too old.  Set error status.'
+                                q = '''UPDATE merged_files SET status=? WHERE id=?;'''
+                                c.execute(q, (6, merge_id))
+                                self.conn.commit()
+
                     elif status == 2:
 
                         # Check whether this file has been declared to sam.
@@ -802,6 +833,12 @@ SELECT id FROM merge_groups WHERE
 
 
                     elif status == 0:
+
+                        n2 = self.nstat2()
+                        print '%d merged files with status 2' % n2
+                        if n2 >= 200:
+                            print 'Quitting because there are too many jobs with status 2'
+                            break
 
                         # Ready to merge.
 
@@ -1045,6 +1082,16 @@ SELECT id FROM merge_groups WHERE
         n0 = row[0]
         return n0
 
+    # Return the number of status 2 files in the database.
+
+    def nstat2(self):
+        c = self.conn.cursor()
+        q = 'SELECT count(*) FROM merged_files WHERE status=2'
+        c.execute(q)
+        row = c.fetchone()
+        n0 = row[0]
+        return n0
+
 
 # Check whether a similar process is already running.
 # Return true if yes.
@@ -1101,6 +1148,8 @@ def main(argv):
     max_size = 2500000000
     min_size = 1000000000
     max_age = 3*24*3600
+    min_status = 0
+    max_status = 6
 
     args = argv[1:]
     while len(args) > 0:
@@ -1136,6 +1185,12 @@ def main(argv):
             else:
                 max_age = int(args[1])
             del args[0:2]
+        elif args[0] == '--min_status' and len(args) > 1:
+            min_status = int(args[1])
+            del args[0:2]
+        elif args[0] == '--max_status' and len(args) > 1:
+            max_status = int(args[1])
+            del args[0:2]
         else:
             print 'Unknown option %s' % args[0]
             return 1
@@ -1143,11 +1198,13 @@ def main(argv):
     # Create merge engine.
 
     engine = MergeEngine(xmlfile, projectname, stagename, defname,
-                         database, max_size, min_size, max_age)
-    n0 = engine.nstat0()
-    if n0 == 0:
-        engine.update_unmerged_files()
-        engine.update_merges()
+                         database, max_size, min_size, max_age,
+                         min_status, max_status)
+    if min_status == 0:
+        n0 = engine.nstat0()
+        if n0 == 0:
+            engine.update_unmerged_files()
+            engine.update_merges()
     engine.update_status()
 
     # Done.
