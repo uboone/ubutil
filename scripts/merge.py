@@ -39,9 +39,6 @@
 #     The xml file option is not needed if there will be no need to submit
 #     batch jobs.
 #
-#     This script imports project.py as a python module and uses project.py
-#     functions to interpret the xml file and to submit batch jobs.
-#
 #     The --project and --stage options are needed only if the xml file
 #     contains multiple projects and/or stages.
 #     
@@ -66,7 +63,14 @@
 #
 #     The value of <numjobs> in the original xml file specifies the maximum number
 #     of merging batch jobs that will be submitted by one invocation of this
-#     script.  However, merging batch jobs are submitted singly.
+#     script.
+#
+#     The value specified in xml element <merge> is the maximum number sam
+#     datasets/projects that will be processed by one batch job.  Each dataset/project
+#     produces one merged artroot output file.
+#
+#     This script module project.py to parse the xml file, but interaction with
+#     the batch system (via jobsub_submit) is handled internally.
 #
 #
 # Description:
@@ -141,10 +145,12 @@
 #
 ######################################################################
 
-import sys, os, datetime, uuid, traceback
+import sys, os, datetime, uuid, traceback, tempfile, subprocess
+import threading, Queue
 import StringIO
 import project, project_utilities, larbatch_posix
 import sqlite3
+
 
 def help():
 
@@ -217,6 +223,10 @@ class MergeEngine:
 
             self.numjobs = self.stobj.num_jobs
 
+            # Save the maximum number of datasets/projects per batch job.
+
+            self.numprj = int(self.stobj.merge)
+
         # Other tunable parameters.
 
         self.defname = defname     # File selectionn dataset definition.
@@ -225,6 +235,11 @@ class MergeEngine:
         self.max_age = max_age     # Maximum unmerged file age in seconds.
         self.min_status = min_status # Minimum status.
         self.max_status = max_status # Maximum status.
+
+        # Batch job merge queue.
+        # This is a list of merged file ids to be processed in one batch job.
+
+        self.merge_queue = []
 
         # Done.
 
@@ -835,7 +850,7 @@ SELECT id FROM merge_groups WHERE
                     elif status == 0:
 
                         n2 = self.nstat2()
-                        print '%d merged files with status 2' % n2
+                        print '%d sam projects with status 2' % n2
                         if n2 >= 200:
                             print 'Quitting because there are too many jobs with status 2'
                             break
@@ -854,229 +869,488 @@ SELECT id FROM merge_groups WHERE
                                 print 'Maximum number of batch submissions exceeded.'
                                 break
                             print '%d batch submissions remaining.' % self.numjobs
-                            self.numjobs -= 1
 
-                            # Query unmerged files associated with this merged files.
+                            # Add this file to the merge queue.
 
-                            unmerged_files = []
-                            q = 'SELECT name FROM unmerged_files WHERE merge_id=?'
-                            c.execute(q, (merge_id,))
-                            rows = c.fetchall()
-                            for row in rows:
-                                unmerged_files.append(row[0])
+                            self.merge_queue.append(merge_id)
+                            if len(self.merge_queue) >= self.numprj:
+                                self.process_merge_queue()
+                                self.numjobs -= 1
 
-                            # Query parents of unmerged files (i.e. grandparents of merged file).
+        # Done looping over statuses.
 
-                            grandparents = set([])
-                            for unmerged_file in unmerged_files:
-                                md = self.samweb.getMetadata(unmerged_file)
-                                if md.has_key('parents'):
-                                    for parent in md['parents']:
-                                        pname = parent['file_name']
-                                        if not pname in grandparents:
-                                            grandparents.add(pname)
+        # Finish submitting files left in merge queue.
 
-                            # Append the grandparent set to the stage object.
-                            # This attribute is checked by experiment_utilities.get_sam_metadata
-
-                            if hasattr(self.stobj, 'mixparents'):
-                                delattr(self.stobj, 'mixparents')
-                            if len(grandparents) > 0:
-                                self.stobj.mixparents = grandparents
-
-                            # Query sam metadata from first unmerged file.
-                            # We will use this to generate metadata for merged files.
-
-                            md = self.samweb.getMetadata(unmerged_files[0])
-                            input_name = md['file_name']
-                            app_family = md['application']['family']
-                            app_version = md['application']['version']
-                            group = md['group']
-                            run_type = md['runs'][0][2]
-
-                            # Generate a unique output file name.
-                            # We do that in this script, rather than letting the batch
-                            # job pick the file name, so that we can properly update the
-                            # merged_files database table.  We use a name that roughly
-                            # matches the RootOutput pattern "%ifb_%tc_merged.root".
-
-                            tstr = datetime.datetime.strftime(datetime.datetime.now(), 
-                                                              '%Y%m%d%H%M%S')
-                            output_name = '%s_%s_merged.root' % (input_name.split('.')[0], tstr)
-
-                            # Keep this name short enough so that condor_lar.sh won't shorten it.
-
-                            if len(output_name) > 190:
-                                output_name = '%s_%s.root' % (output_name[:140], uuid.uuid4())
-                            print 'Assigning name %s' % output_name
-                            if len(output_name) > 190:
-                                print 'Output name is too long.'
-                                sys.exit(1)
-
-                            # Generate a fcl file customized for this merged file.
-
-                            if os.path.exists(self.fclpath):
-                                os.remove(self.fclpath)
-                            fcl = open(self.fclpath, 'w')
-                            fcl.write('process_name: Merge\n')
-                            fcl.write('services:\n')
-                            fcl.write('{\n')
-                            fcl.write('  scheduler: { defaultExceptions: false }\n')
-                            fcl.write('  FileCatalogMetadata:\n')
-                            fcl.write('  {\n')
-                            fcl.write('    applicationFamily: "%s"\n' % app_family)
-                            fcl.write('    applicationVersion: "%s"\n' % app_version)
-                            fcl.write('    fileType: "%s"\n' % file_type)
-                            fcl.write('    group: "%s"\n' % group)
-                            fcl.write('    runType: "%s"\n' % run_type)
-                            fcl.write('  }\n')
-                            fcl.write('}\n')
-                            fcl.write('source:\n')
-                            fcl.write('{\n')
-                            fcl.write('  module_type: RootInput\n')
-                            fcl.write('}\n')
-                            fcl.write('physics:\n')
-                            fcl.write('{\n')
-                            fcl.write('  stream1:  [ out1 ]\n')
-                            fcl.write('}\n')
-                            fcl.write('outputs:\n')
-                            fcl.write('{\n')
-                            fcl.write('  out1:\n')
-                            fcl.write('  {\n')
-                            fcl.write('    module_type: RootOutput\n')
-                            fcl.write('    fileName: "%s"\n' % output_name)
-                            fcl.write('    dataTier: "%s"\n' % data_tier)
-                            fcl.write('    streamName:  "%s"\n' % data_stream)
-                            fcl.write('    compressionLevel: 3\n')
-                            fcl.write('  }\n')
-                            fcl.write('}\n')
-                            fcl.write('microboone_tfile_metadata:\n')
-                            fcl.write('{\n')
-                            fcl.write('  JSONFileName: "ana_hist.root.json"\n')
-                            fcl.write('  GenerateTFileMetadata: false\n')
-                            fcl.write('  dataTier:  "root-tuple"\n')
-                            fcl.write('  fileFormat: "root"\n')
-                            fcl.write('}\n')
-                            fcl.close()
-
-                            # Make sam dataset for unmerged files.
-
-                            dim = 'file_name '
-                            first = True
-                            for unmerged_file in unmerged_files:
-                                if not first:
-                                    dim += ','
-                                first = False
-                                dim += unmerged_file
-
-                            defname='merge_%s' % uuid.uuid4()
-                            print 'Creating sam definition %s' % defname
-                            self.samweb.createDefinition(defname, dim,
-                                                         user=project_utilities.get_user(), 
-                                                         group=project_utilities.get_experiment())
-
-
-                            # Submit batch job.
-
-                            print 'Submitting batch job.'
-                            jobid, prjname = self.submit(defname, file_type, run_type, 
-                                                         data_tier, 
-                                                         ubproject, ubstage, ubversion)
-                            print 'Submitted batch job %s' % jobid
-                            print 'Sam project %s' % prjname
-
-                            # Update status in the merged_tables database table.
-                            # This is where we store the output file name.
-                            # We also store the project name and the jobid.
-                            # In principle, the project name is chosen by project.py,
-                            # but we know that project.py uses the sam default project name.
-
-                            submit_time = datetime.datetime.strftime(datetime.datetime.now(), 
-                                                                     '%Y-%m-%d %H:%M:%S')
-                            q = '''UPDATE merged_files
-                                   SET name=?,jobid=?,submit_time=?,sam_project=?,status=?
-                                   WHERE id=?;'''
-                            c.execute(q, (output_name, jobid, submit_time, prjname, 2, merge_id))
-                            self.conn.commit()
+        if len(self.merge_queue) > 0:
+            self.process_merge_queue()
 
         # Done
 
         return
 
+    # Submit batch jobs for each file in merge queue.
 
-    # Submit batch job to merge files in sam dataset.
-    # Returns a 2-tuple of (batch job id, sam project name).
+    def process_merge_queue(self):
 
-    def submit(self, defname, file_type, run_type, data_tier, ubproject, ubstage, ubversion):
+        if len(self.merge_queue) == 0:
+            return
 
-        jobid = None
-        sam_project = None
+        # Open combined fcl file.
 
-        # Update project and stage objects.
+        if os.path.exists(self.fclpath):
+            os.remove(self.fclpath)
+        fcl = open(self.fclpath, 'w')
 
-        self.probj.name = ubproject
-        self.probj.version = ubversion
-        self.probj.file_type = file_type
-        self.probj.run_type = run_type
+        # Loop over merge queue.
 
-        self.stobj.name = ubstage
-        self.stobj.batchname = 'merge-%s-%s-%s' % (ubstage, ubproject, self.probj.release_tag)
-        self.stobj.inputdef = defname
-        self.stobj.data_tier = data_tier
+        sam_defnames = ''   # Colon-separated list.
+        sam_projects = ''   # Colon-separated list.
 
-        self.stobj.prestart = 1
-        self.stobj.num_events = 1000000000
-        self.stobj.num_jobs = 1
+        output_names_dict = {}
+        sam_projects_dict = {}
 
-        # Submit job.
+        nmerge = -1
+        for merge_id in self.merge_queue:
+            nmerge += 1
 
-        try:
-            real_stdout = sys.stdout
-            real_stderr = sys.stderr
-            sys.stdout = StringIO.StringIO()
-            sys.stderr = StringIO.StringIO()
+            # Query unmerged files associated with this merged file.
 
-            # Submit jobs.
+            unmerged_files = []
+            c = self.conn.cursor()
+            q = 'SELECT name FROM unmerged_files WHERE merge_id=?'
+            c.execute(q, (merge_id,))
+            rows = c.fetchall()
+            for row in rows:
+                unmerged_files.append(row[0])
 
-            jobid = project.dosubmit(self.probj, self.stobj, recur=True)
-            strout = sys.stdout.getvalue()
-            strerr = sys.stderr.getvalue()
-            sys.stdout = real_stdout
-            sys.stderr = real_stderr
+            # Query parents of unmerged files (i.e. grandparents of merged file).
 
-            # Parse output to extract sam project.
+            grandparents = set([])
+            for unmerged_file in unmerged_files:
+                md = self.samweb.getMetadata(unmerged_file)
+                if md.has_key('parents'):
+                    for parent in md['parents']:
+                        pname = parent['file_name']
+                        if not pname in grandparents:
+                            grandparents.add(pname)
 
-            for line in strout.splitlines():
-                print line
-                if line.startswith('Starting project'):
-                    words = line.split()
-                    if len(words) >= 3:
-                        sam_project = words[2]
-                        if sam_project[-1] == '.':
-                            sam_project = sam_project[:-1]    # Remove trailing period.
+            # Query sam metadata from first unmerged file.
+            # We will use this to generate metadata for merged files.
 
-        except:
-            jobid = None
-            sam_project = None
-            sys.stdout = real_stdout
-            sys.stderr = real_stderr
-            print 'Exception raised by project.dosubmit:'
-            e = sys.exc_info()
-            for item in e:
-                print item
-            for line in traceback.format_tb(e[2]):
-                print line
+            md = self.samweb.getMetadata(unmerged_files[0])
+            input_name = md['file_name']
+            app_family = md['application']['family']
+            app_version = md['application']['version']
+            group = md['group']
+            file_type = md['file_type']
+            run_type = md['runs'][0][2]
+            ubproject = md['ub_project.name']
+            ubstage = md['ub_project.stage']
+            ubversion = md['ub_project.version']
+            data_tier = md['data_tier']
+            data_stream = md['data_stream']
+
+            # Generate a unique output file name.
+            # We use a name that roughly matches the RootOutput pattern
+            # "%ifb_%tc_merged.root".
+
+            tstr = datetime.datetime.strftime(datetime.datetime.now(), '%Y%m%d%H%M%S')
+            output_name = '%s_%s_merged.root' % (input_name.split('.')[0], tstr)
+
+            # Keep this name short enough so that condor_lar.sh won't shorten it.
+
+            if len(output_name) > 190:
+                output_name = '%s_%s.root' % (output_name[:140], uuid.uuid4())
+                print 'Assigning name %s' % output_name
+                if len(output_name) > 190:
+                    print 'Output name is too long.'
+                    sys.exit(1)
+
+            # Remember output name for database update later.
+
+            output_names_dict[merge_id] = output_name
+
+            # Generate a fcl file customized for this merged file.
+
+            fcl.write('#---STAGE %d\n\n' % nmerge)
+            fcl.write('process_name: Merge\n')
+            fcl.write('services:\n')
+            fcl.write('{\n')
+            fcl.write('  scheduler: { defaultExceptions: false }\n')
+            fcl.write('  FileCatalogMetadata:\n')
+            fcl.write('  {\n')
+            fcl.write('    applicationFamily: "%s"\n' % app_family)
+            fcl.write('    applicationVersion: "%s"\n' % app_version)
+            fcl.write('    fileType: "%s"\n' % file_type)
+            fcl.write('    group: "%s"\n' % group)
+            fcl.write('    runType: "%s"\n' % run_type)
+            fcl.write('  }\n')
+            fcl.write('  FileCatalogMetadataMicroBooNE:\n')
+            fcl.write('  {\n')
+            fcl.write('    FCLName: "%s"\n' % os.path.basename(self.fclpath))
+            fcl.write('    FCLVersion: "%s"\n' % app_version)
+            fcl.write('    ProjectName: "%s"\n' % ubproject)
+            fcl.write('    ProjectStage: "%s"\n' % ubstage)
+            fcl.write('    ProjectVersion: "%s"\n' % ubversion)
+            if len(grandparents) > 0:
+                fcl.write('    Parameters: [ ')
+                first = True
+                ngp = 0
+                for grandparent in grandparents:
+                    if not first:
+                        fcl.write(',\n                  ')
+                    first = False
+                    fcl.write('"mixparent%d", "%s"' % (ngp, grandparent))
+                    ngp += 1
+                fcl.write(' ]\n')
+            fcl.write('  }\n')
+            fcl.write('}\n')
+            fcl.write('source:\n')
+            fcl.write('{\n')
+            fcl.write('  module_type: RootInput\n')
+            fcl.write('}\n')
+            fcl.write('physics:\n')
+            fcl.write('{\n')
+            fcl.write('  stream1:  [ out1 ]\n')
+            fcl.write('}\n')
+            fcl.write('outputs:\n')
+            fcl.write('{\n')
+            fcl.write('  out1:\n')
+            fcl.write('  {\n')
+            fcl.write('    module_type: RootOutput\n')
+            fcl.write('    fileName: "%s"\n' % output_name)
+            fcl.write('    dataTier: "%s"\n' % data_tier)
+            fcl.write('    streamName:  "%s"\n' % data_stream)
+            fcl.write('    compressionLevel: 3\n')
+            fcl.write('  }\n')
+            fcl.write('}\n')
+            fcl.write('#---END_STAGE\n')
+
+            # Make sam dataset for unmerged files.
+
+            dim = 'file_name '
+            first = True
+            for unmerged_file in unmerged_files:
+                if not first:
+                    dim += ','
+                first = False
+                dim += unmerged_file
+
+            defname='merge_%s' % uuid.uuid4()
+            if len(sam_defnames) > 0:
+                sam_defnames += ':'
+            sam_defnames += defname
+            print 'Creating sam definition %s' % defname
+            self.samweb.createDefinition(defname, dim,
+                                         user=project_utilities.get_user(), 
+                                         group=project_utilities.get_experiment())
+
+            # Generate sam project name
+
+            prjname = self.samweb.makeProjectName(defname)
+            if len(sam_projects) > 0:
+                sam_projects += ':'
+            sam_projects += prjname
+
+            # Start sam project.
+
+            print 'Starting project %s' % prjname
+            self.samweb.startProject(prjname,
+                                     defname=defname, 
+                                     station=project_utilities.get_experiment(),
+                                     group=project_utilities.get_experiment(),
+                                     user=project_utilities.get_user())
+
+            # Remember sam project name.
+
+            sam_projects_dict[merge_id] = prjname
+
+        # Done looping over merged files.
+        # Close combined fcl file.
+
+        fcl.close()
+
+        # Temporary directory where we will copy the batch script.
+
+        tmpdir = tempfile.mkdtemp()
+
+        # Temporary directory where we will assemble other files for batch worker.
+
+        tmpworkdir = tempfile.mkdtemp()
+
+        # Copy fcl file to work directory.
+
+        workfcl = os.path.join(tmpworkdir, os.path.basename(self.fclpath))
+        if os.path.abspath(self.fclpath) != os.path.abspath(workfcl):
+            larbatch_posix.copy(self.fclpath, workfcl)
+
+        # Copy and rename batch script to work directory.
+
+        workname = 'merge-%s-%s-%s.sh' % (ubstage, ubproject, self.probj.release_tag)
+        workscript = os.path.join(tmpdir, workname)
+        if self.stobj.script != workscript:
+            larbatch_posix.copy(self.stobj.script, workscript)
+
+        # Copy worker initialization script to work directory.
+
+        if self.stobj.init_script != '':
+            if not larbatch_posix.exists(self.stobj.init_script):
+                raise RuntimeError, 'Worker initialization script %s does not exist.\n' % \
+                    self.stobj.init_script
+            work_init_script = os.path.join(tmpworkdir, os.path.basename(self.stobj.init_script))
+            if self.stobj.init_script != work_init_script:
+                larbatch_posix.copy(self.stobj.init_script, work_init_script)
+
+        # Copy worker initialization source script to work directory.
+
+        if self.stobj.init_source != '':
+            if not larbatch_posix.exists(self.stobj.init_source):
+                raise RuntimeError, 'Worker initialization source script %s does not exist.\n' % \
+                    self.stobj.init_source
+            work_init_source = os.path.join(tmpworkdir, os.path.basename(self.stobj.init_source))
+            if self.stobj.init_source != work_init_source:
+                larbatch_posix.copy(self.stobj.init_source, work_init_source)
+
+        # Copy worker end-of-job script to work directory.
+
+        if self.stobj.end_script != '':
+            if not larbatch_posix.exists(self.stobj.end_script):
+                raise RuntimeError, 'Worker end-of-job script %s does not exist.\n' % \
+                    self.stobj.end_script
+            work_end_script = os.path.join(tmpworkdir, os.path.basename(self.stobj.end_script))
+            if self.stobj.end_script != work_end_script:
+                larbatch_posix.copy(self.stobj.end_script, work_end_script)
+
+        # Copy helper scripts to work directory.
+
+        helpers = ('root_metadata.py',
+                   'validate_in_job.py',
+                   'mkdir.py',
+                   'emptydir.py')
+
+        for helper in helpers:
+
+            # Find helper script in execution path.
+
+            jobinfo = subprocess.Popen(['which', helper],
+                                       stdout=subprocess.PIPE,
+                                       stderr=subprocess.PIPE)
+            jobout, joberr = jobinfo.communicate()
+            rc = jobinfo.poll()
+            helper_path = jobout.splitlines()[0].strip()
+            if rc == 0:
+                work_helper = os.path.join(tmpworkdir, helper)
+                if helper_path != work_helper:
+                    larbatch_posix.copy(helper_path, work_helper)
+            else:
+                print 'Helper script %s not found.' % helper
+
+        # Copy helper python modules to work directory.
+        # Note that for this to work, these modules must be single files.
+
+        helper_modules = ('larbatch_posix',
+                          'project_utilities',
+                          'larbatch_utilities',
+                          'experiment_utilities',
+                          'extractor_dict')
+
+        for helper_module in helper_modules:
+
+            # Find helper module files.
+
+            jobinfo = subprocess.Popen(['python'],
+                                       stdin=subprocess.PIPE,
+                                       stdout=subprocess.PIPE,
+                                       stderr=subprocess.PIPE)
+            jobinfo.stdin.write('import %s\nprint %s.__file__\n' % (helper_module, helper_module))
+            jobout, joberr = jobinfo.communicate()
+            rc = jobinfo.poll()
+            helper_path = jobout.splitlines()[-1].strip()
+            if rc == 0:
+                #print 'helper_path = %s' % helper_path
+                work_helper = os.path.join(tmpworkdir, os.path.basename(helper_path))
+                if helper_path != work_helper:
+                    larbatch_posix.copy(helper_path, work_helper)
+            else:
+                print 'Helper python module %s not found.' % helper_module
+
+        # Make a tarball out of all of the files in tmpworkdir in stage.workdir
+
+        tmptar = '%s/work.tar' % tmpworkdir
+        jobinfo = subprocess.Popen(['tar','-cf', tmptar, '-C', tmpworkdir,
+                                    '--mtime=2018-01-01',
+                                    '--exclude=work.tar', '.'],
+                                   stdout=subprocess.PIPE,
+                                   stderr=subprocess.PIPE)
+        jobout, joberr = jobinfo.communicate()
+        rc = jobinfo.poll()
+        if rc != 0:
+            raise RuntimeError, 'Failed to create work tarball in %s' % tmpworkdir
+
+        # Construct jobsub_submit command.
+
+        command = ['jobsub_submit']
+
+        # Add jobsub_submit boilerplate options.  Copied from project.py.
+
+        command.append('--group=%s' % project_utilities.get_experiment())
+        role = project_utilities.get_role()
+        if self.probj.role != '':
+            role = self.probj.role
+        command.append('--role=%s' % role)
+        if self.stobj.resource != '':
+            command.append('--resource-provides=usage_model=%s' % self.stobj.resource)
+        elif self.probj.resource != '':
+            command.append('--resource-provides=usage_model=%s' % self.probj.resource)
+        if self.stobj.lines != '':
+            command.append('--lines=%s' % self.stobj.lines)
+        elif self.probj.lines != '':
+            command.append('--lines=%s' % self.probj.lines)
+        if self.stobj.site != '':
+            command.append('--site=%s' % self.stobj.site)
+        if self.stobj.blacklist != '':
+            command.append('--blacklist=%s' % self.stobj.blacklist)
+        if self.stobj.cpu != 0:
+            command.append('--cpu=%d' % self.stobj.cpu)
+        if self.stobj.disk != '':
+            command.append('--disk=%s' % self.stobj.disk)
+        if self.stobj.memory != 0:
+            command.append('--memory=%d' % self.stobj.memory)
+        if self.probj.os != '':
+            command.append('--OS=%s' % self.probj.os)
+        if self.stobj.jobsub != '':
+            for word in self.stobj.jobsub.split():
+                command.append(word)
+        opt = project_utilities.default_jobsub_submit_options()
+        if opt != '':
+            for word in opt.split():
+                command.append(word)
+
+        # Copy tarball containing fcl file and helpers.
+
+        command.extend(['-f', 'dropbox://%s' % tmptar])
+
+        # Batch script.
+
+        workurl = "file://%s" % workscript
+        command.append(workurl)
+
+        # Add batch script options.
+
+        command.extend([' --group', project_utilities.get_experiment()])
+        command.extend([' -c', os.path.basename(self.fclpath)])
+        command.extend([' --ups', project_utilities.get_ups_products()])
+        if self.probj.release_tag != '':
+            command.extend([' -r', self.probj.release_tag])
+        command.extend([' -b', self.probj.release_qual])
+        if self.probj.local_release_tar != '':
+            command.extend([' --localtar', self.probj.local_release_tar])
+        command.extend([' --outdir', self.stobj.outdir])
+        command.extend([' --logdir', self.stobj.logdir])
+        if self.stobj.schema != '':
+            command.extend([' --sam_schema', self.stobj.schema])
+        if self.stobj.init_script != '':
+            command.extend([' --init-script', os.path.basename(self.stobj.init_script)])
+        if self.stobj.init_source != '':
+            command.extend([' --init-source', os.path.basename(self.stobj.init_source)])
+        if self.stobj.end_script != '':
+            command.extend([' --end-script', os.path.basename(self.stobj.end_script)])
+        command.extend([' --init', project_utilities.get_setup_script_path()])
+        if self.stobj.validate_on_worker == 1:
+            print 'Validation will be done on the worker node %d' % self.stobj.validate_on_worker
+            command.extend([' --validate'])
+            command.extend([' --declare'])
+        if self.stobj.copy_to_fts == 1:
+            command.extend([' --copy'])
+        command.extend(['--sam_station', project_utilities.get_experiment()])
+        command.extend(['--sam_group', project_utilities.get_experiment()])
+        command.extend(['--sam_defname', sam_defnames])
+        command.extend(['--sam_project', sam_projects])
+
+        # Invoke the job submission command and capture the output.
+
+        print 'Invoke jobsub_submit'
+        submit_timeout = 3600000
+        q = Queue.Queue()
+        jobinfo = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        thread = threading.Thread(target=project_utilities.wait_for_subprocess, args=[jobinfo, q])
+        thread.start()
+        thread.join(timeout=submit_timeout)
+        if thread.is_alive():
+            jobinfo.terminate()
+            thread.join()
+        rc = q.get()
+        jobout = q.get()
+        joberr = q.get()
+
+        # Clean up.
+
+        if larbatch_posix.isdir(tmpdir):
+            larbatch_posix.rmtree(tmpdir)
+        if larbatch_posix.isdir(tmpworkdir):
+            larbatch_posix.rmtree(tmpworkdir)
+
+        # Test whether job submission succeeded.
+
+        batchok = False
+        if rc == 0:
+
+            # Extract jobsub id from captured output.
+
+            jobid = ''
+            for line in jobout.split('\n'):
+                if "JobsubJobId" in line:
+                    jobid = line.strip().split()[-1]
+            if jobid != '':
+                batchok = True
+
+        if batchok:
+
+            # Batch job submission succeeded.
+
+            print 'Batch job submission succeeded.'
+            print 'Job id = %s' % jobid
+
+            # Update merged_files table with information about this job submission.
+
+            submit_time = datetime.datetime.strftime(datetime.datetime.now(), 
+                                                     '%Y-%m-%d %H:%M:%S')
+            for merge_id in self.merge_queue:
+                q = '''UPDATE merged_files
+                SET name=?,jobid=?,submit_time=?,sam_project=?,status=?
+                WHERE id=?;'''
+                c.execute(q, (output_names_dict[merge_id], jobid, submit_time,
+                              sam_projects_dict[merge_id], 2, merge_id))
+
+            # Done updating database in this function.
+
+            self.conn.commit()
+
+        else:
+
+            # Batch job submission failed.
+
+            print 'Batch job submission failed.'
+            print jobout
+            print joberr
+
+            # Stop sam projects.
+
+            for prj in sam_projects.split(':'):
+                print 'Stopping sam project %s' % prj
+                self.samweb.stopProject(prj)
 
         # Done.
 
-        return jobid, sam_project
+        self.merge_queue = []
+        return
 
 
     # Return the number of status 0 files in the database.
 
     def nstat0(self):
         c = self.conn.cursor()
-        q = 'SELECT count(*) FROM merged_files WHERE status=0'
+        q = 'SELECT COUNT(*) FROM merged_files WHERE status=0'
         c.execute(q)
         row = c.fetchone()
         n0 = row[0]
@@ -1086,7 +1360,7 @@ SELECT id FROM merge_groups WHERE
 
     def nstat2(self):
         c = self.conn.cursor()
-        q = 'SELECT count(*) FROM merged_files WHERE status=2'
+        q = 'SELECT COUNT(DISTINCT sam_project) FROM merged_files WHERE status=2'
         c.execute(q)
         row = c.fetchone()
         n0 = row[0]
