@@ -23,8 +23,10 @@
 # --min_size <bytes>  - Minimum merged file size in bytes (default 1e9).
 # --max_age <seconds> - Maximum unmerged file age in seconds (default 72 hours).
 #                       Optionally use suffix 'h' for hours, 'd' for days.
-# --min_status <status> - Minimum status (default 0).
-# --max_status <status> - Maximum status (default 6).
+# --max_groups <n>    - Maximum number of new merge groups to add.   
+# --query_limit <n>   - Maximum number of files to query from sam.
+# --phase1            - Phase 1 only (scan & submit).
+# --phase2            - Phase 2 only (monitor & cleanup).
 #
 ######################################################################
 #
@@ -125,6 +127,7 @@
 #       0 - Not started.
 #       1 - Started.
 #       2 - Ended.
+#       3 - Finished.
 #
 # II.  Table sam_processes.
 #
@@ -170,8 +173,7 @@ class MergeEngine:
     # Constructor.
 
     def __init__(self, xmlfile, projectname, stagename, defname,
-                 database, max_size, min_size, max_age,
-                 min_status, max_status):
+                 database, max_size, min_size, max_age, max_groups, query_limit):
 
         # Open database connection.
 
@@ -223,8 +225,8 @@ class MergeEngine:
         self.max_size = max_size   # Maximum merge file size in bytes.
         self.min_size = min_size   # Minimum merge file size in bytes.
         self.max_age = max_age     # Maximum unmerged file age in seconds.
-        self.min_status = min_status # Minimum status.
-        self.max_status = max_status # Maximum status.
+        self.max_groups = max_groups   # Maximum number of new merges groups per invocation.
+        self.query_limit = query_limit # Maximum number of files to query from sam.
 
         # Cache of directory contents.
 
@@ -331,9 +333,9 @@ CREATE TABLE IF NOT EXISTS unmerged_files (
 
     # This function queries mergeable files from sam and updates the unmerged_tables table.
 
-    def update_unmerged_files(self, limit):
+    def update_unmerged_files(self):
 
-        if limit == 0:
+        if self.query_limit == 0 or self.max_groups == 0:
             return
 
         print 'Querying unmerged files from sam.'
@@ -341,10 +343,12 @@ CREATE TABLE IF NOT EXISTS unmerged_files (
         if self.defname != '':
             extra_clause = 'and defname: %s' % self.defname
         dim = 'merge.merge 1 and merge.merged 0 %s with availability physical with limit %d' % (
-            extra_clause, limit)
+            extra_clause, self.query_limit)
         files = self.samweb.listFiles(dim)
         print '%d unmerged files.' % len(files)
         print 'Updating unmerged_files table in database.'
+
+        nadd = 0
         for f in files:
 
             group_id = self.add_unmerged_file(f)
@@ -359,12 +363,110 @@ CREATE TABLE IF NOT EXISTS unmerged_files (
                     g = self.add_unmerged_file(group_file)
                     print g, group_file
                 self.conn.commit()
+                nadd += 1
+                if nadd >= self.max_groups:
+                    break
 
             else:
 
                 print 'Ignore file %s' % f
 
         # Done.
+
+        return
+
+
+    # Check disk locations of file.  All location checks are done in this function.
+    # Return value is 2-tuple: (on_disk, on_tape).
+    # If file has a tape locations, delete file from fisk and 
+    # remove all disk locations from sam.
+    # Disk locations are checked for validity.
+    # If disk location does not exist, remove disk location from sam.
+    # Tape locations are not checked.
+
+    def check_location(self, f, do_check_disk):
+
+        print 'Checking location of file %s' % f
+        on_disk = False
+        on_tape = False
+
+        # Get location(s).
+
+        locs = self.samweb.locateFile(f)
+
+        # First see if file is on tape.
+
+        for loc in locs:
+            if loc['location_type'] == 'tape':
+                on_tape = True
+
+        if on_tape:
+
+            print 'File is on tape.'
+
+            # File is on tape
+            # Delete and remove any disk locations from sam.
+
+            for loc in locs:
+                if loc['location_type'] == 'disk':
+
+                    # Delete unmerged file from disk.
+
+                    dir = os.path.join(loc['mount_point'], loc['subdir'])
+                    fp = os.path.join(dir, f)
+                    print 'Deleting file from disk.'
+                    if larbatch_posix.exists(fp):
+                        larbatch_posix.remove(fp)
+                    print 'Removing disk location from sam.'
+                    self.samweb.removeFileLocation(f, loc['full_path'])
+
+        else:
+
+            # File is not on tape.
+            # Check disk locations, if requested to do so.
+
+            if do_check_disk:
+
+                print 'Checking disk locations.'
+                for loc in locs:
+                    if loc['location_type'] == 'disk':
+                        dir = os.path.join(loc['mount_point'], loc['subdir'])
+                        fp = os.path.join(dir, f)
+                        if larbatch_posix.exists(fp):
+                            print 'Location OK.'
+                        on_disk = True
+                    else:
+                        print 'Removing bad location from sam.'
+                        self.samweb.removeFileLocation(f, loc['full_path'])
+
+        # Done
+
+        return (on_disk, on_tape)
+
+
+    # Delete desk locations for this file.
+
+    def delete_disk_locations(self, f):
+
+        print 'Deleting disk locations for file %s' % f
+
+        # Get location(s).
+
+        locs = self.samweb.locateFile(f)
+        for loc in locs:
+            if loc['location_type'] == 'disk':
+
+                # Delete unmerged file from disk.
+
+                dir = os.path.join(loc['mount_point'], loc['subdir'])
+                fp = os.path.join(dir, f)
+                print 'Deleting file from disk.'
+                if larbatch_posix.exists(fp):
+                    larbatch_posix.remove(fp)
+                print 'Removing disk location from sam.'
+                self.samweb.removeFileLocation(f, loc['full_path'])
+
+        # Done
 
         return
 
@@ -389,65 +491,42 @@ CREATE TABLE IF NOT EXISTS unmerged_files (
             # File does not exist.
             # First check location, whether this file is on tape yet or not.
 
-            locs = self.samweb.locateFile(f)
-            on_tape = 0
-            for loc in locs:
-                if loc['location_type'] == 'tape':
-                    on_tape = 1
+            on_disk, on_tape = self.check_location(f, True)
+
             if on_tape:
+
                 print 'File %s is already on tape.' % f
 
-                # Since file is on tape, remove any disk locations.
-                # This shouldn't really ever happen.
-            
-                for loc in locs:
-                    if loc['location_type'] == 'disk':
-                        print 'Removing disk location.'
-                        self.samweb.removeFileLocation(f, loc['full_path'])
-
                 # Modify metadata to set merge.merged flag to be true, so that this
-                # file will become invisible to merging.
+                # file will become invisible to future merging.
 
                 mdmod = {'merge.merged': 1}
                 print 'Updating metadata to set merged flag.'
                 self.samweb.modifyFileMetadata(f, mdmod)
 
+            elif on_disk:
+
+                # File has valid disk location.
+
+                print 'Adding unmerged file %s' % f
+                md = self.samweb.getMetadata(f)
+                group_id = self.merge_group(md)
+                size = md['file_size']
+                sam_project_id = 0
+                sam_process_id = 0
+                create_date = md['create_date']
+                q = '''INSERT INTO unmerged_files
+                       (name, group_id, sam_project_id, sam_process_id,
+                       size, create_date)
+                       VALUES(?,?,?,?,?,?);'''
+                c.execute(q, (f, group_id, sam_project_id, sam_process_id, size,
+                              create_date))
+
             else:
 
-                # File is not on tape.
-                # Check whether this file has a valid disk location.
+                # No valid location.
 
-                disk_ok = False
-
-                for loc in locs:
-                    if loc['location_type'] == 'disk':
-                        dir = os.path.join(loc['mount_point'], loc['subdir'])
-                        if not self.dircache.has_key(dir):
-                            self.dircache[dir] = set(larbatch_posix.listdir(dir))
-                        if f in self.dircache[dir]:
-                            disk_ok = True
-                        else:
-                            print 'Removing bad location from sam.'
-                            self.samweb.removeFileLocation(f, loc['full_path'])
-
-                if disk_ok:
-
-                    # Location is valid.
-
-                    print 'Location OK.'
-                    print 'Adding unmerged file %s' % f
-                    md = self.samweb.getMetadata(f)
-                    group_id = self.merge_group(md)
-                    size = md['file_size']
-                    sam_project_id = 0
-                    sam_process_id = 0
-                    create_date = md['create_date']
-                    q = '''INSERT INTO unmerged_files
-                           (name, group_id, sam_project_id, sam_process_id,
-                           size, create_date)
-                           VALUES(?,?,?,?,?,?);'''
-                    c.execute(q, (f, group_id, sam_project_id, sam_process_id, size,
-                                      create_date))
+                print 'File does not have a valid location.'
 
         # Done.
 
@@ -520,7 +599,7 @@ SELECT id FROM merge_groups WHERE
         return group_id
 
 
-    # Function to update sam projects by assigning currently unassigned unmerged files
+    # Function to update sam projects by assigning currently unaffiliated unmerged files
     # to sam projects.
 
     def update_sam_projects(self):
@@ -528,7 +607,8 @@ SELECT id FROM merge_groups WHERE
         # Loop over merge groups with unassigned files.
 
         c = self.conn.cursor()
-        q = 'SELECT DISTINCT group_id FROM unmerged_files WHERE sam_project_id=0 ORDER BY group_id;'
+        q = '''SELECT DISTINCT group_id FROM unmerged_files
+               WHERE sam_project_id=0 AND sam_process_id=0 ORDER BY group_id;'''
         c.execute(q)
         rows = c.fetchall()
         for row in rows:
@@ -572,7 +652,7 @@ SELECT id FROM merge_groups WHERE
             create_project = False
             print 'Checking merge group.'
             print 'Total size = %d' % total_size
-            print 'Oldest crete date = %s' % oldest_create_date
+            print 'Oldest create date = %s' % oldest_create_date
 
             if total_size >= self.min_size:
 
@@ -655,8 +735,31 @@ SELECT id FROM merge_groups WHERE
                 if status == 3:
 
                     # Finished.
+                    # Delete this project.
 
-                    pass
+                    print 'Deleting project %s' % sam_project
+
+                    # First validate locations of any unmerged files associated with this process.
+
+                    q = 'SELECT name FROM unmerged_files WHERE sam_project_id=?'
+                    c.execute(q, (sam_project,))
+                    rows = c.fetchall()
+                    if len(rows) > 0:
+                        print 'Checking locations of remaining unmerged files.'
+                        for row in rows:
+                            f = row[0]
+                            self.check_location(f, True)
+
+                    q = 'UPDATE unmerged_files SET sam_project_id=? WHERE sam_project_id=?;'
+                    c.execute(q, (0, sam_project_id))
+
+                    q = 'UPDATE sam_processes SET sam_project_id=? WHERE sam_project_id=?;'
+                    c.execute(q, (0, sam_project_id))
+
+                    q = 'DELETE FROM sam_projects WHERE id=?'
+                    c.execute(q, (sam_project_id,))
+
+                    self.conn.commit()
 
                 if status == 2:
 
@@ -667,6 +770,10 @@ SELECT id FROM merge_groups WHERE
                     # Loop over processes.
 
                     procs = prjsum['processes']
+
+                    if len(procs) == 0:
+                        print 'No processes.'
+
                     for proc in procs:
                         pid = proc['process_id']
                         print 'SAM process id = %d' % pid
@@ -727,10 +834,35 @@ SELECT id FROM merge_groups WHERE
                     # Project running.
                     # Check status of this project.
 
-                    prjsum = self.samweb.projectSummary(sam_project)
-                    prjstat = prjsum['project_status']
-                    if prjstat.startswith('ended'):
-                        print 'Project ended.'
+                    prj_ended = False
+                    prjstat = {}
+                    try:
+                        prjstat = self.samweb.projectSummary(sam_project)
+                    except:
+                        prjstat = {}
+                    if prjstat.has_key('project_end_time'):
+                        endstr = prjstat['project_end_time']
+                        if len(endstr) > 1:
+
+                            # Calculate how long since the project ended.
+
+                            t = datetime.datetime.strptime(endstr,
+                                                           '%Y-%m-%dT%H:%M:%S.%f+00:00')
+                            now = datetime.datetime.utcnow()
+                            dt = now - t
+                            dtsec = dt.total_seconds()
+
+                            if dtsec > 600:
+
+                                print 'Project ended: %s' % sam_project
+                                prj_ended = True
+
+                            else:
+
+                                print 'Project cooling off (ended %d seconds ago): %s' % (
+                                    dtsec, sam_project)
+
+                    if prj_ended:
 
                         # Update project status to 2.
 
@@ -743,6 +875,8 @@ SELECT id FROM merge_groups WHERE
 
                     # Project not started.
                     # Submit batch jobs.
+                    # Submit function will update project status to 1 if 
+                    # batch submission is successful.
 
                     self.submit(sam_project_id)
 
@@ -834,15 +968,19 @@ SELECT id FROM merge_groups WHERE
         # Generate project name and stash the name in the database.
 
         prjname = self.samweb.makeProjectName(defname)
+        print 'Submitting batch job for project %s' % prjname
 
         # Start project now.
 
-        print 'Starting sam project %s' % prjname
-        self.samweb.startProject(prjname,
-                                 defname=defname, 
-                                 station=project_utilities.get_experiment(),
-                                 group=project_utilities.get_experiment(),
-                                 user=project_utilities.get_user())
+        if num_jobs > 1:
+            print 'Starting sam project %s' % prjname
+            self.samweb.startProject(prjname,
+                                     defname=defname, 
+                                     station=project_utilities.get_experiment(),
+                                     group=project_utilities.get_experiment(),
+                                     user=project_utilities.get_user())
+        else:
+            print 'Project will be started by batch job.'
 
         # Temporary directory where we will copy the batch script.
 
@@ -1036,12 +1174,14 @@ SELECT id FROM merge_groups WHERE
             print 'Validation will be done on the worker node %d' % self.stobj.validate_on_worker
             command.extend([' --validate'])
             command.extend([' --declare'])
-        #if self.stobj.copy_to_fts == 1:
-        #    command.extend([' --copy'])
+        if self.stobj.copy_to_fts == 1:
+            command.extend([' --copy'])
         command.extend(['--sam_station', project_utilities.get_experiment()])
         command.extend(['--sam_group', project_utilities.get_experiment()])
         command.extend(['--sam_defname', defname])
         command.extend(['--sam_project', prjname])
+        if num_jobs == 1:
+            command.append('--sam_start')
 
         # Invoke the job submission command and capture the output.
 
@@ -1122,6 +1262,184 @@ SELECT id FROM merge_groups WHERE
                 self.samweb.stopProject(prj)
 
 
+    # Update statuses of sam processes / merged files.
+
+    def update_sam_process_status(self):
+
+        # In this function, we make a double loop over sam processes and statuses.
+
+        c = self.conn.cursor()
+
+        # First loop over statuses in reverse order.
+
+        for status in range(4, -1, -1):
+
+            # Query and loop over sam processes with this status.
+
+            q = '''SELECT id, sam_process_id, merged_file_name
+                   FROM sam_processes WHERE status=? ORDER BY id;'''
+            c.execute(q, (status,))
+            rows = c.fetchall()
+            for row in rows:
+                merge_id = row[0]
+                sam_process_id = row[1]
+                merged_file = row[2]
+
+                print '\nStatus=%d, file name %s' % (status, merged_file)
+
+                if status == 3:
+
+                    # Finished.
+
+                    # Finished.
+                    # Delete this process.
+
+                    # First validate locations of any unmerged files associated with this process.
+
+                    q = 'SELECT name FROM unmerged_files WHERE sam_process_id=?'
+                    c.execute(q, (merge_id,))
+                    rows = c.fetchall()
+                    if len(rows) > 0:
+                        print 'Checking locations of remaining unmerged files.'
+                        for row in rows:
+                            f = row[0]
+                            self.check_location(f, True)
+
+                    print 'Deleting process.'
+
+                    q = 'UPDATE unmerged_files SET sam_process_id=? WHERE sam_process_id=?;'
+                    c.execute(q, (0, merge_id))
+
+                    q = 'DELETE FROM sam_processes WHERE id=?'
+                    c.execute(q, (merge_id,))
+
+                    self.conn.commit()
+
+                if status == 2:
+
+                    # Located.
+                    # Do cleanup for this merged file.
+
+                    print 'Doing cleanup for merged file %s' % merged_file
+
+                    # First query unmerged files corresponsing to this merged file.
+
+                    unmerged_files = []
+                    q = 'SELECT name FROM unmerged_files WHERE sam_process_id=?'
+                    c.execute(q, (merge_id,))
+                    rows = c.fetchall()
+                    for row in rows:
+                        unmerged_files.append(row[0])
+
+                    # Loop over unmerged files.
+
+                    for f in unmerged_files:
+
+                        print 'Doing cleanup for unmerged file %s' % f
+
+                        # First modify the sam metadata of unmerged files 
+                        # to set merge.merged=1.  That will make this
+                        # unmerged file invisible to this script.
+
+                        mdmod = {'merge.merged': 1}
+                        print 'Updating metadata.'
+                        self.samweb.modifyFileMetadata(f, mdmod)
+
+                        # Delete disk locations for unmerged file.
+
+                        self.delete_disk_locations(f)
+
+                        # Delete unmerged file from merge database.
+
+                        print 'Deleting file from merge database: %s' % f
+                        q = 'DELETE FROM unmerged_files WHERE name=?'
+                        c.execute(q, (f,))
+
+                    # End of loop over unmerged files.
+                    # Cleaning done.
+                    # Update status of sam process to 3
+
+                    print 'Cleaning finished.'
+                    q = '''UPDATE sam_processes SET status=? WHERE id=?;'''
+                    c.execute(q, (3, merge_id))
+                    self.conn.commit()
+  
+                if status == 1:
+
+                    # Declared.
+                    # Check whether this file has a location.
+
+                    on_disk, on_tape = self.check_location(merged_file, False)
+
+                    if on_tape:
+
+                        print 'File located.'
+                        q = 'UPDATE sam_processes SET status=? WHERE id=?;'
+                        c.execute(q, (2, merge_id))
+                        self.conn.commit()
+
+                    else:
+
+                        print 'File not located.'
+
+                        # Check metadata of this file.
+
+                        md = self.samweb.getMetadata(merged_file)
+
+                        # Get age of this file.
+
+                        t = datetime.datetime.strptime(md['create_date'],
+                                                       '%Y-%m-%dT%H:%M:%S+00:00')
+                        now = datetime.datetime.utcnow()
+                        dt = now - t
+
+                        # If this file too old, set error status.
+
+                        if dt.total_seconds() > 3*24*3600:
+                            print 'File is too old.  Set error status.'
+                            q = '''UPDATE sam_processes SET status=? WHERE id=?;'''
+                            c.execute(q, (4, merge_id))
+                            self.conn.commit()
+
+                if status == 0:
+
+                    # Not declared (shouldn't happen).
+
+                    pass
+
+    # Function to remove unused merged groups from database.
+
+    def clean_merge_groups(self):
+
+        print '\nCleaning merge groups.'
+
+        # Loop over merge groups.
+
+        c = self.conn.cursor()
+        q = 'SELECT id FROM merge_groups ORDER BY id;'
+        c.execute(q)
+        rows = c.fetchall()
+        for row in rows:
+            group_id = row[0]
+
+            # Check whether any unmerged files belong to this merge group.
+
+            q = 'SELECT count(*) FROM unmerged_files WHERE group_id=?;'
+            c.execute(q, (group_id,))
+            row = c.fetchone()
+            n = row[0]
+            if n == 0:
+                print 'Deleting group %d' % group_id
+
+                q = 'DELETE FROM merge_groups WHERE id=?'
+                c.execute(q, (group_id,))
+
+        # Done.
+
+        self.conn.commit()
+        return
+
+
 # Check whether a similar process is already running.
 # Return true if yes.
 
@@ -1177,8 +1495,10 @@ def main(argv):
     max_size = 2500000000
     min_size = 1000000000
     max_age = 3*24*3600
-    min_status = 0
-    max_status = 6
+    max_groups = 100
+    query_limit = 10000
+    do_phase1 = True
+    do_phase2 = True
 
     args = argv[1:]
     while len(args) > 0:
@@ -1214,12 +1534,18 @@ def main(argv):
             else:
                 max_age = int(args[1])
             del args[0:2]
-        elif args[0] == '--min_status' and len(args) > 1:
-            min_status = int(args[1])
+        elif args[0] == '--max_groups' and len(args) > 1:
+            max_groups = int(args[1])
             del args[0:2]
-        elif args[0] == '--max_status' and len(args) > 1:
-            max_status = int(args[1])
+        elif args[0] == '--query_limit' and len(args) > 1:
+            query_limit = int(args[1])
             del args[0:2]
+        elif args[0] == '--phase1':
+            do_phase2 = False
+            del args[0]
+        elif args[0] == '--phase2':
+            do_phase1 = False
+            del args[0]
         else:
             print 'Unknown option %s' % args[0]
             return 1
@@ -1227,17 +1553,14 @@ def main(argv):
     # Create merge engine.
 
     engine = MergeEngine(xmlfile, projectname, stagename, defname,
-                         database, max_size, min_size, max_age,
-                         min_status, max_status)
-    engine.update_unmerged_files(0)
-    engine.update_sam_projects()
-    engine.update_sam_project_status()
-    #if min_status == 0:
-    #    n0 = engine.nstat0()
-    #    if n0 == 0:
-    #        engine.update_unmerged_files()
-    #        engine.update_merges()
-    #engine.update_status()
+                         database, max_size, min_size, max_age, max_groups, query_limit)
+    if do_phase1:
+        engine.update_unmerged_files()
+        engine.update_sam_projects()
+    if do_phase2:
+        engine.update_sam_project_status()
+        engine.update_sam_process_status()
+        engine.clean_merge_groups()
 
     # Done.
 
