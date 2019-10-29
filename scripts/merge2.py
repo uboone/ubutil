@@ -317,6 +317,25 @@ CREATE TABLE IF NOT EXISTS unmerged_files (
         return conn
 
 
+    # Optimized file existence checker.
+    # Directory contents are cached.
+
+    def exists(self, fp):
+
+        result = False
+
+        npath = os.path.normpath(fp)
+        dir = os.path.dirname(npath)
+        base = os.path.basename(npath)
+        if dir == '':
+            dir = '.'
+        if not self.dircache.has_key(dir):
+            self.dircache[dir] = set(larbatch_posix.listdir(dir))
+        if base in self.dircache[dir]:
+            result = True
+        return result
+
+
     # Function to return dimension corresponding to group id.
 
     def get_group_dim(self, group_id):
@@ -418,7 +437,7 @@ CREATE TABLE IF NOT EXISTS unmerged_files (
                     dir = os.path.join(loc['mount_point'], loc['subdir'])
                     fp = os.path.join(dir, f)
                     print 'Deleting file from disk.'
-                    if larbatch_posix.exists(fp):
+                    if self.exists(fp):
                         larbatch_posix.remove(fp)
                     print 'Removing disk location from sam.'
                     self.samweb.removeFileLocation(f, loc['full_path'])
@@ -435,7 +454,7 @@ CREATE TABLE IF NOT EXISTS unmerged_files (
                     if loc['location_type'] == 'disk':
                         dir = os.path.join(loc['mount_point'], loc['subdir'])
                         fp = os.path.join(dir, f)
-                        if larbatch_posix.exists(fp):
+                        if self.exists(fp):
                             print 'Location OK.'
                         on_disk = True
                     else:
@@ -464,7 +483,7 @@ CREATE TABLE IF NOT EXISTS unmerged_files (
                 dir = os.path.join(loc['mount_point'], loc['subdir'])
                 fp = os.path.join(dir, f)
                 print 'Deleting file from disk.'
-                if larbatch_posix.exists(fp):
+                if self.exists(fp):
                     larbatch_posix.remove(fp)
                 print 'Removing disk location from sam.'
                 self.samweb.removeFileLocation(f, loc['full_path'])
