@@ -23,6 +23,7 @@
 # --min_size <bytes>  - Minimum merged file size in bytes (default 1e9).
 # --max_age <seconds> - Maximum unmerged file age in seconds (default 72 hours).
 #                       Optionally use suffix 'h' for hours, 'd' for days.
+# --max_projects <n>  - Maximum number of projects.
 # --max_groups <n>    - Maximum number of new merge groups to add.   
 # --query_limit <n>   - Maximum number of files to query from sam.
 # --phase1            - Phase 1 only (scan & submit).
@@ -173,7 +174,8 @@ class MergeEngine:
     # Constructor.
 
     def __init__(self, xmlfile, projectname, stagename, defname,
-                 database, max_size, min_size, max_age, max_groups, query_limit):
+                 database, max_size, min_size, max_age, 
+                 max_projects, max_groups, query_limit):
 
         # Open database connection.
 
@@ -225,8 +227,9 @@ class MergeEngine:
         self.max_size = max_size   # Maximum merge file size in bytes.
         self.min_size = min_size   # Minimum merge file size in bytes.
         self.max_age = max_age     # Maximum unmerged file age in seconds.
-        self.max_groups = max_groups   # Maximum number of new merges groups per invocation.
-        self.query_limit = query_limit # Maximum number of files to query from sam.
+        self.max_projects = max_projects  # Maximum number of sam projects.
+        self.max_groups = max_groups      # Maximum number of new merges groups per invocation.
+        self.query_limit = query_limit    # Maximum number of files to query from sam.
 
         # Cache of directory contents.
 
@@ -521,6 +524,7 @@ CREATE TABLE IF NOT EXISTS unmerged_files (
                        VALUES(?,?,?,?,?,?);'''
                 c.execute(q, (f, group_id, sam_project_id, sam_process_id, size,
                               create_date))
+                self.conn.commit()
 
             else:
 
@@ -589,6 +593,7 @@ SELECT id FROM merge_groups WHERE
                    VALUES(?,?,?,?,?,?,?,?);'''
             c.execute(q, gtuple)
             group_id = c.lastrowid
+            self.conn.commit()
 
         else:
 
@@ -612,8 +617,22 @@ SELECT id FROM merge_groups WHERE
         c.execute(q)
         rows = c.fetchall()
         for row in rows:
+
             group_id = row[0]
             print 'Checking merge group %d.' % group_id
+
+            # Check the number of sam projects.
+
+            q = 'SELECT COUNT(*) FROM sam_projects WHERE status<2;'
+            c.execute(q)
+            mrow = c.fetchone()
+            nprj = mrow[0]
+            print '%d sam projects.' % nprj
+            if nprj >= self.max_projects:
+
+                print 'Quitting because number of projects is at the maximum.'
+                break
+
 
             # Query unassigned files in this merge group.
             # Track the total size and oldest file in this merge group.
@@ -822,6 +841,8 @@ SELECT id FROM merge_groups WHERE
 
                                             q = 'UPDATE unmerged_files SET sam_process_id=? WHERE name=?;'
                                             c.execute(q, (merge_id, consumed_file))
+
+                                        self.conn.commit()
 
                     # Update project status to 3.
 
@@ -1355,6 +1376,8 @@ SELECT id FROM merge_groups WHERE
                         q = 'DELETE FROM unmerged_files WHERE name=?'
                         c.execute(q, (f,))
 
+                        self.conn.commit()
+
                     # End of loop over unmerged files.
                     # Cleaning done.
                     # Update status of sam process to 3
@@ -1424,7 +1447,7 @@ SELECT id FROM merge_groups WHERE
 
             # Check whether any unmerged files belong to this merge group.
 
-            q = 'SELECT count(*) FROM unmerged_files WHERE group_id=?;'
+            q = 'SELECT COUNT(*) FROM unmerged_files WHERE group_id=?;'
             c.execute(q, (group_id,))
             row = c.fetchone()
             n = row[0]
@@ -1495,6 +1518,7 @@ def main(argv):
     max_size = 2500000000
     min_size = 1000000000
     max_age = 3*24*3600
+    max_projects = 500
     max_groups = 100
     query_limit = 10000
     do_phase1 = True
@@ -1534,6 +1558,9 @@ def main(argv):
             else:
                 max_age = int(args[1])
             del args[0:2]
+        elif args[0] == '--max_projects' and len(args) > 1:
+            max_projects = int(args[1])
+            del args[0:2]
         elif args[0] == '--max_groups' and len(args) > 1:
             max_groups = int(args[1])
             del args[0:2]
@@ -1553,7 +1580,8 @@ def main(argv):
     # Create merge engine.
 
     engine = MergeEngine(xmlfile, projectname, stagename, defname,
-                         database, max_size, min_size, max_age, max_groups, query_limit)
+                         database, max_size, min_size, max_age,
+                         max_projects, max_groups, query_limit)
     if do_phase1:
         engine.update_unmerged_files()
         engine.update_sam_projects()
