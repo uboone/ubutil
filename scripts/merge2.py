@@ -235,6 +235,16 @@ class MergeEngine:
 
         self.dircache = {}
 
+        # Unmerged file add queue.
+
+        self.add_queue = []
+        self.add_queue_max = 10   # Maximum size of add queue.
+
+        # Metadata queue.
+
+        self.metadata_queue = []
+        self.metadata_queue_max = 10   # Maximum size of metadata queue.
+
         # Done.
 
         return
@@ -317,6 +327,43 @@ CREATE TABLE IF NOT EXISTS unmerged_files (
         return conn
 
 
+    # Flush metadata queue.
+
+    def flush_metadata(self):
+
+        if len(self.metadata_queue) > 0:
+            for md in self.metadata_queue:
+                print 'Updating metadata for file %s' % md['file_name']
+            self.samweb.modifyMetadata(self.metadata_queue)
+            self.metadata_queue = []
+
+        # Done.
+
+        return
+
+
+    # Delayed bulk modify metadata function.
+
+    def modifyFileMetadata(self, f, md):
+
+        # Add file name to metadata.
+
+        md['file_name'] = f
+
+        # Add metadata to queue.
+
+        self.metadata_queue.append(md)
+
+        # Maybe flush queue.
+
+        if len(self.metadata_queue) >= self.metadata_queue_max:
+            self.flush_metadata()
+
+        # Done.
+
+        return
+
+
     # Optimized file existence checker.
     # Directory contents are cached.
 
@@ -372,26 +419,11 @@ CREATE TABLE IF NOT EXISTS unmerged_files (
 
         nadd = 0
         for f in files:
-
-            group_id = self.add_unmerged_file(f)
-
-            if group_id != 0:
-
-                # Query all files in this group id.
-
-                dim = self.get_group_dim(group_id)
-                group_files = self.samweb.listFiles(dim)
-                for group_file in group_files:
-                    g = self.add_unmerged_file(group_file)
-                    print g, group_file
-                self.conn.commit()
+            ok = self.add_unmerged_file(f)
+            if ok:
                 nadd += 1
                 if nadd >= self.max_groups:
                     break
-
-            else:
-
-                print 'Ignore file %s' % f
 
         # Done.
 
@@ -493,45 +525,90 @@ CREATE TABLE IF NOT EXISTS unmerged_files (
         return
 
 
-    # Maybe add one unmerged file to unmerged_files table.
-    # If the file already exists in database, or if the file is already on tape, return 0
-    # If the file is new, add it and return the merge group id.
+    # Process all files in the add queue.
 
-    def add_unmerged_file(self, f):
+    def flush_add_queue(self):
 
-        group_id = 0
+        if len(self.add_queue) == 0:
+            return
 
-        # Query database to see if this file already exists.
+        # Get metadata of all files in add queue.
+
+        mds = self.samweb.getMultipleMetadata(self.add_queue)
+
+        # Get locations of all files in add queue.
+
+        locdict = self.samweb.locateFiles(self.add_queue)
+
+        # Loop over files.
 
         c = self.conn.cursor()
-        q = 'SELECT id FROM unmerged_files WHERE name=?'
-        c.execute(q, (f,))
-        rows = c.fetchall()
+        for md in mds:
 
-        if len(rows) == 0:
+            f = md['file_name']
+            print 'Checking unmerged file %s' % f
+            locs = locdict[f]
 
-            # File does not exist.
-            # First check location, whether this file is on tape yet or not.
+            # See if this file is on tape already.
 
-            on_disk, on_tape = self.check_location(f, True)
+            on_tape = False
+            on_disk = False
+            for loc in locs:
+                if loc['location_type'] == 'tape':
+                    on_tape = True
 
             if on_tape:
 
-                print 'File %s is already on tape.' % f
+                print 'File is already on tape.'
 
+                # File is on tape
                 # Modify metadata to set merge.merged flag to be true, so that this
-                # file will become invisible to future merging.
+                # file will no longer be considered for merging.
 
                 mdmod = {'merge.merged': 1}
                 print 'Updating metadata to set merged flag.'
-                self.samweb.modifyFileMetadata(f, mdmod)
+                self.modifyFileMetadata(f, mdmod)
 
-            elif on_disk:
+                # Delete and remove any disk locations from sam.
+                # This shouldn't ever really happen.
+
+                for loc in locs:
+                    if loc['location_type'] == 'disk':
+
+                        # Delete unmerged file from disk.
+
+                        dir = os.path.join(loc['mount_point'], loc['subdir'])
+                        fp = os.path.join(dir, f)
+                        print 'Deleting file from disk.'
+                        if self.exists(fp):
+                            larbatch_posix.remove(fp)
+                        print 'Removing disk location from sam.'
+                        self.samweb.removeFileLocation(f, loc['full_path'])
+
+            else:
+
+                # File is not on tape.
+                # Check disk locations.
+
+                print 'Checking disk locations.'
+                for loc in locs:
+                    if loc['location_type'] == 'disk':
+                        dir = os.path.join(loc['mount_point'], loc['subdir'])
+                        fp = os.path.join(dir, f)
+                        if self.exists(fp):
+                            print 'Location OK.'
+                        on_disk = True
+                    else:
+                        print 'Removing bad location from sam.'
+                        self.samweb.removeFileLocation(f, loc['full_path'])
+
+            
+
+            if on_disk:
 
                 # File has valid disk location.
 
                 print 'Adding unmerged file %s' % f
-                md = self.samweb.getMetadata(f)
                 group_id = self.merge_group(md)
                 size = md['file_size']
                 sam_project_id = 0
@@ -553,7 +630,81 @@ CREATE TABLE IF NOT EXISTS unmerged_files (
 
         # Done.
 
-        return group_id
+        self.add_queue = []
+        self.flush_metadata()
+        return
+
+
+    # Function to bulk-add a collection of unmerged files to unmerged_files table.
+    # Return True if files were added.
+
+    def add_unmerged_files(self, flist):
+
+        # Loop over files in list to determine which ones need to be added.
+
+        add_files = []
+        c = self.conn.cursor()
+        for f in flist:
+
+            # Query database to see if this file already exists.
+
+            q = 'SELECT id FROM unmerged_files WHERE name=?'
+            c.execute(q, (f,))
+            rows = c.fetchall()
+            if len(rows) == 0:
+                print 'Adding %s' % f
+                add_files.append(f)
+            else:
+                print 'Ignoring %s' % f
+
+        # Loop over files in add list and do bulk adds.
+
+        for f in add_files:            
+            self.add_queue.append(f)
+            if len(self.add_queue) >= self.add_queue_max:
+                self.flush_add_queue()
+        if len(self.add_queue) > 0:
+            self.flush_add_queue()
+
+        # Done.
+
+        return
+
+
+    # Add example file and group partners to database.
+
+    def add_unmerged_file(self, f):
+
+        result = False
+        print 'Checking example file %s' % f
+
+        # Query database to see if this file already exists.
+
+        c = self.conn.cursor()
+        q = 'SELECT id FROM unmerged_files WHERE name=?'
+        c.execute(q, (f,))
+        rows = c.fetchall()
+
+        if len(rows) == 0:
+
+            print 'Adding example unmerged file %s' % f
+
+            # Add this file and group partners.
+
+            md = self.samweb.getMetadata(f)
+            group_id = self.merge_group(md)
+            dim = self.get_group_dim(group_id)
+            group_files = self.samweb.listFiles(dim)
+            self.add_unmerged_files(group_files)
+            result = True
+
+        else:
+
+            print 'File is already in database.'
+
+        # Done.
+
+        return result
 
 
     # Function to return the merge group id corresponding to a sam metadata dictionary.
@@ -1383,7 +1534,7 @@ SELECT id FROM merge_groups WHERE
 
                         mdmod = {'merge.merged': 1}
                         print 'Updating metadata.'
-                        self.samweb.modifyFileMetadata(f, mdmod)
+                        self.modifyFileMetadata(f, mdmod)
 
                         # Delete disk locations for unmerged file.
 
@@ -1396,6 +1547,7 @@ SELECT id FROM merge_groups WHERE
                         c.execute(q, (f,))
 
                         self.conn.commit()
+                    self.flush_metadata()
 
                     # End of loop over unmerged files.
                     # Cleaning done.
