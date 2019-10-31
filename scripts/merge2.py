@@ -1755,8 +1755,8 @@ def main(argv):
                          max_projects, max_groups, query_limit)
     if do_phase1:
         engine.update_unmerged_files()
-        engine.update_sam_projects()
     if do_phase2:
+        engine.update_sam_projects()
         engine.update_sam_project_status()
         engine.update_sam_process_status()
         engine.clean_merge_groups()
