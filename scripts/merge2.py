@@ -734,17 +734,15 @@ CREATE TABLE IF NOT EXISTS unmerged_files (
         # Query merge group id
 
         c = self.conn.cursor()
-        q = '''
-SELECT id FROM merge_groups WHERE
-  file_type=?
-  and file_format=?
-  and data_tier=?
-  and data_stream=?
-  and project=?
-  and stage=?
-  and version=?
-  and run=?
-'''
+        q = '''SELECT id FROM merge_groups WHERE
+               file_type=?
+               and file_format=?
+               and data_tier=?
+               and data_stream=?
+               and project=?
+               and stage=?
+               and version=?
+               and run=?'''
         c.execute(q, gtuple)
         rows = c.fetchall()
         if len(rows) == 0:
@@ -1005,18 +1003,17 @@ SELECT id FROM merge_groups WHERE
                                         merge_id = c.lastrowid
                                         self.conn.commit()
 
-                                        n = 0
+                                        # Update unmerged files table.
+
                                         for consumed_file in consumed_files:
-                                            n += 1
                                             print 'Unmerged file %s' % consumed_file
 
-                                            # Update process id join with unmerged file.
+                                        # Update process id join with unmerged file.
 
-                                            q = 'UPDATE unmerged_files SET sam_process_id=? WHERE name=?;'
-                                            c.execute(q, (merge_id, consumed_file))
-                                            if n%10 == 0:
-                                                self.conn.commit()
-
+                                        placeholders = ('?,'*len(consumed_files))[:-1]
+                                        q = '''UPDATE unmerged_files SET sam_process_id=? 
+                                               WHERE name IN (%s);''' % placeholders
+                                        c.execute(q, (merge_id,) + tuple(consumed_files))
                                         self.conn.commit()
 
                     # Update project status to 3.
@@ -1545,14 +1542,21 @@ SELECT id FROM merge_groups WHERE
 
                         self.delete_disk_locations(f)
 
-                        # Delete unmerged file from merge database.
+                        # Print message about deleting file from database.
 
                         print 'Deleting file from merge database: %s' % f
-                        q = 'DELETE FROM unmerged_files WHERE name=?'
-                        c.execute(q, (f,))
 
-                        self.conn.commit()
+                    # Done looping over unmerged files.
+
                     self.flush_metadata()
+
+                    # Construct a query to do the database deletions in a single query.
+
+                    print 'Deleting unmerged files from database.'
+                    placeholders = ('?,' * len(unmerged_files))[:-1]
+                    q = 'DELETE FROM unmerged_files WHERE name IN (%s);' % placeholders
+                    c.execute(q, unmerged_files)
+                    self.conn.commit()
 
                     # End of loop over unmerged files.
                     # Cleaning done.
