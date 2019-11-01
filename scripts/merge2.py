@@ -26,8 +26,9 @@
 # --max_projects <n>  - Maximum number of projects.
 # --max_groups <n>    - Maximum number of new merge groups to add.   
 # --query_limit <n>   - Maximum number of files to query from sam.
-# --phase1            - Phase 1 only (scan & submit).
-# --phase2            - Phase 2 only (monitor & cleanup).
+# --phase1            - Phase 1 (scan unmerged files).
+# --phase2            - Phase 2 (submit & monitor projects).
+# --phase3            - Phase 3 (monitor and clean up merged files).
 #
 ######################################################################
 #
@@ -1002,15 +1003,19 @@ SELECT id FROM merge_groups WHERE
                                                VALUES(?,?,?,?);'''
                                         c.execute(q, (pid, sam_project_id, f, 1))
                                         merge_id = c.lastrowid
+                                        self.conn.commit()
 
+                                        n = 0
                                         for consumed_file in consumed_files:
-
+                                            n += 1
                                             print 'Unmerged file %s' % consumed_file
 
                                             # Update process id join with unmerged file.
 
                                             q = 'UPDATE unmerged_files SET sam_process_id=? WHERE name=?;'
                                             c.execute(q, (merge_id, consumed_file))
+                                            if n%10 == 0:
+                                                self.conn.commit()
 
                                         self.conn.commit()
 
@@ -1692,8 +1697,9 @@ def main(argv):
     max_projects = 500
     max_groups = 100
     query_limit = 10000
-    do_phase1 = True
-    do_phase2 = True
+    do_phase1 = False
+    do_phase2 = False
+    do_phase3 = False
 
     args = argv[1:]
     while len(args) > 0:
@@ -1739,14 +1745,24 @@ def main(argv):
             query_limit = int(args[1])
             del args[0:2]
         elif args[0] == '--phase1':
-            do_phase2 = False
+            do_phase1 = True
             del args[0]
         elif args[0] == '--phase2':
-            do_phase1 = False
+            do_phase2 = True
+            del args[0]
+        elif args[0] == '--phase3':
+            do_phase3 = True
             del args[0]
         else:
             print 'Unknown option %s' % args[0]
             return 1
+
+    # If no phase option, do all three phases.
+
+    if not do_phase1 and not do_phase2 and not do_phase3:
+        do_phase1 = True
+        do_phase2 = True
+        do_phase3 = True
 
     # Create merge engine.
 
@@ -1758,6 +1774,7 @@ def main(argv):
     if do_phase2:
         engine.update_sam_projects()
         engine.update_sam_project_status()
+    if do_phase3:
         engine.update_sam_process_status()
         engine.clean_merge_groups()
 
