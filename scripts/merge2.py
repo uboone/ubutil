@@ -892,6 +892,41 @@ CREATE TABLE IF NOT EXISTS unmerged_files (
                 c.execute(q, (sam_project_id, group_id))
                 self.conn.commit()
 
+
+    # Function to determine whether to end a project.
+
+    def should_stop_project(self, prjstat):
+
+        result = False
+
+        # Check the project start time.
+
+        if prjstat.has_key('project_start_time'):
+            startstr = prjstat['project_start_time']
+            print 'Project start time = %s' % startstr
+            t = datetime.datetime.strptime(startstr, '%Y-%m-%dT%H:%M:%S.%f+00:00')
+            now = datetime.datetime.utcnow()
+            dt = now - t
+            dtsec = dt.total_seconds()
+            print 'Project age = %d seconds' % dtsec
+
+            # If start time is older than 24 hours, stop this project.
+
+            if dtsec > 24*3600:
+                result = True
+
+        else:
+
+            # Project status is malformed.
+            # Stop project.
+
+            result = True
+
+        # Done
+
+        return result
+
+
     # Update statuses of sam projects.
     # This function may start projects and submit batch jobs.
 
@@ -1028,10 +1063,13 @@ CREATE TABLE IF NOT EXISTS unmerged_files (
                     # Check status of this project.
 
                     prj_ended = False
+                    prj_started = False
                     prjstat = {}
                     try:
                         prjstat = self.samweb.projectSummary(sam_project)
+                        prj_started = True
                     except:
+                        prj_started = False
                         prjstat = {}
                     if prjstat.has_key('project_end_time'):
                         endstr = prjstat['project_end_time']
@@ -1062,6 +1100,77 @@ CREATE TABLE IF NOT EXISTS unmerged_files (
                         q = 'UPDATE sam_projects SET status=? WHERE id=?;'
                         c.execute(q, (2, sam_project_id))
                         self.conn.commit()
+
+                    elif prj_started:
+
+                        # Project has started, but has not ended.
+
+                        print 'Project %s has started, but has not yet ended.' % sam_project
+
+                        # Figure out if we should stop this project.
+
+                        stop_project = self.should_stop_project(prjstat)
+
+                        if stop_project:
+                            print 'Stop project %s' % sam_project
+                            stop_ok = False
+                            try:
+                                self.samweb.stopProject(sam_project)
+                                stop_ok = True
+                            except:
+                                print 'Unable to stop project.'
+                                stop_ok = False
+
+                            # If we failed to stop this project, assume that it is dead
+                            # and advance the status to 2.
+
+                            print 'Forgetting about this project.'
+                            q = 'UPDATE sam_projects SET status=? WHERE id=?;'
+                            c.execute(q, (2, sam_project_id))
+                            self.conn.commit()
+
+
+
+
+                    else:
+
+                        # Project has not started.
+
+                        print 'Project %s has not started.' % sam_project
+
+                        # Check submit time.
+
+                        q = '''SELECT submit_time FROM sam_projects WHERE id=?'''
+                        c.execute(q, (sam_project_id,))
+                        row = c.fetchone()
+                        stime_str = row[0]
+                        stime = datetime.datetime.strptime(stime_str, '%Y-%m-%d %H:%M:%S')
+                        print 'Submit time = %s' % stime_str
+
+                        now = datetime.datetime.now()
+                        now_str = datetime.datetime.strftime(now, '%Y-%m-%d %H:%M:%S')
+                        print 'Current time = %s' % now_str
+
+                        dt = now - stime
+                        print 'Project age = %s' % dt
+
+                        if dt.total_seconds() > 24*3600:
+
+                            # If project age is greater than 24 hours, start and then
+                            # immediately stop this project, so that no batch job can
+                            # start it later.
+                            # A subsequent invocation of this script will handle
+                            # the ended project.
+
+                            print 'Start project %s' % sam_project
+                            self.samweb.startProject(sam_project,
+                                                     defname=defname, 
+                                                     station=project_utilities.get_experiment(),
+                                                     group=project_utilities.get_experiment(),
+                                                     user=project_utilities.get_user())
+
+                            print 'Stop project %s' % sam_project
+                            self.samweb.stopProject(sam_project)
 
 
                 elif status == 0:
