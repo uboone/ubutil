@@ -1217,6 +1217,9 @@ CREATE TABLE IF NOT EXISTS unmerged_files (
         q = 'SELECT name FROM unmerged_files WHERE sam_project_id=?'
         c.execute(q, (sam_project_id,))
         row = c.fetchone()
+        if row == None:
+            print 'No files associated with this project.'
+            return
         unmerged_file = row[0]
 
         # Query sam metadata from first unmerged file.
