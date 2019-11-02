@@ -904,7 +904,12 @@ CREATE TABLE IF NOT EXISTS unmerged_files (
         if prjstat.has_key('project_start_time'):
             startstr = prjstat['project_start_time']
             print 'Project start time = %s' % startstr
-            t = datetime.datetime.strptime(startstr, '%Y-%m-%dT%H:%M:%S.%f+00:00')
+            t = datetime.datetime.fromtimestamp(0)
+            try:
+                t = datetime.datetime.strptime(startstr, '%Y-%m-%dT%H:%M:%S.%f+00:00')
+            except:
+                print 'Malformed time stamp.'
+                t = datetime.datetime.fromtimestamp(0)
             now = datetime.datetime.utcnow()
             dt = now - t
             dtsec = dt.total_seconds()
@@ -1101,6 +1106,17 @@ CREATE TABLE IF NOT EXISTS unmerged_files (
                         c.execute(q, (2, sam_project_id))
                         self.conn.commit()
 
+                    elif prj_started and prjstat.has_key('project_status') and \
+                         prjstat['project_status'] == 'reserved':
+
+                        # Project is in an unkillable state.
+                        # Just forget about this project.
+
+                        print 'Forgetting about this project.'
+                        q = 'UPDATE sam_projects SET status=? WHERE id=?;'
+                        c.execute(q, (2, sam_project_id))
+                        self.conn.commit()
+
                     elif prj_started:
 
                         # Project has started, but has not ended.
@@ -1128,8 +1144,6 @@ CREATE TABLE IF NOT EXISTS unmerged_files (
                             q = 'UPDATE sam_projects SET status=? WHERE id=?;'
                             c.execute(q, (2, sam_project_id))
                             self.conn.commit()
-
-
 
 
                     else:
