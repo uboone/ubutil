@@ -1129,18 +1129,13 @@ CREATE TABLE IF NOT EXISTS unmerged_files (
 
                         if stop_project:
                             print 'Stop project %s' % sam_project
-                            stop_ok = False
                             try:
                                 self.samweb.stopProject(sam_project)
-                                stop_ok = True
                             except:
                                 print 'Unable to stop project.'
-                                stop_ok = False
 
-                            # If we failed to stop this project, assume that it is dead
-                            # and advance the status to 2.
+                            # Advance the status to 2.
 
-                            print 'Forgetting about this project.'
                             q = 'UPDATE sam_projects SET status=? WHERE id=?;'
                             c.execute(q, (2, sam_project_id))
                             self.conn.commit()
@@ -1177,14 +1172,23 @@ CREATE TABLE IF NOT EXISTS unmerged_files (
                             # the ended project.
 
                             print 'Start project %s' % sam_project
-                            self.samweb.startProject(sam_project,
-                                                     defname=defname, 
-                                                     station=project_utilities.get_experiment(),
-                                                     group=project_utilities.get_experiment(),
-                                                     user=project_utilities.get_user())
+                            try:
+                                self.samweb.startProject(sam_project,
+                                                         defname=defname, 
+                                                         station=project_utilities.get_experiment(),
+                                                         group=project_utilities.get_experiment(),
+                                                         user=project_utilities.get_user())
 
-                            print 'Stop project %s' % sam_project
-                            self.samweb.stopProject(sam_project)
+                                print 'Stop project %s' % sam_project
+                                self.samweb.stopProject(sam_project)
+                            except:
+                                print 'Failed to start or end project.'
+
+                            # Advance the status to 2.
+
+                            q = 'UPDATE sam_projects SET status=? WHERE id=?;'
+                            c.execute(q, (2, sam_project_id))
+                            self.conn.commit()
 
 
                 elif status == 0:
