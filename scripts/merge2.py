@@ -378,7 +378,11 @@ CREATE TABLE IF NOT EXISTS unmerged_files (
         if dir == '':
             dir = '.'
         if not self.dircache.has_key(dir):
-            self.dircache[dir] = set(larbatch_posix.listdir(dir))
+            self.dircache[dir] = set()
+            try:
+                self.dircache[dir] = set(larbatch_posix.listdir(dir))
+            except:
+                self.dircache[dir] = set()
         if base in self.dircache[dir]:
             result = True
         return result
