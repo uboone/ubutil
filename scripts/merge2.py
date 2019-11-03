@@ -993,11 +993,17 @@ CREATE TABLE IF NOT EXISTS unmerged_files (
 
                     # Project ended.
 
-                    prjsum = self.samweb.projectSummary(sam_project)
+                    prjsum = {}
+                    try:
+                        prjsum = self.samweb.projectSummary(sam_project)
+                    except:
+                        prjsum = {}
 
                     # Loop over processes.
 
-                    procs = prjsum['processes']
+                    procs = []
+                    if prjsum.has_key('processes'):
+                        procs = prjsum['processes']
 
                     if len(procs) == 0:
                         print 'No processes.'
@@ -1223,6 +1229,9 @@ CREATE TABLE IF NOT EXISTS unmerged_files (
         row = c.fetchone()
         if row == None:
             print 'No files associated with this project.'
+            q = 'DELETE FROM sam_projects WHERE id=?'
+            c.execute(q, (sam_project_id,))
+            self.conn.commit()
             return
         unmerged_file = row[0]
 
