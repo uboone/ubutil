@@ -437,13 +437,15 @@ CREATE TABLE IF NOT EXISTS unmerged_files (
 
     # Check disk locations of file.  All location checks are done in this function.
     # Return value is 2-tuple: (on_disk, on_tape).
-    # If file has a tape locations, delete file from fisk and 
+    # If file has a tape locations, delete file from disk and 
     # remove all disk locations from sam.
     # Disk locations are checked for validity.
     # If disk location does not exist, remove disk location from sam.
     # Tape locations are not checked.
 
     def check_location(self, f, do_check_disk):
+
+        c = None
 
         print 'Checking location of file %s' % f
         on_disk = False
@@ -493,10 +495,24 @@ CREATE TABLE IF NOT EXISTS unmerged_files (
                         fp = os.path.join(dir, f)
                         if self.exists(fp):
                             print 'Location OK.'
-                        on_disk = True
+                            on_disk = True
+                        else:
+                            print 'Removing bad disk location from sam.'
+                            self.samweb.removeFileLocation(f, loc['full_path'])
                     else:
                         print 'Removing bad location from sam.'
                         self.samweb.removeFileLocation(f, loc['full_path'])
+
+        # If file has no valid locations, forget about this file.
+
+        if not on_tape and do_check_disk and not on_disk:
+            print 'File has no valid locations.'
+            print 'Forget about this file.'
+            if c == None:
+                c = self.conn.cursor()
+            q = 'DELETE FROM unmerged_files WHERE name=?;'
+            c.execute(q, (f,))
+            self.conn.commit()
 
         # Done
 
@@ -974,7 +990,7 @@ CREATE TABLE IF NOT EXISTS unmerged_files (
                     # First validate locations of any unmerged files associated with this process.
 
                     q = 'SELECT name FROM unmerged_files WHERE sam_project_id=?'
-                    c.execute(q, (sam_project,))
+                    c.execute(q, (sam_project_id,))
                     rows = c.fetchall()
                     if len(rows) > 0:
                         print 'Checking locations of remaining unmerged files.'
@@ -1117,7 +1133,8 @@ CREATE TABLE IF NOT EXISTS unmerged_files (
                         self.conn.commit()
 
                     elif prj_started and prjstat.has_key('project_status') and \
-                         prjstat['project_status'] == 'reserved':
+                         (prjstat['project_status'] == 'reserved' or \
+                          prjstat['project_status'] == 'starting'):
 
                         # Project is in an unkillable state.
                         # Just forget about this project.
