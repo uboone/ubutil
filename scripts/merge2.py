@@ -325,6 +325,7 @@ CREATE TABLE IF NOT EXISTS unmerged_files (
 
         # Done
 
+        conn.commit()
         return conn
 
 
@@ -398,6 +399,7 @@ CREATE TABLE IF NOT EXISTS unmerged_files (
                FROM merge_groups WHERE id=?'''
         c.execute(q, (group_id,))
         row = c.fetchone()
+        self.conn.commit()
         dim = '''file_type %s and file_format %s and data_tier %s and data_stream %s
                  and ub_project.name %s and ub_project.stage %s and ub_project.version %s
                  and run_number %d
@@ -618,10 +620,10 @@ CREATE TABLE IF NOT EXISTS unmerged_files (
                         fp = os.path.join(dir, f)
                         if self.exists(fp):
                             print 'Location OK.'
-                        on_disk = True
-                    else:
-                        print 'Removing bad location from sam.'
-                        self.samweb.removeFileLocation(f, loc['full_path'])
+                            on_disk = True
+                        else:
+                            print 'Removing bad location from sam.'
+                            self.samweb.removeFileLocation(f, loc['full_path'])
 
             
 
@@ -689,6 +691,7 @@ CREATE TABLE IF NOT EXISTS unmerged_files (
 
         # Done.
 
+        self.conn.commit()
         return
 
 
@@ -722,6 +725,7 @@ CREATE TABLE IF NOT EXISTS unmerged_files (
         else:
 
             print 'File is already in database.'
+            self.conn.commit()
 
         # Done.
 
@@ -782,7 +786,6 @@ CREATE TABLE IF NOT EXISTS unmerged_files (
                    VALUES(?,?,?,?,?,?,?,?);'''
             c.execute(q, gtuple)
             group_id = c.lastrowid
-            self.conn.commit()
 
         else:
 
@@ -790,6 +793,7 @@ CREATE TABLE IF NOT EXISTS unmerged_files (
 
         # Done
 
+        self.conn.commit()
         return group_id
 
 
@@ -805,6 +809,7 @@ CREATE TABLE IF NOT EXISTS unmerged_files (
                WHERE sam_project_id=0 AND sam_process_id=0 ORDER BY group_id;'''
         c.execute(q)
         rows = c.fetchall()
+        self.conn.commit()
         for row in rows:
 
             group_id = row[0]
@@ -815,6 +820,7 @@ CREATE TABLE IF NOT EXISTS unmerged_files (
             q = 'SELECT COUNT(*) FROM sam_projects WHERE status<2;'
             c.execute(q)
             mrow = c.fetchone()
+            self.conn.commit()
             nprj = mrow[0]
             print '%d sam projects.' % nprj
             if nprj >= self.max_projects:
@@ -835,6 +841,7 @@ CREATE TABLE IF NOT EXISTS unmerged_files (
             q = '''SELECT id, name, size, create_date FROM unmerged_files
                    WHERE group_id=? and sam_project_id=? ORDER BY create_date;'''
             c.execute(q, (group_id, 0))
+            self.conn.commit()
             newrows = c.fetchall()
             for newrow in newrows:
                 id = newrow[0]
@@ -971,6 +978,7 @@ CREATE TABLE IF NOT EXISTS unmerged_files (
                    FROM sam_projects WHERE status=? ORDER BY id;'''
             c.execute(q, (status,))
             rows = c.fetchall()
+            self.conn.commit()
             for row in rows:
                 sam_project = row[0]
                 sam_project_id = row[1]
@@ -1179,6 +1187,7 @@ CREATE TABLE IF NOT EXISTS unmerged_files (
                         q = '''SELECT submit_time FROM sam_projects WHERE id=?'''
                         c.execute(q, (sam_project_id,))
                         row = c.fetchone()
+                        self.conn.commit()
                         stime_str = row[0]
                         stime = datetime.datetime.strptime(stime_str, '%Y-%m-%d %H:%M:%S')
                         print 'Submit time = %s' % stime_str
@@ -1255,6 +1264,7 @@ CREATE TABLE IF NOT EXISTS unmerged_files (
             self.conn.commit()
             return
         unmerged_file = row[0]
+        self.conn.commit()
 
         # Query sam metadata from first unmerged file.
         # We will use this to generate metadata for merged files.
@@ -1633,6 +1643,7 @@ CREATE TABLE IF NOT EXISTS unmerged_files (
                    FROM sam_processes WHERE status=? ORDER BY id;'''
             c.execute(q, (status,))
             rows = c.fetchall()
+            self.conn.commit()
             for row in rows:
                 merge_id = row[0]
                 sam_process_id = row[1]
@@ -1681,6 +1692,7 @@ CREATE TABLE IF NOT EXISTS unmerged_files (
                     q = 'SELECT name FROM unmerged_files WHERE sam_process_id=?'
                     c.execute(q, (merge_id,))
                     rows = c.fetchall()
+                    self.conn.commit()
                     for row in rows:
                         unmerged_files.append(row[0])
 
