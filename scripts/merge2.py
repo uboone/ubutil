@@ -1651,7 +1651,7 @@ CREATE TABLE IF NOT EXISTS unmerged_files (
 
                 print '\nStatus=%d, file name %s' % (status, merged_file)
 
-                if status == 3:
+                if status == 3 or status == 4:
 
                     # Finished.
 
