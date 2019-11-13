@@ -26,6 +26,7 @@
 # --max_projects <n>  - Maximum number of projects.
 # --max_groups <n>    - Maximum number of new merge groups to add.   
 # --query_limit <n>   - Maximum number of files to query from sam.
+# --file_limit <n>    - Maximum number of unmerged files in database.
 # --phase1            - Phase 1 (scan unmerged files).
 # --phase2            - Phase 2 (submit & monitor projects).
 # --phase3            - Phase 3 (monitor and clean up merged files).
@@ -176,7 +177,7 @@ class MergeEngine:
 
     def __init__(self, xmlfile, projectname, stagename, defname,
                  database, max_size, min_size, max_age, 
-                 max_projects, max_groups, query_limit):
+                 max_projects, max_groups, query_limit, file_limit):
 
         # Open database connection.
 
@@ -231,6 +232,7 @@ class MergeEngine:
         self.max_projects = max_projects  # Maximum number of sam projects.
         self.max_groups = max_groups      # Maximum number of new merges groups per invocation.
         self.query_limit = query_limit    # Maximum number of files to query from sam.
+        self.file_limit = file_limit      # Maximum number of unmerged files.
 
         # Cache of directory contents.
 
@@ -422,15 +424,48 @@ CREATE TABLE IF NOT EXISTS unmerged_files (
             extra_clause, self.query_limit)
         files = self.samweb.listFiles(dim)
         print '%d unmerged files.' % len(files)
+
+        # Store unmerged files in a python set.
+
+        unmerged_files = set(files)
+
+        # Query all existing unmerged files from our database.
+
+        c = self.conn.cursor()
+        q = 'SELECT name FROM unmerged_files;'
+        c.execute(q)
+        rows = c.fetchall()
+        self.conn.commit()
+
+        for row in rows:
+            f = row[0]
+            unmerged_files.discard(f)
+        print '%d unmerged files remaining after initial purge.' % len(unmerged_files)
+
         print 'Updating unmerged_files table in database.'
 
         nadd = 0
-        for f in files:
-            ok = self.add_unmerged_file(f)
-            if ok:
+        while len(unmerged_files) > 0:
+            example_file = unmerged_files.pop()
+            add_files = self.add_unmerged_file(example_file)
+            unmerged_files -= add_files
+            print '\n%d unmerged files remaining.' % len(unmerged_files)
+            print '%d groups added.' % nadd
+            if len(add_files) > 0:
                 nadd += 1
                 if nadd >= self.max_groups:
                     break
+
+            # Check number of unaffiliated unmerged files.
+
+            q = 'select count(*) from unmerged_files where sam_process_id=0 and sam_project_id=0'
+            c.execute(q)
+            row = c.fetchone()
+            n = row[0]
+            self.conn.commit()
+            print '%d unaffiliated unmerged files.' % n
+            if n > self.file_limit:
+                break
 
         # Done.
 
@@ -659,30 +694,35 @@ CREATE TABLE IF NOT EXISTS unmerged_files (
 
 
     # Function to bulk-add a collection of unmerged files to unmerged_files table.
-    # Return True if files were added.
+    # Return final add list as python set.
 
     def add_unmerged_files(self, flist):
 
-        # Loop over files in list to determine which ones need to be added.
+        # Make sure add list is in form of a python set.
 
-        add_files = []
+        add_files = set(flist)
+        print '\n%d files in initial add group.' % len(add_files)
+
+        # Query database to see which of these files already exist.
+
         c = self.conn.cursor()
-        for f in flist:
+        placeholders = ('?,'*len(add_files))[:-1]
+        q = 'SELECT name FROM unmerged_files WHERE name IN (%s);' % placeholders
+        c.execute(q, tuple(add_files))
+        rows = c.fetchall()
+        self.conn.commit()
 
-            # Query database to see if this file already exists.
+        for row in rows:
+            f = row[0]
+            print 'Ignoring %s' % f
+            add_files.discard(f)
 
-            q = 'SELECT id FROM unmerged_files WHERE name=?'
-            c.execute(q, (f,))
-            rows = c.fetchall()
-            if len(rows) == 0:
-                print 'Adding %s' % f
-                add_files.append(f)
-            else:
-                print 'Ignoring %s' % f
+        print '\b%d files in final add list.' % len(add_files)
 
         # Loop over files in add list and do bulk adds.
 
         for f in add_files:            
+            print 'Adding %s' % f
             self.add_queue.append(f)
             if len(self.add_queue) >= self.add_queue_max:
                 self.flush_add_queue()
@@ -691,45 +731,27 @@ CREATE TABLE IF NOT EXISTS unmerged_files (
 
         # Done.
 
-        self.conn.commit()
-        return
+        return add_files
 
 
     # Add example file and group partners to database.
+    # Group partners are returned.
 
     def add_unmerged_file(self, f):
 
-        result = False
-        print 'Checking example file %s' % f
+        print '\nAdding example unmerged file %s' % f
 
-        # Query database to see if this file already exists.
+        # Add this file and group partners.
 
-        c = self.conn.cursor()
-        q = 'SELECT id FROM unmerged_files WHERE name=?'
-        c.execute(q, (f,))
-        rows = c.fetchall()
-
-        if len(rows) == 0:
-
-            print 'Adding example unmerged file %s' % f
-
-            # Add this file and group partners.
-
-            md = self.samweb.getMetadata(f)
-            group_id = self.merge_group(md)
-            dim = self.get_group_dim(group_id)
-            group_files = self.samweb.listFiles(dim)
-            self.add_unmerged_files(group_files)
-            result = True
-
-        else:
-
-            print 'File is already in database.'
-            self.conn.commit()
+        md = self.samweb.getMetadata(f)
+        group_id = self.merge_group(md)
+        dim = self.get_group_dim(group_id)
+        group_files = self.samweb.listFiles(dim)
+        add_files = self.add_unmerged_files(group_files)
 
         # Done.
 
-        return result
+        return add_files
 
 
     # Function to return the merge group id corresponding to a sam metadata dictionary.
@@ -1872,7 +1894,8 @@ def main(argv):
     max_age = 3*24*3600
     max_projects = 500
     max_groups = 100
-    query_limit = 10000
+    query_limit = 1000
+    file_limit = 10000
     do_phase1 = False
     do_phase2 = False
     do_phase3 = False
@@ -1920,6 +1943,9 @@ def main(argv):
         elif args[0] == '--query_limit' and len(args) > 1:
             query_limit = int(args[1])
             del args[0:2]
+        elif args[0] == '--file_limit' and len(args) > 1:
+            file_limit = int(args[1])
+            del args[0:2]
         elif args[0] == '--phase1':
             do_phase1 = True
             del args[0]
@@ -1944,7 +1970,7 @@ def main(argv):
 
     engine = MergeEngine(xmlfile, projectname, stagename, defname,
                          database, max_size, min_size, max_age,
-                         max_projects, max_groups, query_limit)
+                         max_projects, max_groups, query_limit, file_limit)
     if do_phase1:
         engine.update_unmerged_files()
     if do_phase2:
