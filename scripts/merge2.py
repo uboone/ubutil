@@ -668,17 +668,18 @@ CREATE TABLE IF NOT EXISTS unmerged_files (
 
                 print 'Adding unmerged file %s' % f
                 group_id = self.merge_group(md)
-                size = md['file_size']
-                sam_project_id = 0
-                sam_process_id = 0
-                create_date = md['create_date']
-                q = '''INSERT INTO unmerged_files
-                       (name, group_id, sam_project_id, sam_process_id,
-                       size, create_date)
-                       VALUES(?,?,?,?,?,?);'''
-                c.execute(q, (f, group_id, sam_project_id, sam_process_id, size,
-                              create_date))
-                self.conn.commit()
+                if group_id > 0:
+                    size = md['file_size']
+                    sam_project_id = 0
+                    sam_process_id = 0
+                    create_date = md['create_date']
+                    q = '''INSERT INTO unmerged_files
+                           (name, group_id, sam_project_id, sam_process_id,
+                           size, create_date)
+                           VALUES(?,?,?,?,?,?);'''
+                    c.execute(q, (f, group_id, sam_project_id, sam_process_id, size,
+                                  create_date))
+                    self.conn.commit()
 
             else:
 
@@ -756,6 +757,7 @@ CREATE TABLE IF NOT EXISTS unmerged_files (
 
     # Function to return the merge group id corresponding to a sam metadata dictionary.
     # If necessary, add a new merge group to merge_groups table.
+    # If the return value is zero, this metadata does not correspond to any merge group.
 
     def merge_group(self, md):
 
@@ -776,6 +778,11 @@ CREATE TABLE IF NOT EXISTS unmerged_files (
             run = runs[0][0]
         gtuple = (file_type, file_format, data_tier, data_stream,
                   ubproject, ubstage, ubversion, run)
+
+        # Filter undefined merge groups.
+
+        if data_stream == 'outmucs' and run >= 24320:
+            return 0
 
         # Query merge group id
 
