@@ -862,6 +862,7 @@ CREATE TABLE IF NOT EXISTS unmerged_files (
             # Track the total size and oldest file in this merge group.
 
             file_ids = []
+            file_names = []
             total_size = 0
             nfiles = 0
             oldest_create_date = ''
@@ -879,6 +880,7 @@ CREATE TABLE IF NOT EXISTS unmerged_files (
                 create_date = newrow[3]
 
                 file_ids.append(id)
+                file_names.append(name)
                 total_size += size
                 nfiles += 1
                 if oldest_create_date == '':
@@ -910,6 +912,42 @@ CREATE TABLE IF NOT EXISTS unmerged_files (
                 if dt.total_seconds() > self.max_age:
                     print 'Create sam project because oldest file is older than maximum age.'
                     create_project = True
+
+            if create_project:
+
+                # Check for duplicate processed files in ths project.
+
+                parents = set()
+                mds = self.samweb.getMultipleMetadata(file_names)
+                for md in mds:
+                    f = md['file_name']
+                    if md.has_key('parents'):
+                        for parentdict in md['parents']:
+                            if parentdict.has_key('file_name'):
+                                parent = parentdict['file_name']
+                                if not parent.startswith('CRT'):
+                                    if parent not in parents:
+                                        parents.add(parent)
+                                    else:
+
+                                        # If we find a file with a duplicate parent, delete
+                                        # that file.
+
+                                        print 'Unmerged file %s has duplicate parent.' % f
+                                        self.delete_disk_locations(f)
+                                        q = 'DELETE FROM unmerged_files WHERE name=?;'
+                                        c.execute(q, (f,))
+                                        self.conn.commit()
+                                        create_project = False
+
+                # If we got a duplicate parent, abort this project creation.
+                # We should get this project on a subsequent invocation, with 
+                # the duplicate processed file having been deleted.
+
+                if create_project:
+                    print 'Duplicate parent check OK.'
+                else:
+                    print 'Duplicate parent check failed.'
 
             if create_project:
 
