@@ -479,6 +479,8 @@ CREATE TABLE IF NOT EXISTS unmerged_files (
     # Disk locations are checked for validity.
     # If disk location does not exist, remove disk location from sam.
     # Tape locations are not checked.
+    # Also check content status.  If status is not "good", remove and delete
+    # disk locations.
 
     def check_location(self, f, do_check_disk):
 
@@ -525,17 +527,33 @@ CREATE TABLE IF NOT EXISTS unmerged_files (
 
             if do_check_disk:
 
+                # Check content status.
+
+                content_good = False
+                md = self.samweb.getMetadata(f)
+                if md.has_key('content_status'):
+                    if md['content_status'] == 'good':
+                        content_good = True
+                if content_good:
+                    print 'Content status good.'
+                else:
+                    print 'Content status bad.'
+
+                # Check disk locations.
+
                 print 'Checking disk locations.'
                 for loc in locs:
                     if loc['location_type'] == 'disk':
                         dir = os.path.join(loc['mount_point'], loc['subdir'])
                         fp = os.path.join(dir, f)
-                        if self.exists(fp):
+                        if content_good and self.exists(fp):
                             print 'Location OK.'
                             on_disk = True
                         else:
                             print 'Removing bad disk location from sam.'
                             self.samweb.removeFileLocation(f, loc['full_path'])
+                            if self.exists(fp):
+                                larbatch_posix.remove(fp)
                     else:
                         print 'Removing bad location from sam.'
                         self.samweb.removeFileLocation(f, loc['full_path'])
@@ -1404,11 +1422,14 @@ CREATE TABLE IF NOT EXISTS unmerged_files (
 
         if num_jobs > 1:
             print 'Starting sam project %s' % prjname
-            self.samweb.startProject(prjname,
-                                     defname=defname, 
-                                     station=project_utilities.get_experiment(),
-                                     group=project_utilities.get_experiment(),
-                                     user=project_utilities.get_user())
+            try:
+                self.samweb.startProject(prjname,
+                                         defname=defname, 
+                                         station=project_utilities.get_experiment(),
+                                         group=project_utilities.get_experiment(),
+                                         user=project_utilities.get_user())
+            except:
+                pass
         else:
             print 'Project will be started by batch job.'
 
