@@ -762,11 +762,16 @@ CREATE TABLE IF NOT EXISTS unmerged_files (
 
         # Add this file and group partners.
 
+        add_files = set()
         md = self.samweb.getMetadata(f)
         group_id = self.merge_group(md)
-        dim = self.get_group_dim(group_id)
-        group_files = self.samweb.listFiles(dim)
-        add_files = self.add_unmerged_files(group_files)
+        if group_id > 0:
+            dim = self.get_group_dim(group_id)
+            group_files = self.samweb.listFiles(dim)
+            add_files = self.add_unmerged_files(group_files)
+        else:
+            self.delete_disk_locations(f)
+            add_files = set()
 
         # Done.
 
