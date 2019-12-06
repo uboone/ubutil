@@ -54,12 +54,20 @@ end_product_list
 # We now define allowed qualifiers and the corresponding qualifiers for the depdencies.
 # Make a table by adding columns before "notes". 
 qualifier	art		larbatch	pycurl	notes
+c7:py3:debug	c7:py3:debug	-nq-		-nq-
+c7:py3:prof	c7:py3:prof	-nq-		-nq-
+c7:debug	c7:debug	-nq-		-nq-
+c7:prof		c7:prof		-nq-		-nq-
 c2:py3:debug	c2:py3:debug	-nq-		-nq-
 c2:py3:prof	c2:py3:prof	-nq-		-nq-
-e17:py3:debug   e17:py3:debug   -nq-            -nq-
-e17:py3:prof    e17:py3:prof    -nq-            -nq-
 c2:debug	c2:debug	-nq-		-nq-
 c2:prof		c2:prof		-nq-		-nq-
+e19:py3:debug   e19:py3:debug   -nq-            -nq-
+e19:py3:prof    e19:py3:prof    -nq-            -nq-
+e19:debug       e19:debug       -nq-            -nq-
+e19:prof        e19:prof        -nq-            -nq-
+e17:py3:debug   e17:py3:debug   -nq-            -nq-
+e17:py3:prof    e17:py3:prof    -nq-            -nq-
 e17:debug       e17:debug       -nq-            -nq-
 e17:prof        e17:prof        -nq-            -nq-
 
