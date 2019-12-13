@@ -1860,14 +1860,23 @@ CREATE TABLE IF NOT EXISTS unmerged_files (
                                                        '%Y-%m-%dT%H:%M:%S+00:00')
                         now = datetime.datetime.utcnow()
                         dt = now - t
+                        dtsec = dt.total_seconds()
+                        print 'File age = %d seconds.' % dtsec
+                        if dtsec > 3*24*3600:
 
-                        # If this file too old, set error status.
+                            # File too old, set error status.
 
-                        if dt.total_seconds() > 3*24*3600:
                             print 'File is too old.  Set error status.'
                             q = '''UPDATE sam_processes SET status=? WHERE id=?;'''
                             c.execute(q, (4, merge_id))
                             self.conn.commit()
+
+                            # Also declare file bad in sam
+
+                            mdmod = {'content_status': 'bad'}
+                            print 'Setting file bad status in sam.'
+                            self.modifyFileMetadata(merged_file, mdmod)
+                            self.flush_metadata()
 
                 if status == 0:
 
