@@ -1,7 +1,6 @@
-# fix required for c7 (clang 7.0.0)
-if(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+# fix required for c7 and e19 with python 2
+# also fine with c2 and e17
 cet_add_compiler_flags(CXX -Wno-register )
-endif()
 
 include_directories( $ENV{PYTHON_INCLUDE} )
 
