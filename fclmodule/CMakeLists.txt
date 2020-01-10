@@ -1,3 +1,7 @@
+# fix required for c7 and e19 with python 2
+# also fine with c2 and e17
+cet_add_compiler_flags(CXX -Wno-register )
+
 include_directories( $ENV{PYTHON_INCLUDE} )
 
 find_library(PYTHON NAMES python2.7 PATHS $ENV{PYTHON_LIB})
