@@ -4,8 +4,12 @@ cet_add_compiler_flags(CXX -Wno-register )
 
 include_directories( $ENV{PYTHON_INCLUDE} )
 
-#find_library(PYTHON NAMES python2.7 PATHS $ENV{PYTHON_LIB})
-find_library(PYTHON NAMES python3.7m PATHS $ENV{PYTHON_LIB})
+SET ( PYTHON_VERSION $ENV{PYTHON_VERSION} )
+if(PYTHON_VERSION MATCHES v3)
+  find_library(PYTHON NAMES python3.7m PATHS $ENV{PYTHON_LIB})
+else()
+  find_library(PYTHON NAMES python2.7 PATHS $ENV{PYTHON_LIB})
+endif()
 
 set( CMAKE_SHARED_LIBRARY_PREFIX "" )
 art_make( LIBRARY_NAME fcl

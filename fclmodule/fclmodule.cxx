@@ -83,6 +83,20 @@ namespace {
       throw cet::exception("fclmodule") << "String has wrong type." << std::endl;
   }
 
+  // Convert std::string to default python string.
+  // Python 2 - byte string.
+  // Python 3 - unicode string.
+
+  PyObject* cxx_str_to_python(const std::string& s) {
+    PyObject* result = 0;
+#if PY_MAJOR_VERSION >= 3
+    result = PyUnicode_FromString(s.c_str());
+#else
+    result = PyBytes_FromString(s.c_str());
+#endif
+    return result;
+  }
+
 }
 
 // Define a parameter set walker class
@@ -234,7 +248,7 @@ void PythonDictConverter::atom(key_t const& key, any_t const& any)
   size_t n = atom.size();
   if(pyval == 0 && n >= 2 && atom[0] == '"' && atom[n-1] == '"') {
     std::string s = atom.substr(1, n-2);
-    pyval = PyUnicode_FromString(s.c_str());
+    pyval = cxx_str_to_python(s);
   }  
 
   // Check for int.
@@ -260,7 +274,7 @@ void PythonDictConverter::atom(key_t const& key, any_t const& any)
   // Last resort store a copy of the original string (unquoted string).
 
   if(pyval == 0)
-    pyval = PyUnicode_FromString(atom.c_str());
+    pyval = cxx_str_to_python(atom);
 
   // Done converting atom to python.
   // Add python object to parent container.
@@ -327,7 +341,7 @@ void PythonDictConverter::add_object(key_t const& key, PyObject* pyobj)
 
     // Insert object into dicionary.
 
-    PyObject* keyobj = PyUnicode_FromString(key.c_str());
+    PyObject* keyobj = cxx_str_to_python(key);
     PyDict_SetItem(parent, keyobj, pyobj);
     Py_DECREF(pyobj);
   }
@@ -598,7 +612,7 @@ static PyObject* pretty(PyObject* self, PyObject *args)
 
     PyObject* obj = PySequence_GetItem(args, 0);
     std::string s = format(obj, 0, 0, 80);
-    result = PyUnicode_FromString(s.c_str());
+    result = cxx_str_to_python(s);
   }
 
   // Done.
@@ -614,7 +628,9 @@ static struct PyMethodDef fclmodule_methods[] = {
   {0, 0, 0, 0}
 };
 
-// Module definition struct.
+// Module initialization.
+
+#if PY_MAJOR_VERSION >= 3
 
 static struct PyModuleDef fclmodule = {
   PyModuleDef_HEAD_INIT,
@@ -624,12 +640,20 @@ static struct PyModuleDef fclmodule = {
   fclmodule_methods   // Method table.
 };
 
-
-// Initialization function.
-
 PyMODINIT_FUNC
 PyInit_fcl(void)
 {
   return PyModule_Create(&fclmodule);
 }
+
+#else
+
+extern "C" {
+  void initfcl()
+  {
+    Py_InitModule("fcl", fclmodule_methods);
+  }
+}
+
+#endif
 
