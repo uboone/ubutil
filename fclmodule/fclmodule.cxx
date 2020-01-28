@@ -38,6 +38,7 @@
 //
 //----------------------------------------------------------------------
 
+#define PY_SSIZE_T_CLEAN
 #include "Python.h"
 #include <iostream>
 #include <iomanip>
@@ -51,6 +52,38 @@
 
 #include "fhiclcpp/ParameterSetRegistry.h"
 #include "fhiclcpp/make_ParameterSet.h"
+
+// Compatibility functions.
+
+namespace {
+
+  // Convert byte string or unicode string to c string.
+
+  const char* python_to_c_str(PyObject* obj) {
+    if(PyBytes_Check(obj))
+      return PyBytes_AsString(obj);
+    else if(PyUnicode_Check(obj)) {
+      PyObject* bytes = PyUnicode_AsUTF8String(obj);
+      return PyBytes_AsString(bytes);
+    }
+    else
+      throw cet::exception("fclmodule") << "String has wrong type." << std::endl;
+  }
+
+  // Count number of characters in byte string or unicode string.
+
+  Py_ssize_t python_string_len(PyObject* obj) {
+    if(PyBytes_Check(obj))
+      return PyBytes_Size(obj);
+    else if(PyUnicode_Check(obj)) {
+      PyObject* bytes = PyUnicode_AsUTF8String(obj);
+      return PyBytes_Size(bytes);
+    }
+    else
+      throw cet::exception("fclmodule") << "String has wrong type." << std::endl;
+  }
+
+}
 
 // Define a parameter set walker class
 
@@ -201,7 +234,7 @@ void PythonDictConverter::atom(key_t const& key, any_t const& any)
   size_t n = atom.size();
   if(pyval == 0 && n >= 2 && atom[0] == '"' && atom[n-1] == '"') {
     std::string s = atom.substr(1, n-2);
-    pyval = PyString_FromString(s.c_str());
+    pyval = PyUnicode_FromString(s.c_str());
   }  
 
   // Check for int.
@@ -211,7 +244,7 @@ void PythonDictConverter::atom(key_t const& key, any_t const& any)
     long i;
     iss >> std::noskipws >> i;
     if(iss.eof() and !iss.fail())
-      pyval = PyInt_FromLong(i);
+      pyval = PyLong_FromLong(i);
   }
 
   // Check for float.
@@ -227,7 +260,7 @@ void PythonDictConverter::atom(key_t const& key, any_t const& any)
   // Last resort store a copy of the original string (unquoted string).
 
   if(pyval == 0)
-    pyval = PyString_FromString(atom.c_str());
+    pyval = PyUnicode_FromString(atom.c_str());
 
   // Done converting atom to python.
   // Add python object to parent container.
@@ -294,7 +327,8 @@ void PythonDictConverter::add_object(key_t const& key, PyObject* pyobj)
 
     // Insert object into dicionary.
 
-    PyDict_SetItemString(parent, key.c_str(), pyobj);
+    PyObject* keyobj = PyUnicode_FromString(key.c_str());
+    PyDict_SetItem(parent, keyobj, pyobj);
     Py_DECREF(pyobj);
   }
   else if(PyList_Check(parent)) {
@@ -339,11 +373,19 @@ static std::string format(PyObject* obj, unsigned int pos, unsigned int indent, 
 
   std::ostringstream ss;
 
-  if(PyString_Check(obj)) {
+  if(PyBytes_Check(obj)) {
 
     // String objects, add double quotes, but don't do any other formatting.
 
-    ss << "\"" << PyString_AsString(obj) << "\"";
+    ss << "\"" << PyBytes_AsString(obj) << "\"";
+  }
+
+  else if(PyUnicode_Check(obj)) {
+
+    // Unicode objects, convert to byte string and add double quotes.
+
+    PyObject* bytes = PyUnicode_AsUTF8String(obj);
+    ss << "\"" << PyBytes_AsString(bytes) << "\"";
   }
 
   else if(PyDict_Check(obj)) {
@@ -360,7 +402,7 @@ static std::string format(PyObject* obj, unsigned int pos, unsigned int indent, 
     int keymaxlen = 0;
     for(int i=0; i<n; ++i) {
       PyObject* key = PyList_GetItem(keys, i);
-      int keylen = PyString_Size(key);
+      int keylen = python_string_len(key);
       if(keylen > keymaxlen)
 	keymaxlen = keylen;
     }
@@ -376,7 +418,7 @@ static std::string format(PyObject* obj, unsigned int pos, unsigned int indent, 
     for(int i=0; i<n; ++i) {
       PyObject* key = PyList_GetItem(keys, i);
       PyObject* value = PyDict_GetItem(obj, key);
-      const char* ks = PyString_AsString(key);
+      const char* ks = python_to_c_str(key);
       ss << std::setw(indent) << ""
 	 << std::setw(keymaxlen) << std::left << ks << " : "
 	 << format(value, indent + keymaxlen + 3, indent+2, maxlen)
@@ -469,7 +511,7 @@ static std::string format(PyObject* obj, unsigned int pos, unsigned int indent, 
     // Last resort, use python's string representation.
 
     PyObject* pystr = PyObject_Str(obj);
-    std::string s(PyString_AsString(pystr));
+    std::string s(python_to_c_str(pystr));
 
     // Print booleans in lower case instead of python default case.
 
@@ -556,7 +598,7 @@ static PyObject* pretty(PyObject* self, PyObject *args)
 
     PyObject* obj = PySequence_GetItem(args, 0);
     std::string s = format(obj, 0, 0, 80);
-    result = PyString_FromString(s.c_str());
+    result = PyUnicode_FromString(s.c_str());
   }
 
   // Done.
@@ -567,16 +609,27 @@ static PyObject* pretty(PyObject* self, PyObject *args)
 // Module method table.
 
 static struct PyMethodDef fclmodule_methods[] = {
-     {"make_pset", make_pset, METH_VARARGS},
-     {"pretty", pretty, METH_VARARGS},
-     {0, 0}
+  {"make_pset", make_pset, METH_VARARGS, "Convert fcl ParameterSet to python dictionary"},
+  {"pretty", pretty, METH_VARARGS, "Convert dictionary parameter set to fcl text"},
+  {0, 0, 0, 0}
 };
+
+// Module definition struct.
+
+static struct PyModuleDef fclmodule = {
+  PyModuleDef_HEAD_INIT,
+  "fcl",              // Module name.
+  0,                  // Module documentation.
+  -1,                 // Module state size (this module has no state).
+  fclmodule_methods   // Method table.
+};
+
 
 // Initialization function.
 
-extern "C" {
-  void initfcl()
-  {
-    Py_InitModule("fcl", fclmodule_methods);
-  }
+PyMODINIT_FUNC
+PyInit_fcl(void)
+{
+  return PyModule_Create(&fclmodule);
 }
+

@@ -84,8 +84,7 @@ add_subdirectory(validation)
 add_subdirectory(tools)
 
 # FCL module
-# needs to be ported to python 3
-#add_subdirectory(fclmodule)
+add_subdirectory(fclmodule)
 
 # Root batch framework.
 add_subdirectory(root_batch)
