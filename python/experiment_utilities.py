@@ -10,8 +10,7 @@
 #
 #----------------------------------------------------------------------
 
-import os, pycurl
-from StringIO import StringIO
+import os
 import larbatch_posix
 
 # Don't fail (on import) if samweb is not available.
@@ -168,50 +167,6 @@ def dimensions(project, stage, ana=False):
 
     return dim
 
-
-# Status check before submitting batch jobs.
-
-def batch_status_check():
-
-    # Check ifbeam database url.
-    # Require server to return status code 200.
-    # Output is ignored.
-
-    url='http://ifb-data.fnal.gov:8100/ifbeam/data'
-    buffer = StringIO()
-    c = pycurl.Curl()
-    c.setopt(c.URL, url)
-    c.setopt(c.WRITEFUNCTION, buffer.write)
-    c.perform()
-    code = c.getinfo(c.RESPONSE_CODE)
-    c.close()
-    if code == 200:
-        result = True
-    else:
-        print 'Got bad status from ifbeam database server.'
-        result = False
-
-    # Check calibration database url.
-    # Require server to return status code 200 and output == 'OK'
-
-    if result:
-
-        url='http://dbdata0vm.fnal.gov:8186/uboonecon_prod/app/probe'
-        buffer = StringIO()
-        c = pycurl.Curl()
-        c.setopt(c.URL, url)
-        c.setopt(c.WRITEFUNCTION, buffer.write)
-        c.perform()
-        code = c.getinfo(c.RESPONSE_CODE)
-        c.close()
-        value = buffer.getvalue()
-        if code != 200 or value != 'OK':
-            print 'Got bad status from calibration database server.'
-            result = False
-
-    # Done.
-
-    return result
 
 class MetaDataKey:
 
