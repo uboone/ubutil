@@ -85,7 +85,7 @@ stream_prjstage = {}    # Project stage = stream_prjstage[stream][run]
 stream_prjversion = {}  # Project version = stream_version[stream][run]
 stream_fcl = {}         # fcl name = stream_fcl[stream][run]
 
-for f in mddict.keys():
+for f in list(mddict.keys()):
     md = mddict[f]
     stream = md['data_stream']
     run = md['runs'][0][0]
@@ -141,9 +141,9 @@ for f in mddict.keys():
 # meaning as close as possible to the internal metadata of the files being merged.
 
 version=os.environ['UBOONECODE_VERSION']
-for stream in stream_size.keys():
+for stream in list(stream_size.keys()):
 
-    for run in stream_size[stream].keys():
+    for run in list(stream_size[stream].keys()):
 
         stream_fcl_name = 'copy_raw_%s_%d.fcl' % (stream, run)
         fcl = open(stream_fcl_name, 'w')
@@ -206,10 +206,10 @@ outputs:
 
 # Merge files in each list.
 
-for stream in stream_files.keys():
+for stream in list(stream_files.keys()):
 
     n = 0
-    for run in stream_files[stream].keys():
+    for run in list(stream_files[stream].keys()):
 
         for stream_list in stream_files[stream][run]:
 
