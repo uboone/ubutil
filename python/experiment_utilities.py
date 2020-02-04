@@ -74,7 +74,7 @@ def get_dropbox(filename):
 
     if not larbatch_posix.exists(path):
         larbatch_posix.makedirs(path)
-        larbatch_posix.chmod(path, 0775)
+        larbatch_posix.chmod(path, 0o775)
 
     # Add run number to path.
 
@@ -82,7 +82,7 @@ def get_dropbox(filename):
         path = '%s/%d' % (path, run % 1000)
         if not larbatch_posix.exists(path):
             larbatch_posix.mkdir(path)
-            larbatch_posix.chmod(path, 0775)
+            larbatch_posix.chmod(path, 0o775)
 
     # Add subrun number to path.
 
@@ -90,7 +90,7 @@ def get_dropbox(filename):
         path = '%s/%d' % (path, subrun % 1000)
         if not larbatch_posix.exists(path):
             larbatch_posix.mkdir(path)
-            larbatch_posix.chmod(path, 0775)
+            larbatch_posix.chmod(path, 0o775)
 
     return path
 
