@@ -156,7 +156,7 @@ def main(argv):
     entries = mychain.GetEntriesFast()
     #entries = 100
         
-    for jentry in xrange( entries ): 
+    for jentry in range( entries ): 
         if jentry%1000==0:
             print(jentry,"/",entries)
     
@@ -173,7 +173,7 @@ def main(argv):
         if mychain.pdg[0]==2212:
             numDaughters = 0
             #print mychain.geant_list_size
-            for j in xrange(mychain.geant_list_size):
+            for j in range(mychain.geant_list_size):
                 if j == 0:
                     continue
                 if ('conv' not in mychain.processname[j] and
@@ -205,7 +205,7 @@ def main(argv):
                 trkpidbestplane = mychain.GetLeaf("trkpidbestplane_"+t).GetValue(i)
                 trkpidpdg =     mychain.GetLeaf("trkpidpdg_"+t).GetValue(i)
                 if ( Contained(trkstartx,trkstarty,trkstartz) and Contained(trkendx,trkendy,trkendz) ):
-                   for j in xrange(mychain.geant_list_size_in_tpcAV):
+                   for j in range(mychain.geant_list_size_in_tpcAV):
                         apdg = abs(mychain.pdg[j])
                         mcstartx = mychain.StartPointx_tpcAV[j]
                         mcstarty = mychain.StartPointy_tpcAV[j]

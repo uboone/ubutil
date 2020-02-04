@@ -172,7 +172,7 @@ def main(argv):
     entries = mychain.GetEntriesFast()
     #entries = 100
 
-    for jentry in xrange( entries ):
+    for jentry in range( entries ):
 
         if jentry%1000==0:
             print(jentry,"/",entries)

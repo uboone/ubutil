@@ -268,7 +268,7 @@ def main(argv):
     entries = mychain.GetEntriesFast()    
     #entries = 100
         
-    for jentry in xrange( entries ): 
+    for jentry in range( entries ): 
         if jentry%1000==0:
             print(jentry,"/",entries)
     
@@ -282,7 +282,7 @@ def main(argv):
         if nb <= 0:
             continue
             
-        for i in xrange( mychain.geant_list_size_in_tpcAV ):
+        for i in range( mychain.geant_list_size_in_tpcAV ):
                 apdg = abs(mychain.pdg[i])
                 if (mychain.inTPCActive[i] == 1):                      
                         if ( (apdg == 13  and mychain.Eng[i]>=0.001*mychain.Mass[i]+minKE) or (apdg == 211 and mychain.Eng[i]>=0.001*mychain.Mass[i]+minKE) or (apdg == 321 and
@@ -323,7 +323,7 @@ def main(argv):
                         fillrecomom[t+"calocont"](trkmom_calocont)
                         fillrecomom[t+"mcscont"](trkmom_mcscont)
                         fillrecomom[t+"rangecont"](trkmom_rangecont)    
-                for j in xrange(mychain.geant_list_size_in_tpcAV):
+                for j in range(mychain.geant_list_size_in_tpcAV):
                         apdg = abs(mychain.pdg[j])
                         mcstartx = mychain.StartPointx_tpcAV[j]
                         mcstarty = mychain.StartPointy_tpcAV[j]

@@ -488,7 +488,7 @@ class Framework:
         else:
             entries = tree.GetEntriesFast()
 
-        for jentry in xrange(entries):
+        for jentry in range(entries):
 
             # Skip events.
 

@@ -75,7 +75,7 @@ def effcalc(hnum, hden, heff):
    assert(nbins == heff.GetNbinsX())
 
    # Loop over bins, including underflow and overflow.
-   for ibin in xrange(nbins+1):
+   for ibin in range(nbins+1):
      num = hnum.GetBinContent(ibin)
      den = hden.GetBinContent(ibin)
      if(den == 0.):
@@ -237,7 +237,7 @@ def main(argv):
     entries = mychain.GetEntriesFast()
     #entries = 100
         
-    for jentry in xrange( entries ): 
+    for jentry in range( entries ): 
         if jentry%1000==0:
             print(jentry,"/",entries)
     
@@ -251,7 +251,7 @@ def main(argv):
         if nb <= 0:
             continue
             
-        for i in xrange( mychain.geant_list_size ):
+        for i in range( mychain.geant_list_size ):
                 apdg = abs(mychain.pdg[i])
                 if (mychain.inTPCActive[i] == 1):
                         if ( (apdg == 13  and mychain.Eng[i]>=0.001*mychain.Mass[i]+minKE) or (apdg == 211 and mychain.Eng[i]>=0.001*mychain.Mass[i]+minKE) or (apdg == 321 and
@@ -282,7 +282,7 @@ def main(argv):
                 trkenddcosy = mychain.GetLeaf("trkenddcosy_"+t).GetValue(i)
                 trkenddcosz = mychain.GetLeaf("trkenddcosz_"+t).GetValue(i)
                 trklen = mychain.GetLeaf("trklen_"+t).GetValue(i)
-                for j in xrange(mychain.geant_list_size):
+                for j in range(mychain.geant_list_size):
                         apdg = abs(mychain.pdg[j])
                         mcstartx = mychain.StartPointx_tpcAV[j]
                         mcstarty = mychain.StartPointy_tpcAV[j]

@@ -172,7 +172,7 @@ class AnalyzeHits(RootAnalyze):
 
         self.hno_hits.Fill(no_hits.GetValue())
 
-        for i in xrange(hit_plane.GetLen()):
+        for i in range(hit_plane.GetLen()):
 
             plane = int(hit_plane.GetValue(i))
             wire = hit_wire.GetValue(i)
