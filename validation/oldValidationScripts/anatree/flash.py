@@ -25,8 +25,8 @@
 #                                     All histograms will be saved in output:flash/dataset
 #
 # --dir <directory name>            - Specify a directory to dump .root file
-#			              (if no directory is specified, the root file will be 
-# 			              stored in the current directory)	
+#                                     (if no directory is specified, the root file will be 
+#                                     stored in the current directory)  
 #
 ##################################################################################
 from __future__ import absolute_import
@@ -85,9 +85,9 @@ def main(argv):
         elif args[0] == '--flashalg' and len(args) > 1:
             flashalg = args[1]
             del args[0:2]
-	elif args[0] == '--dir' and len(args) > 1:
-	    outdir = args[1]
-	    del args[0:2]     
+        elif args[0] == '--dir' and len(args) > 1:
+            outdir = args[1]
+            del args[0:2]     
         elif args[0] == '--dataset' and len(args) > 1:
             dataset = args[1]
             del args[0:2]
@@ -112,10 +112,10 @@ def main(argv):
     mychain.SetBranchStatus("fls*",1);
     
     if outdir == '':
-    	 outdir = os.getcwd()
+         outdir = os.getcwd()
     
     if not os.path.exists(outdir):
-    	os.makedirs(outdir)
+        os.makedirs(outdir)
     os.chdir(outdir)
     
     hfile = gROOT.FindObject(outfile)
@@ -209,7 +209,7 @@ def main(argv):
     
     currdir = os.getcwd()
     if outdir != currdir:
-    	os.chdir(currdir)
+        os.chdir(currdir)
 
 if __name__ == '__main__':
     rc = main(sys.argv)

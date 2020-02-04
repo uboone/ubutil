@@ -18,19 +18,19 @@
 # --input <inputfile>       - Input AnalysisTree root file.
 #
 # --output <outputfile>     - Output root file that contain histograms.
-#			      by default, output root file name is "tracking.root" 
+#                             by default, output root file name is "tracking.root" 
 #
 # --tracker <tracker name>  - Optional. Can be separated by commas. 
 #                             If not specified, all trackers will be used.
 #
 # --dataset <dataset name>  - Specify a dataset name, singlemu or BNB etc.
 #                             All histograms will be saved in output:
-#			      tracking/dataset/<trackername>
-#			      (for each tracker separate directories are created)
+#                             tracking/dataset/<trackername>
+#                             (for each tracker separate directories are created)
 # 
 # --dir <directory name>    - Specify a directory to dump .root files
-#			      (if no directory is specified, the root file will be 
-# 			      stored in the current directory)
+#                             (if no directory is specified, the root file will be 
+#                             stored in the current directory)
 #
 ###############################################################################
 from __future__ import absolute_import
@@ -67,7 +67,7 @@ def help():
                 print(line[2:], end=' ')
             else:
                 print()
-		
+                
 #function to evaluate efficiency of histograms
 def effcalc(hnum, hden, heff):
    nbins = hnum.GetNbinsX()
@@ -84,9 +84,9 @@ def effcalc(hnum, hden, heff):
      else:
        eff = num / den
        if (eff <0):
-       	   eff=0
+           eff=0
        if (eff >1):
-	   eff=1	
+           eff=1        
        err = math.sqrt(eff * (1.-eff) / den)
        if (eff >1):
            err = 0
@@ -98,8 +98,8 @@ def effcalc(hnum, hden, heff):
    heff.SetMaximum(1.05)
    heff.SetMarkerStyle(20)
     
-		
-		
+                
+                
 def main(argv):
     infile = '/pnfs/uboone/scratch/users/tjyang/output/v03_08_01/ana/prod_muminus_0.1-2.0GeV_isotropic_uboone/anahist.root'
     outfile = 'tracking.root'
@@ -123,9 +123,9 @@ def main(argv):
         elif args[0] == '--dataset' and len(args) > 1:
             dataset = args[1]
             del args[0:2]
-	elif args[0] == '--dir' and len(args) > 1:
-	    outdir = args[1]
-	    del args[0:2]     
+        elif args[0] == '--dir' and len(args) > 1:
+            outdir = args[1]
+            del args[0:2]     
         else:
             print('Unkonw option %s' % args[0])
             return 1
@@ -184,37 +184,37 @@ def main(argv):
     mcmom_g = {}
     fillmcmom_g = {}
     
-    mclen_e	= {}
-    mctheta_e	= {}
-    mcphi_e	= {}
-    mcmom_e	= {}
+    mclen_e     = {}
+    mctheta_e   = {}
+    mcphi_e     = {}
+    mcmom_e     = {}
     mcthetaxz_e = {}
     mcthetayz_e = {}
-    mcpdg_e	= {}
-      	    
+    mcpdg_e     = {}
+            
     for t in trackers:
-    	mclen_g[t] = TH1F("mclen_g_%s_%s"%(dataset,t),'',60,0,1200);
-	fillmclen_g[t] = mclen_g[t].Fill
-    	mcpdg_g[t] = TH1F("mcpdg_g_%s_%s"%(dataset,t),'',20,0,5000);
-	fillmcpdg_g[t] = mcpdg_g[t].Fill
-    	mctheta_g[t] = TH1F("mctheta_g_%s_%s"%(dataset,t),'',20,0,180);
-	fillmctheta_g[t] = mctheta_g[t].Fill
-	mcphi_g[t] = TH1F("mcphi_g_%s_%s"%(dataset,t),'',20,-180,180);
-	fillmcphi_g[t] = mcphi_g[t].Fill
-    	mcthetaxz_g[t] = TH1F("mcthetaxz_g_%s_%s"%(dataset,t),'',20,-180,180);
-	fillmcthetaxz_g[t] = mcthetaxz_g[t].Fill
-    	mcthetayz_g[t] = TH1F("mcthetayz_g_%s_%s"%(dataset,t),'',20,-180,180);
-	fillmcthetayz_g[t] = mcthetayz_g[t].Fill
-     	mcmom_g[t] = TH1F("mcmom_g_%s_%s"%(dataset,t),'',20,0,2.2);
-	fillmcmom_g[t] = mcmom_g[t].Fill
-	# efficiency histograms
-	mclen_e[t] = TH1F("mclen_e_%s_%s"%(dataset,t),"%s, %s; Track length (cm);Efficiency"%(dataset,t),60,0,1200);
-    	mcpdg_e[t] = TH1F("mcpdg_e_%s_%s"%(dataset,t),"%s, %s; PDG Code;Efficiency"%(dataset,t),20,0,5000);
-    	mctheta_e[t] = TH1F("mctheta_e_%s_%s"%(dataset,t),"%s, %s; #theta (degrees);Efficiency"%(dataset,t),20,0,180)
-	mcphi_e[t] = TH1F("mcphi_e_%s_%s"%(dataset,t),"%s, %s; #phi (degrees);Efficiency"%(dataset,t),20,-180,180)
-    	mcthetaxz_e[t] = TH1F("mcthetaxz_e_%s_%s"%(dataset,t),"%s, %s; #theta_{xz} (degrees);Efficiency"%(dataset,t),20,-180,180)
-    	mcthetayz_e[t] = TH1F("mcthetayz_e_%s_%s"%(dataset,t),"%s, %s; #theta_{yz} (degrees);Efficiency"%(dataset,t),20,-180,180)
-     	mcmom_e[t] = TH1F("mcmom_e_%s_%s"%(dataset,t),"%s, %s; momentum (GeV);Efficiency"%(dataset,t),20,0,2.2)
+        mclen_g[t] = TH1F("mclen_g_%s_%s"%(dataset,t),'',60,0,1200);
+        fillmclen_g[t] = mclen_g[t].Fill
+        mcpdg_g[t] = TH1F("mcpdg_g_%s_%s"%(dataset,t),'',20,0,5000);
+        fillmcpdg_g[t] = mcpdg_g[t].Fill
+        mctheta_g[t] = TH1F("mctheta_g_%s_%s"%(dataset,t),'',20,0,180);
+        fillmctheta_g[t] = mctheta_g[t].Fill
+        mcphi_g[t] = TH1F("mcphi_g_%s_%s"%(dataset,t),'',20,-180,180);
+        fillmcphi_g[t] = mcphi_g[t].Fill
+        mcthetaxz_g[t] = TH1F("mcthetaxz_g_%s_%s"%(dataset,t),'',20,-180,180);
+        fillmcthetaxz_g[t] = mcthetaxz_g[t].Fill
+        mcthetayz_g[t] = TH1F("mcthetayz_g_%s_%s"%(dataset,t),'',20,-180,180);
+        fillmcthetayz_g[t] = mcthetayz_g[t].Fill
+        mcmom_g[t] = TH1F("mcmom_g_%s_%s"%(dataset,t),'',20,0,2.2);
+        fillmcmom_g[t] = mcmom_g[t].Fill
+        # efficiency histograms
+        mclen_e[t] = TH1F("mclen_e_%s_%s"%(dataset,t),"%s, %s; Track length (cm);Efficiency"%(dataset,t),60,0,1200);
+        mcpdg_e[t] = TH1F("mcpdg_e_%s_%s"%(dataset,t),"%s, %s; PDG Code;Efficiency"%(dataset,t),20,0,5000);
+        mctheta_e[t] = TH1F("mctheta_e_%s_%s"%(dataset,t),"%s, %s; #theta (degrees);Efficiency"%(dataset,t),20,0,180)
+        mcphi_e[t] = TH1F("mcphi_e_%s_%s"%(dataset,t),"%s, %s; #phi (degrees);Efficiency"%(dataset,t),20,-180,180)
+        mcthetaxz_e[t] = TH1F("mcthetaxz_e_%s_%s"%(dataset,t),"%s, %s; #theta_{xz} (degrees);Efficiency"%(dataset,t),20,-180,180)
+        mcthetayz_e[t] = TH1F("mcthetayz_e_%s_%s"%(dataset,t),"%s, %s; #theta_{yz} (degrees);Efficiency"%(dataset,t),20,-180,180)
+        mcmom_e[t] = TH1F("mcmom_e_%s_%s"%(dataset,t),"%s, %s; momentum (GeV);Efficiency"%(dataset,t),20,0,2.2)
         mychain.SetBranchStatus("ntracks_"+t,1)
         mychain.SetBranchStatus("trkstartdcosx_"+t,1)
         mychain.SetBranchStatus("trkstartdcosy_"+t,1)
@@ -228,17 +228,17 @@ def main(argv):
         mychain.SetBranchStatus("trkstartx_"+t,1)
         mychain.SetBranchStatus("trkstarty_"+t,1)
         mychain.SetBranchStatus("trkstartz_"+t,1)
-	mychain.SetBranchStatus("trklen_"+t,1)
-	dntracks[t] = array("h",[0])
-        mychain.SetBranchAddress("ntracks_"+t,dntracks[t])	
+        mychain.SetBranchStatus("trklen_"+t,1)
+        dntracks[t] = array("h",[0])
+        mychain.SetBranchAddress("ntracks_"+t,dntracks[t])      
 
     minKE = 0.05
     
     entries = mychain.GetEntriesFast()
     #entries = 100
-    	
+        
     for jentry in xrange( entries ): 
-    	if jentry%1000==0:
+        if jentry%1000==0:
             print(jentry,"/",entries)
     
         # get the next tree in the chain and verify
@@ -250,21 +250,21 @@ def main(argv):
         nb = mychain.GetEntry( jentry )
         if nb <= 0:
             continue
-	    
-	for i in xrange( mychain.geant_list_size ):
-		apdg = abs(mychain.pdg[i])
-		if (mychain.inTPCActive[i] == 1):
-			if ( (apdg == 13  and mychain.Eng[i]>=0.001*mychain.Mass[i]+minKE) or (apdg == 211 and mychain.Eng[i]>=0.001*mychain.Mass[i]+minKE) or (apdg == 321 and
-	    	        mychain.Eng[i]>=0.001*mychain.Mass[i]+minKE) or (apdg == 2212 and mychain.Eng[i]>=0.001*mychain.Mass[i]+minKE) ):
-				mclen_all.Fill(mychain.pathlen[i])
-				mcpdg_all.Fill(mychain.pdg[i])
-				mctheta_all.Fill(mychain.theta[i]*180/3.142)
-				mcphi_all.Fill(mychain.phi[i]*180/3.142)
-				mcthetaxz_all.Fill(mychain.theta_xz[i]*180/3.142)
-				mcthetayz_all.Fill(mychain.theta_yz[i]*180/3.142)
-				mcmom_all.Fill(mychain.P[i])				    
+            
+        for i in xrange( mychain.geant_list_size ):
+                apdg = abs(mychain.pdg[i])
+                if (mychain.inTPCActive[i] == 1):
+                        if ( (apdg == 13  and mychain.Eng[i]>=0.001*mychain.Mass[i]+minKE) or (apdg == 211 and mychain.Eng[i]>=0.001*mychain.Mass[i]+minKE) or (apdg == 321 and
+                        mychain.Eng[i]>=0.001*mychain.Mass[i]+minKE) or (apdg == 2212 and mychain.Eng[i]>=0.001*mychain.Mass[i]+minKE) ):
+                                mclen_all.Fill(mychain.pathlen[i])
+                                mcpdg_all.Fill(mychain.pdg[i])
+                                mctheta_all.Fill(mychain.theta[i]*180/3.142)
+                                mcphi_all.Fill(mychain.phi[i]*180/3.142)
+                                mcthetaxz_all.Fill(mychain.theta_xz[i]*180/3.142)
+                                mcthetayz_all.Fill(mychain.theta_yz[i]*180/3.142)
+                                mcmom_all.Fill(mychain.P[i])                                
 
-        for t in trackers:	    
+        for t in trackers:          
             ntracks = dntracks[t][0]
             if ntracks > 1000:
                 ntracks = 1000
@@ -275,42 +275,42 @@ def main(argv):
                 trkendx = mychain.GetLeaf("trkendx_"+t).GetValue(i)
                 trkendy = mychain.GetLeaf("trkendy_"+t).GetValue(i)
                 trkendz = mychain.GetLeaf("trkendz_"+t).GetValue(i)
-		trkstartdcosx = mychain.GetLeaf("trkstartdcosx_"+t).GetValue(i)
-		trkstartdcosy = mychain.GetLeaf("trkstartdcosy_"+t).GetValue(i)
-		trkstartdcosz = mychain.GetLeaf("trkstartdcosz_"+t).GetValue(i)
-		trkenddcosx = mychain.GetLeaf("trkenddcosx_"+t).GetValue(i)
-		trkenddcosy = mychain.GetLeaf("trkenddcosy_"+t).GetValue(i)
-		trkenddcosz = mychain.GetLeaf("trkenddcosz_"+t).GetValue(i)
-		trklen = mychain.GetLeaf("trklen_"+t).GetValue(i)
-		for j in xrange(mychain.geant_list_size):
-			apdg = abs(mychain.pdg[j])
-			mcstartx = mychain.StartPointx_tpcAV[j]
-			mcstarty = mychain.StartPointy_tpcAV[j]
-			mcstartz = mychain.StartPointz_tpcAV[j]
-			mcendx = mychain.EndPointx_tpcAV[j]
-			mcendy = mychain.EndPointy_tpcAV[j]
-			mcendz = mychain.EndPointz_tpcAV[j]
-			theta = mychain.theta[j]*180/3.142
-			phi = mychain.phi[j]*180/3.142	
-			px = mychain.Px[j]		
-			py = mychain.Py[j]		
-			pz = mychain.Pz[j]	
-			p = mychain.P[j]
-			if (mychain.inTPCActive[j] == 1):
+                trkstartdcosx = mychain.GetLeaf("trkstartdcosx_"+t).GetValue(i)
+                trkstartdcosy = mychain.GetLeaf("trkstartdcosy_"+t).GetValue(i)
+                trkstartdcosz = mychain.GetLeaf("trkstartdcosz_"+t).GetValue(i)
+                trkenddcosx = mychain.GetLeaf("trkenddcosx_"+t).GetValue(i)
+                trkenddcosy = mychain.GetLeaf("trkenddcosy_"+t).GetValue(i)
+                trkenddcosz = mychain.GetLeaf("trkenddcosz_"+t).GetValue(i)
+                trklen = mychain.GetLeaf("trklen_"+t).GetValue(i)
+                for j in xrange(mychain.geant_list_size):
+                        apdg = abs(mychain.pdg[j])
+                        mcstartx = mychain.StartPointx_tpcAV[j]
+                        mcstarty = mychain.StartPointy_tpcAV[j]
+                        mcstartz = mychain.StartPointz_tpcAV[j]
+                        mcendx = mychain.EndPointx_tpcAV[j]
+                        mcendy = mychain.EndPointy_tpcAV[j]
+                        mcendz = mychain.EndPointz_tpcAV[j]
+                        theta = mychain.theta[j]*180/3.142
+                        phi = mychain.phi[j]*180/3.142  
+                        px = mychain.Px[j]              
+                        py = mychain.Py[j]              
+                        pz = mychain.Pz[j]      
+                        p = mychain.P[j]
+                        if (mychain.inTPCActive[j] == 1):
                             if ( (apdg == 13  and mychain.Eng[j]>=0.001*mychain.Mass[j]+minKE) or (apdg == 211 and mychain.Eng[j]>=0.001*mychain.Mass[j]+minKE) or (apdg == 321 and mychain.Eng[j]>=0.001*mychain.Mass[j]+minKE) or (apdg == 2212 and mychain.Eng[j]>=0.001*mychain.Mass[j]+minKE) ):
                                 num = ((trkstartdcosx*px)+(trkstartdcosy*py)+(trkstartdcosz*pz))
                                 angle=num/p
                                 if (angle>1): 
-                                    angle=1	
+                                    angle=1     
                                 if (angle<-1):
-                                    angle=-1					
+                                    angle=-1                                    
                                 ang = math.degrees(math.acos(angle))
                                 onum = ((trkenddcosx*px)+(trkenddcosy*py)+(trkenddcosz*pz))
                                 oangle=onum/p
                                 if (oangle>1): 
-                                    oangle=1	
+                                    oangle=1    
                                 if (oangle<-1):
-                                    oangle=-1					
+                                    oangle=-1                                   
                                 oang = math.degrees(math.acos(oangle))
 
                                 if ( (abs(ang)<=10) or (abs(180-(ang))<=10) or (abs(ang)<=10) or (abs(180-oang)<=10)):
@@ -326,14 +326,14 @@ def main(argv):
                                             fillmcphi_g[t](mychain.phi[j]*180/3.142)
                                             fillmcthetaxz_g[t](mychain.theta_xz[j]*180/3.142)
                                             fillmcthetayz_g[t](mychain.theta_yz[j]*180/3.142)
-                                            fillmcmom_g[t](p)			
-					
-  	
+                                            fillmcmom_g[t](p)                   
+                                        
+        
     if outdir == '':
-    	 outdir = os.getcwd()
+         outdir = os.getcwd()
     
     if not os.path.exists(outdir):
-    	os.makedirs(outdir)
+        os.makedirs(outdir)
     os.chdir(outdir)
     
     hfile = gROOT.FindObject(outfile)
@@ -346,30 +346,30 @@ def main(argv):
     
     if dataset!='':
         dir2 = dir1.mkdir(dataset)
-        dir2.cd()	
-	
-    # Fill the efficiency histograms	
-    for t in trackers:		
-	    direc = dir2.mkdir(str(t))
-            direc.cd()		
+        dir2.cd()       
+        
+    # Fill the efficiency histograms    
+    for t in trackers:          
+            direc = dir2.mkdir(str(t))
+            direc.cd()          
             effcalc(mclen_g[t],     mclen_all,     mclen_e[t])
-	    effcalc(mcpdg_g[t],     mcpdg_all,     mcpdg_e[t])
-	    effcalc(mctheta_g[t],   mctheta_all,   mctheta_e[t])
-	    effcalc(mcphi_g[t],     mcphi_all,     mcphi_e[t])
-	    effcalc(mcthetaxz_g[t], mcthetaxz_all, mcthetaxz_e[t])
-	    effcalc(mcthetayz_g[t], mcthetayz_all, mcthetayz_e[t])
-	    effcalc(mcmom_g[t],     mcmom_all,     mcmom_e[t])	    	
-    	    mclen_e[t].Write()
-	    mcpdg_e[t].Write()
-    	    mctheta_e[t].Write()
-    	    mcphi_e[t].Write()
-    	    mcthetaxz_e[t].Write()
-    	    mcthetayz_e[t].Write()
-    	    mcmom_e[t].Write()
-	    
+            effcalc(mcpdg_g[t],     mcpdg_all,     mcpdg_e[t])
+            effcalc(mctheta_g[t],   mctheta_all,   mctheta_e[t])
+            effcalc(mcphi_g[t],     mcphi_all,     mcphi_e[t])
+            effcalc(mcthetaxz_g[t], mcthetaxz_all, mcthetaxz_e[t])
+            effcalc(mcthetayz_g[t], mcthetayz_all, mcthetayz_e[t])
+            effcalc(mcmom_g[t],     mcmom_all,     mcmom_e[t])          
+            mclen_e[t].Write()
+            mcpdg_e[t].Write()
+            mctheta_e[t].Write()
+            mcphi_e[t].Write()
+            mcthetaxz_e[t].Write()
+            mcthetayz_e[t].Write()
+            mcmom_e[t].Write()
+            
     currdir = os.getcwd()
     if outdir != currdir:
-    	os.chdir(currdir)	    
+        os.chdir(currdir)           
 
 
 if __name__ == '__main__':

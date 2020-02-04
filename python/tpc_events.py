@@ -68,4 +68,4 @@ def count_tpc_events(inputfile):
 if __name__ == "__main__":
     tpc_events = count_tpc_events(str(sys.argv[1]))
     print(tpc_events)
-    sys.exit(0)	
+    sys.exit(0) 
