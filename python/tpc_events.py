@@ -13,7 +13,7 @@ myargv = sys.argv
 sys.argv = myargv[0:1]
 sys.argv.append('-n')
 # Prevent root from printing garbage on initialization.
-if os.environ.has_key('TERM'):
+if 'TERM' in os.environ:
     del os.environ['TERM']
 import ROOT
 ROOT.gErrorIgnoreLevel = ROOT.kError

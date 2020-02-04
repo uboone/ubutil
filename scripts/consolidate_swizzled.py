@@ -48,7 +48,7 @@ for f in os.listdir('.'):
             # Check whether this file is a duplicate.
 
             duplicate = False
-            if md.has_key('parents'):
+            if 'parents' in md:
                 for parent in md['parents']:
                     pname = parent['file_name']
                     if not pname.startswith('CRT'):
@@ -89,34 +89,34 @@ for f in mddict.keys():
     md = mddict[f]
     stream = md['data_stream']
     run = md['runs'][0][0]
-    if not stream_size.has_key(stream):
+    if stream not in stream_size:
         stream_size[stream] = {}
-    if not stream_size[stream].has_key(run):
+    if run not in stream_size[stream]:
         stream_size[stream][run] = []
 
-    if not stream_files.has_key(stream):
+    if stream not in stream_files:
         stream_files[stream] = {}
-    if not stream_files[stream].has_key(run):
+    if run not in stream_files[stream]:
         stream_files[stream][run] = []
 
-    if not stream_prjname.has_key(stream):
+    if stream not in stream_prjname:
         stream_prjname[stream] = {}
-    if not stream_prjname[stream].has_key(run):
+    if run not in stream_prjname[stream]:
         stream_prjname[stream][run] = md['ub_Project.Name']
 
-    if not stream_prjstage.has_key(stream):
+    if stream not in stream_prjstage:
         stream_prjstage[stream] = {}
-    if not stream_prjstage[stream].has_key(run):
+    if run not in stream_prjstage[stream]:
         stream_prjstage[stream][run] = md['ub_Project.Stage']
 
-    if not stream_prjversion.has_key(stream):
+    if stream not in stream_prjversion:
         stream_prjversion[stream] = {}
-    if not stream_prjversion[stream].has_key(run):
+    if run not in stream_prjversion[stream]:
         stream_prjversion[stream][run] = md['ub_Project.Version']
 
-    if not stream_fcl.has_key(stream):
+    if stream not in stream_fcl:
         stream_fcl[stream] = {}
-    if not stream_fcl[stream].has_key(run):
+    if run not in stream_fcl[stream]:
         stream_fcl[stream][run] = md['fcl.name']
 
     # Get this file size.
@@ -226,7 +226,7 @@ for stream in stream_files.keys():
                 print('  Merging file %s' % f)
                 fl.write('%s\n' % f)
                 md = mddict[f]
-                if md.has_key('parents'):
+                if 'parents' in md:
                     for p in md['parents']:
                         parent = p['file_name']
                         if parent not in parents:

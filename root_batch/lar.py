@@ -90,7 +90,7 @@ from __future__ import print_function
 import sys, os, imp, fcl, json, datetime
 
 # Prevent root from printing garbage on initialization.
-if os.environ.has_key('TERM'):
+if 'TERM' in os.environ:
     del os.environ['TERM']
 
 # Hide command line arguments from ROOT module.
@@ -287,7 +287,7 @@ class Framework:
         # FCL parameters.
 
         self.tree_names = []
-        if pset.has_key('input_tree'):
+        if 'input_tree' in pset:
             tree_name = pset['input_tree']              # Input tree name(s).
             if type(tree_name) == type([]):
                 self.tree_names = tree_name
@@ -357,22 +357,22 @@ class Framework:
 
         app = {}
 
-        if self.pset.has_key('process_name'):
+        if 'process_name' in self.pset:
             app['name'] = self.pset['process_name']
 
-        if self.pset.has_key('services'):
+        if 'services' in self.pset:
             services = self.pset['services']
-            if services.has_key('FileCatalogMetadata'):
+            if 'FileCatalogMetadata' in services:
                 fcm = services['FileCatalogMetadata']
-                if fcm.has_key('applicationFamily'):
+                if 'applicationFamily' in fcm:
                     app['family'] = fcm['applicationFamily']
-                if fcm.has_key('applicationFamily'):
+                if 'applicationFamily' in fcm:
                     app['version'] = fcm['applicationVersion']
-                if fcm.has_key('group'):
+                if 'group' in fcm:
                     self.metadata['group'] = fcm['group']
-                if fcm.has_key('fileType'):
+                if 'fileType' in fcm:
                     self.metadata['file_type'] = fcm['fileType']
-                if fcm.has_key('runType'):
+                if 'runType' in fcm:
                     self.run_type = fcm['runType']
 
         if len(app) > 0:
@@ -448,7 +448,7 @@ class Framework:
 
         # Add this subrun to metadata.
 
-        if not self.metadata.has_key('runs'):
+        if 'runs' not in self.metadata:
             self.metadata['runs'] = []
         self.metadata['runs'].append((run, subrun, self.run_type))
 
@@ -916,11 +916,11 @@ def main(argv):
 
     # Add default parameters.
 
-    if not pset.has_key('loop_over_entries'):
+    if 'loop_over_entries' not in pset:
         pset['loop_over_entries'] = True
-    if not pset.has_key('chain'):
+    if 'chain' not in pset:
         pset['chain'] = False
-    if not pset.has_key('dump_every'):
+    if 'dump_every' not in pset:
         pset['dump_every'] = 10
 
     # Validate arguments.

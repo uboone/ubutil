@@ -28,7 +28,7 @@ def get_dropbox(filename):
 
     md = {}
     exp = 'uboone'
-    if os.environ.has_key('SAM_EXPERIMENT'):
+    if 'SAM_EXPERIMENT' in os.environ:
         exp = os.environ['SAM_EXPERIMENT']
     samweb = samweb_cli.SAMWebClient(experiment=exp)
     try:
@@ -44,13 +44,13 @@ def get_dropbox(filename):
     run=0
     subrun=0
 
-    if md.has_key('file_type'):
+    if 'file_type' in md:
         file_type = md['file_type']
-    if md.has_key('group'):
+    if 'group' in md:
         group = md['group']
-    if md.has_key('data_tier'):
+    if 'data_tier' in md:
         data_tier = md['data_tier']
-    if md.has_key('runs'):
+    if 'runs' in md:
         runs = md['runs']
         if len(runs) > 0:
             runid = runs[0]
@@ -64,7 +64,7 @@ def get_dropbox(filename):
     # Construct dropbox path.
 
     #path = '/uboone/data/uboonepro/dropbox/%s/%s/%s' % (file_type, group, data_tier)
-    if os.environ.has_key('FTS_DROPBOX'):
+    if 'FTS_DROPBOX' in os.environ:
         dropbox_root = os.environ['FTS_DROPBOX']
     else:
         dropbox_root = '/pnfs/uboone/scratch/uboonepro/dropbox'
@@ -121,7 +121,7 @@ def get_setup_script_path():
 
     CVMFS_DIR="/cvmfs/uboone.opensciencegrid.org/products/"
     UBUTIL_DIR=''
-    if os.environ.has_key('UBUTIL_DIR'):
+    if 'UBUTIL_DIR' in os.environ:
         UBUTIL_DIR=os.environ['UBUTIL_DIR'] + '/bin/'
 
     if os.path.isfile(CVMFS_DIR+"setup_uboone.sh"):

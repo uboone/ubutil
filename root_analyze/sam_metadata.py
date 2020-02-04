@@ -59,31 +59,31 @@ class SamMetadata(RootAnalyze):
 
         # Extract information from services configuration and update metadata.
 
-        if pset.has_key('services'):
+        if 'services' in pset:
             services = pset['services']
 
             # Extract parameters from FileCatalogMetadataMicroBooNE.
 
-            if services.has_key('FileCatalogMetadataMicroBooNE'):
+            if 'FileCatalogMetadataMicroBooNE' in services:
                 fcm_uboone = services['FileCatalogMetadataMicroBooNE']
-                if fcm_uboone.has_key('FCLName'):
+                if 'FCLName' in fcm_uboone:
                     self.metadata['fcl.name'] = fcm_uboone['FCLName']
-                if fcm_uboone.has_key('FCLVersion'):
+                if 'FCLVersion' in fcm_uboone:
                     self.metadata['fcl.version'] = fcm_uboone['FCLVersion']
-                if fcm_uboone.has_key('ProjectName'):
+                if 'ProjectName' in fcm_uboone:
                     self.metadata['ub_project.name'] = fcm_uboone['ProjectName']
-                if fcm_uboone.has_key('ProjectStage'):
+                if 'ProjectStage' in fcm_uboone:
                     self.metadata['ub_project.stage'] = fcm_uboone['ProjectStage']
-                if fcm_uboone.has_key('ProjectVersion'):
+                if 'ProjectVersion' in fcm_uboone:
                     self.metadata['ub_project.version'] = fcm_uboone['ProjectVersion']
 
             # Extract parameters from TFileMetadataMicroBooNE.
 
-            if services.has_key('TFileMetadataMicroBooNE'):
+            if 'TFileMetadataMicroBooNE' in services:
                 tfm_uboone = services['TFileMetadataMicroBooNE']
-                if tfm_uboone.has_key('dataTier'):
+                if 'dataTier' in tfm_uboone:
                     self.metadata['data_tier'] = tfm_uboone['dataTier']
-                if tfm_uboone.has_key('fileFormat'):
+                if 'fileFormat' in tfm_uboone:
                     self.metadata['file_format'] = tfm_uboone['fileFormat']        
 
         # Done.

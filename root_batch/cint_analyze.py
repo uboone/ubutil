@@ -14,7 +14,7 @@ import sys, os
 from root_analyze import RootAnalyze
 
 # Prevent root from printing garbage on initialization.
-if os.environ.has_key('TERM'):
+if 'TERM' in os.environ:
     del os.environ['TERM']
 
 # Hide command line arguments from ROOT module.
@@ -76,19 +76,19 @@ class CintAnalyze(RootAnalyze):
         self.cint_macro = mypset['CintMacro']
 
         self.analyze_tree_function = None
-        if mypset.has_key('AnalyzeTree'):
+        if 'AnalyzeTree' in mypset:
             self.analyze_tree_function = mypset['AnalyzeTree']
 
         self.analyze_entry_function = None
-        if mypset.has_key('AnalyzeEntry'):
+        if 'AnalyzeEntry' in mypset:
             self.analyze_entry_function = mypset['AnalyzeEntry']
 
         self.hist_dir = None
-        if mypset.has_key('HistDir'):
+        if 'HistDir' in mypset:
             self.hist_dir = mypset['HistDir']
 
         self.load_all_branches = False
-        if mypset.has_key('LoadAllBranches'):
+        if 'LoadAllBranches' in mypset:
             self.load_all_branches = mypset['LoadAllBranches']
 
         # Load the macro.

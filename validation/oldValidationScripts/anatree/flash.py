@@ -33,7 +33,7 @@ from __future__ import absolute_import
 from __future__ import print_function
 import sys,os
 # Prevent root from printing garbage on initialization.
-if os.environ.has_key('TERM'):
+if 'TERM' in os.environ:
     del os.environ['TERM']
 
 # Hide command line arguments from ROOT module.
