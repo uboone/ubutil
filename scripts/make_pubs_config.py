@@ -29,6 +29,8 @@
 #
 ######################################################################
 
+from __future__ import absolute_import
+from __future__ import print_function
 import sys, os, getpass, socket
 from xml.dom.minidom import parse
 import project
@@ -50,9 +52,9 @@ def help():
             doprint = 0
         if doprint:
             if len(line) > 2:
-                print line[2:],
+                print(line[2:], end=' ')
             else:
-                print
+                print()
 
 
 # Main program.
@@ -105,7 +107,7 @@ def main(argv):
             nruns_arg = int(args[1])
             del args[0:2]
         elif args[0][0] == '-':
-            print 'Unknown option %s' % args[0]
+            print('Unknown option %s' % args[0])
             return 1
         else:
             xmlfiles.append(args[0])
@@ -114,7 +116,7 @@ def main(argv):
     # Make sure xmlfile was specified.
 
     if len(xmlfiles) == 0:
-        print 'No xml files specified.  Type "make_pubs_config.py -h" for help.'
+        print('No xml files specified.  Type "make_pubs_config.py -h" for help.')
         return 1
 
     # Loop over xml files.
@@ -193,27 +195,27 @@ def main(argv):
 
         # Generate configuration.
 
-        print 'PROJECT_BEGIN'
-        print 'NAME      %s' % pubs_project_name
-        print 'COMMAND   %s %s' % (command, pubs_project_name)
-        print 'CONTACT   %s' % contact
-        print 'SLEEP     30'
-        print 'PERIOD    120'
-        print 'SERVER    %s' % server
-        print 'RUNTABLE  %s' % runtable
-        print 'RUN       %d' % first_run
-        print 'SUBRUN    %d' % first_subrun
-        print 'ENABLE    True'
-        print 'RESOURCE XMLFILE => %s' % xmlpath
-        print 'RESOURCE NRESUBMISSION => 2'
-        print 'RESOURCE EXPERTS => %s' % contact
-        print 'RESOURCE STAGE_STATUS => %s' % status_codes
-        print 'RESOURCE STAGE_NAME => %s' % stage_names
-        print 'RESOURCE NRUNS => %d' % nruns
-        print 'RESOURCE MAX_RUN => %d' % last_run
-        print 'RESOURCE MAX_SUBRUN => %d' % last_subrun
-        print 'PROJECT_END'
-        print
+        print('PROJECT_BEGIN')
+        print('NAME      %s' % pubs_project_name)
+        print('COMMAND   %s %s' % (command, pubs_project_name))
+        print('CONTACT   %s' % contact)
+        print('SLEEP     30')
+        print('PERIOD    120')
+        print('SERVER    %s' % server)
+        print('RUNTABLE  %s' % runtable)
+        print('RUN       %d' % first_run)
+        print('SUBRUN    %d' % first_subrun)
+        print('ENABLE    True')
+        print('RESOURCE XMLFILE => %s' % xmlpath)
+        print('RESOURCE NRESUBMISSION => 2')
+        print('RESOURCE EXPERTS => %s' % contact)
+        print('RESOURCE STAGE_STATUS => %s' % status_codes)
+        print('RESOURCE STAGE_NAME => %s' % stage_names)
+        print('RESOURCE NRUNS => %d' % nruns)
+        print('RESOURCE MAX_RUN => %d' % last_run)
+        print('RESOURCE MAX_SUBRUN => %d' % last_subrun)
+        print('PROJECT_END')
+        print()
 
 
 # Invoke main program.

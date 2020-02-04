@@ -37,6 +37,8 @@
 #
 #
 ###############################################################################
+from __future__ import absolute_import
+from __future__ import print_function
 import sys, os
 # Prevent root from printing garbage on initialization.
 if os.environ.has_key('TERM'):
@@ -177,9 +179,9 @@ def help():
             doprint = 0
         if doprint:
             if len(line) > 2:
-                print line[2:],
+                print(line[2:], end=' ')
             else:
-                print
+                print()
 
 # Make calorimetry validation plots.
 def plotcalorimetry(infile):
@@ -880,7 +882,7 @@ def main(argv):
 	elif args[0] == '-b':
             del args[0]
         else:
-            print 'Unknown option %s' % args[0]
+            print('Unknown option %s' % args[0])
             return 1
 	   
     if outdir == '':
@@ -892,41 +894,41 @@ def main(argv):
    
     if calorimetry:
         if infile == '':
-            print 'Please specify input file using --input.'
+            print('Please specify input file using --input.')
             return 1
         else:
             plotcalorimetry(infile)
 
     if hit:
         if infile == '':
-            print 'Please specify input file using --input.'
+            print('Please specify input file using --input.')
             return 1
         else:
             plothit(infile)
 
     if flash:
         if infile == '':
-            print 'Please specify input file using --input.'
+            print('Please specify input file using --input.')
             return 1
         else:
             plotflash(infile)
 	    
     if tracking:
         if infile == '':
-            print 'Please specify input file using --input.'
+            print('Please specify input file using --input.')
             return 1
         else:
             plottracking(infile)
 	    
     if momresol:
         if infile == '':
-            print 'Please specify input file using --input.'
+            print('Please specify input file using --input.')
             return 1
         else:
             plotmomresolution(infile)	    	    
     if pid:
         if infile == '':
-            print 'Please specify input file using --input.'
+            print('Please specify input file using --input.')
             return 1
         else:
             plotpid(infile)

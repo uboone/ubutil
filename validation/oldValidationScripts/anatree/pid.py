@@ -33,6 +33,8 @@
 # 			      stored in the current directory)	
 #
 ###############################################################################
+from __future__ import absolute_import
+from __future__ import print_function
 import sys,os
 # Prevent root from printing garbage on initialization.
 if os.environ.has_key('TERM'):
@@ -62,9 +64,9 @@ def help():
             doprint = 0
         if doprint:
             if len(line) > 2:
-                print line[2:],
+                print(line[2:], end=' ')
             else:
-                print
+                print()
 	
 		
 def main(argv):
@@ -94,7 +96,7 @@ def main(argv):
             dataset = args[1]
             del args[0:2]
         else:
-            print 'Unkonw option %s' % args[0]
+            print('Unkonw option %s' % args[0])
             return 1
 
     # open the file
@@ -107,7 +109,7 @@ def main(argv):
         trackers = GetTrackers(mychain)
     else:
         trackers = tracker.split(",")
-    print trackers
+    print(trackers)
     
     dntracks = {}
     
@@ -156,7 +158,7 @@ def main(argv):
     	
     for jentry in xrange( entries ): 
     	if jentry%1000==0:
-            print jentry,"/",entries
+            print(jentry,"/",entries)
     
         # get the next tree in the chain and verify
         ientry = mychain.LoadTree( jentry )

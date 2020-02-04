@@ -85,6 +85,8 @@
 #             module2 : config2 }
 #
 ###############################################################################
+from __future__ import absolute_import
+from __future__ import print_function
 import sys, os, imp, fcl, json, datetime
 
 # Prevent root from printing garbage on initialization.
@@ -126,9 +128,9 @@ def help():
             doprint = 0
         if doprint:
             if len(line) > 2:
-                print line[2:],
+                print(line[2:], end=' ')
             else:
-                print
+                print()
 
 
 def sam_iter(prjurl, pid, cleanup=True):
@@ -178,7 +180,7 @@ def sam_iter(prjurl, pid, cleanup=True):
         url = Ifdh.getNextFile(prjurl, pid)
         if url:
 
-            print 'Delivered file = %s' % url
+            print('Delivered file = %s' % url)
 
             # Fetch the input file.
 
@@ -192,13 +194,13 @@ def sam_iter(prjurl, pid, cleanup=True):
             # If transfer failed.  Update file status to "skipped."
 
             if not ok:
-                print 'Skipped file = %s' % url
+                print('Skipped file = %s' % url)
                 Ifdh.updateFileStatus(prjurl, pid, os.path.basename(url), 'skipped')
                 continue
 
             # Transfer succeeded.  Update file status to "transferred."
 
-            print 'Transferred file = %s' % current_file
+            print('Transferred file = %s' % current_file)
             Ifdh.updateFileStatus(prjurl, pid, os.path.basename(current_file), 'transferred')
             transferred_files.add(os.path.basename(current_file))
 
@@ -232,13 +234,13 @@ def sam_clean(prjurl, pid, cleanup=True):
 
     while len(transferred_files) > 0:
         transferred_file = transferred_files.pop()
-        print 'Consumed file = %s' % transferred_file
+        print('Consumed file = %s' % transferred_file)
         Ifdh.updateFileStatus(prjurl, pid, transferred_file, 'consumed')
 
     # Delete local copies.
 
     if cleanup:
-        print 'Clean up local copies of transferred files.'
+        print('Clean up local copies of transferred files.')
         Ifdh.cleanup()
 
     # Done.
@@ -319,21 +321,21 @@ class Framework:
 
         # Open output file.
 
-        print 'Opening output file %s' % output_file_name
+        print('Opening output file %s' % output_file_name)
         self.output_file = ROOT.TFile.Open(output_file_name, 'RECREATE')
         if not self.output_file or not self.output_file.IsOpen():
-            print 'Unable to open output file.'
+            print('Unable to open output file.')
             sys.exit(1)
-        print 'Open successful.'
+        print('Open successful.')
 
         # Import analysis modules and make analyzer objects.
 
         for module_name in self.module_names:
-            print 'Importing module %s' % module_name
+            print('Importing module %s' % module_name)
             sys.path.append('.')          # Make sure local directory is on import path.
             fp, pathname, description = imp.find_module(module_name)
             module = imp.load_module(module_name, fp, pathname, description)
-            print 'Making analyzer object.'
+            print('Making analyzer object.')
             analyzer = module.make(self.pset)
             self.analyzers.append(analyzer)
 
@@ -343,7 +345,7 @@ class Framework:
         for analyzer in self.analyzers:
             analyzer.open_output(self.output_file)
             for branch_name in analyzer.branches():
-                print 'Read branch %s' % branch_name
+                print('Read branch %s' % branch_name)
                 self.branch_names.append(branch_name)
 
 
@@ -401,7 +403,7 @@ class Framework:
         #
         #----------------------------------------------------------------------
 
-        print 'Begin run %d' % run
+        print('Begin run %d' % run)
 
         # Call analyzer begin run hooks.
 
@@ -419,7 +421,7 @@ class Framework:
         #
         #----------------------------------------------------------------------
 
-        print 'End run %d' % run
+        print('End run %d' % run)
 
         # Call analyzer end run hooks.
 
@@ -437,7 +439,7 @@ class Framework:
         #
         #----------------------------------------------------------------------
 
-        print 'Begin subrun (%d, %d)' % (run, subrun)
+        print('Begin subrun (%d, %d)' % (run, subrun))
 
         # Call analyzer begin subrun hooks.
 
@@ -461,7 +463,7 @@ class Framework:
         #
         #----------------------------------------------------------------------
 
-        print 'End subrun (%d, %d)' % (run, subrun)
+        print('End subrun (%d, %d)' % (run, subrun))
 
         # Call analyzer end subrun hooks.
 
@@ -536,14 +538,14 @@ class Framework:
             # Keep user from getting bored.
 
             if jentry % self.dump_every == 0:
-                print 'Entry = %d/ %d' % (jentry, entries),
+                print('Entry = %d/ %d' % (jentry, entries), end=' ')
                 if newrun != None:
-                    print ', run=%d' % newrun,
+                    print(', run=%d' % newrun, end=' ')
                 if newsubrun != None:
-                    print ', subrun=%d' % newsubrun,
+                    print(', subrun=%d' % newsubrun, end=' ')
                 if newevent != None:
-                    print ', event=%d' % newevent,
-                print
+                    print(', event=%d' % newevent, end=' ')
+                print()
 
             # Check for new run.
 
@@ -647,10 +649,10 @@ class Framework:
 
         # Print list of activated branches for this tree.
 
-        print 'List of activated branches:'
+        print('List of activated branches:')
         for branch in tree.GetListOfBranches():
             if tree.GetBranchStatus(branch.GetName()):
-                print '  %s' % branch.GetName()
+                print('  %s' % branch.GetName())
 
         # Done
 
@@ -667,12 +669,12 @@ class Framework:
         #
         #----------------------------------------------------------------------
 
-        print 'Opening input file %s' % input_file_name
+        print('Opening input file %s' % input_file_name)
         self.input_file = ROOT.TFile.Open(input_file_name)
         if not self.input_file.IsOpen():
-            print 'Unable to open input file %s.' % input_file_name
+            print('Unable to open input file %s.' % input_file_name)
             sys.exit(1)
-        print 'Open successful.'
+        print('Open successful.')
 
         # Call open_input hook for each analyzer.
 
@@ -695,7 +697,7 @@ class Framework:
 
                 # Failed to locate tree.
 
-                print 'Unable to find tree %s.' % tree_name
+                print('Unable to find tree %s.' % tree_name)
 
         # Done.
 
@@ -790,7 +792,7 @@ class Framework:
 
             if self.chain:
 
-                print 'Add file to TChain: %s' % input_file_name
+                print('Add file to TChain: %s' % input_file_name)
                 for tchain in tchains:
                     tchain.AddFile(input_file_name)
 
@@ -905,7 +907,7 @@ def main(argv):
         elif args[0] == '--rethrow-default':
             del args[0]
         else:
-            print 'Unknown option %s' % args[0]
+            print('Unknown option %s' % args[0])
             return 1
 
     # Parse configuration.
@@ -951,10 +953,10 @@ def main(argv):
         input_iter = sam_iter(prjurl, pid, cleanup=not pset['chain'])
 
     if n == 0:
-        print 'No input specified.'
+        print('No input specified.')
         return 1
     if n > 1:
-        print 'More than one input specified.'
+        print('More than one input specified.')
         return 1
 
     # Create framework object.

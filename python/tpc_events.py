@@ -1,5 +1,8 @@
 #!/usr/bin/env python
 
+from __future__ import absolute_import
+from __future__ import print_function
+
 # Import stuff.
 
 import sys, os
@@ -64,5 +67,5 @@ def count_tpc_events(inputfile):
 
 if __name__ == "__main__":
     tpc_events = count_tpc_events(str(sys.argv[1]))
-    print tpc_events
+    print(tpc_events)
     sys.exit(0)	

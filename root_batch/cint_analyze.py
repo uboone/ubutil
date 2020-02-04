@@ -8,6 +8,8 @@
 # Created: 13-Apr-2017, H. Greenlee
 #
 ###############################################################################
+from __future__ import absolute_import
+from __future__ import print_function
 import sys, os
 from root_analyze import RootAnalyze
 
@@ -95,9 +97,9 @@ class CintAnalyze(RootAnalyze):
 
         ok = ROOT.gROOT.LoadMacro(self.cint_macro)
         if ok == 0:
-            print 'Loaded cint macro %s' % self.cint_macro
+            print('Loaded cint macro %s' % self.cint_macro)
         else:
-            print 'Failed to load cint macro %s' % self.cint_macro
+            print('Failed to load cint macro %s' % self.cint_macro)
             sys.exit(1)
 
         return
@@ -162,7 +164,7 @@ class CintAnalyze(RootAnalyze):
             try:
                 func = getattr(ROOT, self.analyze_tree_function)
             except:
-                print 'No callable function %s in module ROOT' % self.analyze_tree_function
+                print('No callable function %s in module ROOT' % self.analyze_tree_function)
                 sys.exit(1)
 
             self.topdir.cd()
@@ -188,7 +190,7 @@ class CintAnalyze(RootAnalyze):
             try:
                 func = getattr(ROOT, self.analyze_entry_function)
             except:
-                print 'No callable function %s in module ROOT' % self.analyze_entry_function
+                print('No callable function %s in module ROOT' % self.analyze_entry_function)
                 sys.exit(1)
 
             self.topdir.cd()

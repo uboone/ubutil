@@ -16,6 +16,8 @@
 #
 ######################################################################
 
+from __future__ import absolute_import
+from __future__ import print_function
 import sys, os, subprocess, json, datetime
 import project_utilities
 import extractor_dict
@@ -30,7 +32,7 @@ mddict = {}             # metadata = mddict[filename]
 stream_files = {}
 for f in os.listdir('.'):
     if f.endswith('.root'):
-        print 'Checking file %s' % f
+        print('Checking file %s' % f)
 
         # Extract sam metadata for this root file as python dictionary.
 
@@ -50,7 +52,7 @@ for f in os.listdir('.'):
                 for parent in md['parents']:
                     pname = parent['file_name']
                     if not pname.startswith('CRT'):
-                        print 'Checking parent %s' % pname
+                        print('Checking parent %s' % pname)
                         dim = 'ischildof: ( file_name %s with availability physical )' % pname
                         dim += ' and file_type data and file_format artroot and data_tier raw'
                         dim += ' and ub_project.name %s' % md['ub_Project.Name']
@@ -62,7 +64,7 @@ for f in os.listdir('.'):
 
                             # This file is a duplicate.  Remove it.
 
-                            print 'Deleting duplicate file %s.' % f
+                            print('Deleting duplicate file %s.' % f)
                             os.remove(f)
                             duplicate = True
                             break
@@ -120,7 +122,7 @@ for f in mddict.keys():
     # Get this file size.
 
     size = os.stat(f).st_size
-    print 'File %s, size = %d' % (f, size)
+    print('File %s, size = %d' % (f, size))
 
     # Decide if we should start a new list.
 
@@ -211,7 +213,7 @@ for stream in stream_files.keys():
 
         for stream_list in stream_files[stream][run]:
 
-            print 'Merging stream %s[%d][%d]' % (stream, run, n)
+            print('Merging stream %s[%d][%d]' % (stream, run, n))
             parents = set()
             outname = ''
 
@@ -221,7 +223,7 @@ for stream in stream_files.keys():
             stream_list_name = 'files_%s_%d_%d.list' % (stream, run, n)
             fl = open(stream_list_name, 'w')
             for f in stream_list:
-                print '  Merging file %s' % f
+                print('  Merging file %s' % f)
                 fl.write('%s\n' % f)
                 md = mddict[f]
                 if md.has_key('parents'):
@@ -250,7 +252,7 @@ for stream in stream_files.keys():
             rc = job.wait()
             out.close()
             err.close()
-            print 'Exit status %d'% rc
+            print('Exit status %d'% rc)
 
             if rc == 0:
 
@@ -260,7 +262,7 @@ for stream in stream_files.keys():
                 plist = list(parents)
                 plist.sort()
                 for p in plist:
-                    print 'Parent file: %s' % p
+                    print('Parent file: %s' % p)
                     pfile.write('%s\n' % p)
                 pfile.close()
 
@@ -281,13 +283,13 @@ for stream in stream_files.keys():
 
                 # Declare file to sam.
 
-                print 'Declaring %s.' % outname
+                print('Declaring %s.' % outname)
                 samweb.declareFile(md=md)
 
             # Delete all input files, whether or not merge job succeeded.
 
             for f in stream_list:
-                print '  Deleting file %s' % f        
+                print('  Deleting file %s' % f)        
                 os.remove(f)
 
             # Done with this list.
