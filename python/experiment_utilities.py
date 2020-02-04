@@ -59,7 +59,7 @@ def get_dropbox(filename):
                 subrun = runid[1]
 
     if not file_type or not group or not data_tier:
-        raise RuntimeError, 'Missing or invalid metadata for file %s.' % filename
+        raise RuntimeError('Missing or invalid metadata for file %s.' % filename)
 
     # Construct dropbox path.
 
@@ -131,7 +131,7 @@ def get_setup_script_path():
     elif UBUTIL_DIR != '' and os.path.isfile(UBUTIL_DIR+"setup_uboone.sh"):
         setup_script = UBUTIL_DIR+"setup_uboone.sh"
     else:
-        raise RuntimeError, "Could not find setup script at "+CVMFS_DIR
+        raise RuntimeError("Could not find setup script at "+CVMFS_DIR)
 
     return setup_script
 
