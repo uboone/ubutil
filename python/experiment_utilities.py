@@ -58,7 +58,7 @@ def get_dropbox(filename):
             if len(runid) > 1:
                 run = runid[0]
                 subrun = runid[1]
-    if md.has_key('merge.merge'):
+    if 'merge.merge' in md:
         merge = md['merge.merge']
 
     if not file_type or not group or not data_tier:
