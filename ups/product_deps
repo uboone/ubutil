@@ -2,7 +2,7 @@
 
 # The *parent* line must the first non-commented line and defines this product and version
 # The version should be of the form vxx_yy_zz (e.g. v01_02_03)
-parent ubutil v08_43_00
+parent ubutil v08_44_00
 
 defaultqual e19
 
@@ -45,7 +45,7 @@ table_fragment_end
 
 product          version
 art             v3_04_00
-larbatch        v01_52_01
+larbatch        v01_52_02
 pycurl          -		-	optional
 
 cetbuildtools	v7_15_01	-	only_for_build
