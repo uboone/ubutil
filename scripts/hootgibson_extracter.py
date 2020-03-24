@@ -19,27 +19,25 @@ import sys, os, datetime
 import psycopg2
 import sqlite3
 
-# Tables and columns.
-# All data types are integers.
-# Columns ending in "_vers," other than first, are foreign keys.
+# Tables.
 
-tables = { 'hootversion' : ('version_set',
-                            'history_version_born_on',
-                            'begin_validity_timestamp',
-                            'end_validity_timestamp',
-                            'adcreceivers_vers',
-                            'channels_vers',
-                            'crates_vers',
-                            'fem_mapping_vers'),
-           'versioned_adcreceivers' : ('adcreceivers_vers',
-                                       'crate_id',
-                                       'daq_slot'),
-           'versioned_channels' : ('channels_vers',
-                                   'larsoft_channel'),
-           'versioned_crates' : ('crates_vers',
-                                 'crate_id'),
-           'versioned_fem_mapping' : ('fem_mapping_vers',
-                                      'fem_channel')}
+tables = [ 'hootversion',
+           'versioned_channels',
+           'versioned_asics',
+           'versioned_motherboards',
+           'versioned_servicecables',
+           'versioned_servicecards',
+           'versioned_coldcables',
+           'versioned_intermediateamplifiers',
+           'versioned_warmcables',
+           'versioned_adcreceivers',
+           'versioned_fecards',
+           'versioned_crates',
+           'versioned_motherboard_mapping',
+           'versioned_fem_mapping',
+           'versioned_fem_map_ranges',
+           'versioned_fem_crate_ranges',
+           'versioned_fem_slot_ranges']
 
 #print(tables)
 
@@ -66,56 +64,80 @@ if os.path.exists(sqlite_database):
 sqlite_conn = sqlite3.connect(sqlite_database)
 sqlite_cur = sqlite_conn.cursor()
 
+schema = {}    # schema[table] = list of columns.
+
 # Loop over tables to create tables in sqlite database.
 
 for table_name in tables:
 
-    # Create table.
+    schema[table_name] = []
+    print('Processing table %s.' % table_name)
 
-    print('Creating table %s' % table_name)
+    # Construct sqlite query to create corresponding table.
 
-    fkeys = []
-    first = True
     qtbl = 'CREATE TABLE IF NOT EXISTS %s (' % table_name
 
-    # Add columns.
+    # Get schema of this table.
 
-    for column in tables[table_name]:
+    q = 'select column_name, data_type, is_nullable from information_schema.columns where table_name=%s'
+    cur.execute(q, (table_name,))
+    rows = cur.fetchall()
+    first = True
+    for row in rows:
+        column_name = row[0]
+        data_type = row[1]
+        null = row[2]
+
+        schema[table_name].append(column_name)
+
         if not first:
             qtbl += ', '
-            if column.endswith('_vers'):
-                fkeys.append(column)
-        qtbl += '%s INTEGER' % column
+
+        # Convert postgres data type to sqlite data type.
+
+        sqlite_type = ''
+        if data_type == 'integer':
+            sqlite_type = 'integer'
+        elif data_type == 'smallint':
+            sqlite_type = 'integer'
+        elif data_type == 'text':
+            sqlite_type = 'text'
+        elif data_type == 'character varying':
+            sqlite_type = 'text'
+        elif data_type == 'character':
+            sqlite_type = 'text'
+        elif data_type == 'timestamp without time zone':
+            sqlite_type = 'integer'
+        if sqlite_type == '':
+            print('Unknown type %s' % data_type)
+            sys.exit(1)
+
+        #print(column_name, data_type, sqlite_type)
+
+        qtbl += '%s %s' % (column_name, sqlite_type)
         first = False
 
     # Add foreign keys.
 
-    for fkey in fkeys:
-        reftable = 'versioned_%s' % fkey[:-5]
-        qtbl += ', FOREIGN KEY (%s) REFERENCES %s(%s)' % (fkey, reftable, fkey)
+    if table_name == 'hootversion':
+        for column in schema[table_name]:
+            if column.endswith('_vers'):
+                reftable = 'versioned_%s' % column[:-5]
+                qtbl += ', FOREIGN KEY (%s) REFERENCES %s(%s)' % (column, reftable, column)
 
     # Complete query.
 
-    qtbl += ')'
+    qtbl += ');'
     #print(qtbl)
-
-    # Execute query to create table.
-
     sqlite_cur.execute(qtbl)
 
-# Loop over tables to extract data from postgres and insert into sqlite.
+    # Done creating table.
 
-now = datetime.datetime.now()
-for table_name in tables:
-
-    print('Extracting data from table %s' % table_name)
-
-    q = 'SELECT '
-
-    # Loop over columns.
+    # Query contents of table from postgres database.
 
     first = True
-    for column in tables[table_name]:
+    q = 'SELECT '
+    for column in schema[table_name]:
         if not first:
             q += ','
         q += column
@@ -123,24 +145,20 @@ for table_name in tables:
 
     q += ' FROM %s' % table_name
 
-    # Execute query.
-
-    #print(q)
+    #print q
     cur.execute(q)
     rows = cur.fetchall()
     print('%d rows fetched.' % len(rows))
-
-    # Loop over rows.
-
+    now = datetime.datetime.now()
     for row in rows:
 
-        # Insert this row into sqlite database.
+        # Insert row into sqlite database.
 
         q = 'INSERT INTO %s (' % table_name
         qval = 'VALUES('
         values = []
         n = 0
-        for column in tables[table_name]:
+        for column in schema[table_name]:
             element = row[n]
             if n > 0:
                 q += ','
@@ -154,8 +172,8 @@ for table_name in tables:
             n += 1
         qval += ')'
         q += ') %s;' % qval
-        #print(q)
-        #print(values)
+        #print q
+        #print values
         sqlite_cur.execute(q, tuple(values))
 
 # Close sqlite database.
