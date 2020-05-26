@@ -131,6 +131,8 @@ def get_sam_metadata(project, stage):
         result = result + ' ]\n'
     result = result + '}\n'
     result = result + 'services.TFileMetadataMicroBooNE: @local::microboone_tfile_metadata\n'
+    if stage.anamerge == '1':
+        result = result + 'services.TFileMetadataMicroBooNE.Merge: true\n'
 
     return result
 
