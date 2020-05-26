@@ -26,7 +26,7 @@ defaultqual e17
 #
 incdir  -
 fcldir  product_dir    job
-libdir  product_dir    python
+libdir  fq_dir         python
 bindir  product_dir    bin
 
 # table fragment to set various environment variables.
@@ -37,6 +37,7 @@ table_fragment_begin
     envSet(SAM_EXPERIMENT, uboone)
     pathPrepend(PYTHONPATH, ${UPS_PROD_DIR}/bin)
     pathPrepend(PYTHONPATH, ${UPS_PROD_DIR}/python)
+    pathPrepend(PYTHONPATH, ${UBUTIL_FQ_DIR}/python)
 table_fragment_end
 
 # With "product  version" table below, we now define depdendencies
@@ -44,10 +45,10 @@ table_fragment_end
 
 product          version
 art             v3_00_00
-larbatch        v01_51_07
+larbatch        v01_51_14
 pycurl          -		-	optional
 
-cetbuildtools	v7_06_03	-	only_for_build
+cetbuildtools	v7_11_00	-	only_for_build
 end_product_list
 
 
@@ -57,9 +58,6 @@ qualifier	art		larbatch	pycurl	notes
 c2:debug	c2:debug	-nq-		-nq-
 c2:opt		c2:opt		-nq-		-nq-
 c2:prof		c2:prof		-nq-		-nq-
-e15:debug	e15:debug	-nq-		-nq-
-e15:opt		e15:opt		-nq-		-nq-
-e15:prof	e15:prof	-nq-		-nq-
 e17:debug       e17:debug       -nq-            -nq-
 e17:opt         e17:opt         -nq-            -nq-
 e17:prof        e17:prof        -nq-            -nq-

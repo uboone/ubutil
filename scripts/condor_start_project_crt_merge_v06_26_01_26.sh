@@ -5,7 +5,7 @@
 #
 # Usage:
 #
-# condor_start_project_crt_merge_v06_26_01_13.sh [options]
+# condor_start_project_crt_merge_v06_26_01_26.sh [options]
 #
 # --sam_user <arg>    - Specify sam user (default $GRID_USER).
 # --sam_group <arg>   - Specify sam group (required).
@@ -474,7 +474,7 @@ echo
 sort -u crtraw.txt | while read crtbin
 do
   echo $crtbin
-  ifdh translateConstraints "file_type data and file_format artroot and ub_project.version prod_v06_26_01_13 and ischildof: ( file_name $crtbin )"  >> crt_swizzled.txt
+  ifdh translateConstraints "file_type data and file_format artroot and ub_project.version prod_v06_26_01_26 and ischildof: ( file_name $crtbin )"  >> crt_swizzled.txt
 done
 
 echo

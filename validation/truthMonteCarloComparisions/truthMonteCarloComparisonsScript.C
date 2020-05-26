@@ -862,7 +862,7 @@ void FillPlots_MC( TTree* tree, std::vector<TH1D> &hvector, std::string tracking
    // Note: for now, nuvtxx/nuvtxy/nuvtxz are only available in analysistree from pandoraNu
    // So only make these plots for pandoraNu!
    // Also do pandora for consolidated output (I think this will work...)
-   if (tracking_algorithm == "pandoraNu" || tracking_algorithm == "pandora"){
+   if (tracking_algorithm == "pandoraNu" || tracking_algorithm == "pandora" || tracking_algorithm == "pandoraTrack"){
      hvector.push_back(*hvertres);
      comments.push_back("Distance between true vertex position and reconstructed vertex position. In theory should peak at 0, but usually we see the peak is actually in the second bin (0.5-1 cm). This is nothing to worry about. Width tells you about the resolution.");
    }
@@ -959,7 +959,7 @@ void FillPlots_MC( TTree* tree, std::vector<TH1D> &hvector, std::string tracking
      // Note: for now, nuvtxx/nuvtxy/nuvtxz are only available in analysistree from pandoraNu
      // So only make these plots for pandoraNu!
      // Also do pandora for consolidated output (I think this will work...)
-     if (tracking_algorithm == "pandoraNu" || tracking_algorithm == "pandora"){
+     if (tracking_algorithm == "pandoraNu" || tracking_algorithm == "pandora" || tracking_algorithm == "pandoraTrack"){
        hvector.push_back(*hvertresx);
        hvector.push_back(*hvertresy);
        hvector.push_back(*hvertresz);
@@ -1221,8 +1221,10 @@ int main ( int argc, char** argv ) {
 	}
 	}
 
-	std::vector<std::string> algorithm = { "pandora" };
+	std::vector<std::string> algorithm = { "pandoraTrack" };
 	if ( short_long == "long" ) {
+        	algorithm.push_back ( "pandoraShower" );
+		algorithm.push_back ( "pandora" );
 	        algorithm.push_back ( "pandoraNu" );
 	        algorithm.push_back ( "pandoraKalmanTrack" );
 		algorithm.push_back ( "pmtrack" );

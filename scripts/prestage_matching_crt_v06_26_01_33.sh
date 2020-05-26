@@ -6,7 +6,7 @@
 #
 # Usage:
 #
-# prestage_matching_crt_v06_26_01_13.sh [options]
+# prestage_matching_crt_v06_26_01_33.sh [options]
 #
 # --defname     <arg> - TPC sam dataset definition name.
 # --snapshot_id <arg> - TPC sam snapshot id.
@@ -167,7 +167,7 @@ fi
 crtswiz=`mktemp`
 sort -u $crtraw | while read crtbin
 do
-  samweb list-files "file_type data and file_format artroot and ub_project.version prod_v06_26_01_13 and ischildof: ( file_name $crtbin )"  >> $crtswiz
+  samweb list-files "file_type data and file_format artroot and ub_project.version prod_v06_26_01_33 and ischildof: ( file_name $crtbin )"  >> $crtswiz
 done
 
 echo
