@@ -12,6 +12,7 @@
 
 import os, pycurl
 from StringIO import StringIO
+import larbatch_posix
 
 # Don't fail (on import) if samweb is not available.
 
@@ -39,6 +40,10 @@ def get_dropbox(filename):
     file_type = ''
     group = ''
     data_tier = ''
+    size = 0
+    run = 0
+    subrun = 0
+    merge = 0
 
     if md.has_key('file_type'):
         file_type = md['file_type']
@@ -46,6 +51,17 @@ def get_dropbox(filename):
         group = md['group']
     if md.has_key('data_tier'):
         data_tier = md['data_tier']
+    if md.has_key('file_size'):
+        size = md['file_size']
+    if md.has_key('runs'):
+        runs = md['runs']
+        if len(runs) > 0:
+            runid = runs[0]
+            if len(runid) > 1:
+                run = runid[0]
+                subrun = runid[1]
+    if md.has_key('merge.merge'):
+        merge = md['merge.merge']
 
     if not file_type or not group or not data_tier:
         raise RuntimeError, 'Missing or invalid metadata for file %s.' % filename
@@ -55,9 +71,34 @@ def get_dropbox(filename):
     #path = '/uboone/data/uboonepro/dropbox/%s/%s/%s' % (file_type, group, data_tier)
     if os.environ.has_key('FTS_DROPBOX'):
         dropbox_root = os.environ['FTS_DROPBOX']
+    elif merge and size < 1000000000:
+        dropbox_root = '/pnfs/uboone/scratch/uboonepro/dropbox/merge'
     else:
         dropbox_root = '/pnfs/uboone/scratch/uboonepro/dropbox'
     path = '%s/%s/%s/%s' % (dropbox_root, file_type, group, data_tier)
+
+    # Make sure path exists.
+
+    if not larbatch_posix.exists(path):
+        larbatch_posix.makedirs(path)
+        larbatch_posix.chmod(path, 0775)
+
+    # Add run number to path.
+
+    if type(run) == type(0):
+        path = '%s/%d' % (path, run % 100)
+        if not larbatch_posix.exists(path):
+            larbatch_posix.mkdir(path)
+            larbatch_posix.chmod(path, 0775)
+
+    # Add subrun number to path.
+
+    if type(subrun) == type(0):
+        path = '%s/%d' % (path, subrun % 100)
+        if not larbatch_posix.exists(path):
+            larbatch_posix.mkdir(path)
+            larbatch_posix.chmod(path, 0775)
+
     return path
 
 # Return fcl configuration for experiment-specific sam metadata.
@@ -76,8 +117,22 @@ def get_sam_metadata(project, stage):
     result = result + '  ProjectName: "%s"\n' % project.name
     result = result + '  ProjectStage: "%s"\n' % stage.name
     result = result + '  ProjectVersion: "%s"\n' % project.version
+    if stage.merge == '1':
+        result = result + '  Merge: 1\n'
+    if hasattr(stage, 'mixparents'):
+        n=0
+        for mixparent in stage.mixparents:
+            if n == 0:
+                result = result + '  Parameters: [ '
+            else:
+                result = result + ',\n                '
+            result = result + '"mixparent%d", "%s"' % (n, mixparent)
+            n += 1
+        result = result + ' ]\n'
     result = result + '}\n'
     result = result + 'services.TFileMetadataMicroBooNE: @local::microboone_tfile_metadata\n'
+    if stage.anamerge == '1':
+        result = result + 'services.TFileMetadataMicroBooNE.Merge: true\n'
 
     return result
 
@@ -92,8 +147,6 @@ def get_setup_script_path():
 
     if os.path.isfile(CVMFS_DIR+"setup_uboone.sh"):
         setup_script = CVMFS_DIR+"setup_uboone.sh"
-    elif os.path.isfile(FERMIAPP_DIR+"setup_uboone.sh"):
-        setup_script = FERMIAPP_DIR+"setup_uboone.sh"
     elif UBUTIL_DIR != '' and os.path.isfile(UBUTIL_DIR+"setup_uboone.sh"):
         setup_script = UBUTIL_DIR+"setup_uboone.sh"
     else:
@@ -113,7 +166,7 @@ def dimensions(project, stage, ana=False):
     dim = 'file_type %s' % project.file_type
     dim = dim + ' and data_tier %s' % data_tier
     dim = dim + ' and ub_project.name %s' % project.name
-    dim = dim + ' and ub_project.stage %s' % stage.name
+    dim = dim + ' and ub_project.stage %s%%' % stage.name
     dim = dim + ' and ub_project.version %s' % project.version
     if stage.pubs_output:
         first_subrun = True
@@ -186,11 +239,16 @@ class MetaDataKey:
      self.expname = "ub"
 
    def metadataList(self):
-     return [self.expname + elt for elt in ('ProjectName', 'ProjectStage', 'ProjectVersion')]
+     result = [self.expname + elt for elt in ('ProjectName', 'ProjectStage', 'ProjectVersion')]
+     result.extend(['merge', 'merged'])
+     return result
 
 
    def translateKey(self, key):
-     prefix = key[:2]
-     stem = key[2:]
-     projNoun = stem.split("Project")
-     return prefix + "_Project." + projNoun[1]
+     if key.startswith('merge'):
+       return 'merge.%s' % key
+     else:
+       prefix = key[:2]
+       stem = key[2:]
+       projNoun = stem.split("Project")
+       return prefix + "_Project." + projNoun[1]

@@ -233,7 +233,7 @@ TMP=${TMP:-${_CONDOR_SCRATCH_DIR}/working_dir.$$}
 
 { [[ -n "$TMP" ]] && mkdir -p "$TMP"; } || \
   { echo "ERROR: unable to create temporary directory!" 1>&2; exit 1; }
-trap "[[ -n \"$TMP\" ]] && { cd ; rm -rf \"$TMP\"; }" 0
+trap "[[ -n \"$TMP\" ]] && { rm -rf \"$TMP\"; }" 0
 cd $TMP
 # End of the section you should not change.
 
@@ -379,8 +379,16 @@ if [ $npre -gt 0 ]; then
   appfamily=prestage
   appname=prestage
 
+  # Make description, which is conventionally the jobsub job id.
+  # This can not be empty.
+
+  DESC=$JOBSUBJOBID
+  if [ x$DESC = x ]; then
+    DESC="Prestage"
+  fi
+
   echo "Starting consumer process."
-  cpid=`ifdh establishProcess $prjurl $appname 1 $node $SAM_USER $appfamily Prestage $npre`
+  cpid=`ifdh establishProcess $prjurl $appname 1 $node $SAM_USER $appfamily $DESC $npre`
   if [ x$cpid = x ]; then
     echo "Unable to start consumer process for project ${prjname}."
     exit 1
@@ -443,7 +451,19 @@ do
   ifdh getMetadata $bin > md.txt
   start=`awk '/Start Time:/{print $3}' md.txt | cut -d+ -f1`
   end=`awk '/End Time:/{print $3}' md.txt | cut -d+ -f1`
-  ifdh translateConstraints "file_type data and file_format crt-binaryraw and data_tier raw and start_time<='$start' and end_time>='$end'" >> crtraw.txt
+
+  start_fn=`echo ProdRun$start | tr -d - | cut -dT -f1`
+
+  day=`echo $start | cut -dT -f1`
+  day_sec=`date -d $day +%s`
+
+  yesterday_sec=$(( $day_sec - 86400 ))
+  yesterday_fn=ProdRun`date -d @$yesterday_sec +%Y%m%d`
+
+  tomorrow_sec=$(( $day_sec + 86400 ))
+  tomorrow_fn=ProdRun`date -d @$tomorrow_sec +%Y%m%d`
+
+  ifdh translateConstraints "file_type data and file_format crt-binaryraw and data_tier raw and start_time<='$end' and end_time>='$start' and file_name ${yesterday_fn}%,${start_fn}%,${tomorrow_fn}%" >> crtraw.txt
 done < bin.txt
 
 # Loop over crt binary files and find matching crt swizzled files.
