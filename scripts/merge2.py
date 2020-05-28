@@ -219,6 +219,7 @@ class MergeEngine:
             # Don't let project.py think this is a generator job.
 
             self.stobj.maxfluxfilemb = 0
+
             # Save the maximum number of batch jobs to submit.
 
             self.numjobs = self.stobj.num_jobs
@@ -402,10 +403,17 @@ CREATE TABLE IF NOT EXISTS unmerged_files (
         c.execute(q, (group_id,))
         row = c.fetchone()
         self.conn.commit()
-        dim = '''file_type %s and file_format %s and data_tier %s and data_stream %s
-                 and ub_project.name %s and ub_project.stage %s and ub_project.version %s
-                 and run_number %d
-                 and merge.merge 1 and merge.merged 0''' % row
+        data_stream = row[3]
+        if data_stream == 'none':
+            dim = '''file_type %s and file_format %s and data_tier %s
+                     and ub_project.name %s and ub_project.stage %s and ub_project.version %s
+                     and run_number %d
+                     and merge.merge 1 and merge.merged 0''' % (row[:3] + row[4:])
+        else:
+            dim = '''file_type %s and file_format %s and data_tier %s and data_stream %s
+                     and ub_project.name %s and ub_project.stage %s and ub_project.version %s
+                     and run_number %d
+                     and merge.merge 1 and merge.merged 0''' % row
         return dim
 
 
@@ -791,7 +799,10 @@ CREATE TABLE IF NOT EXISTS unmerged_files (
         file_type = md['file_type']
         file_format = md['file_format']
         data_tier = md['data_tier']
-        data_stream = md['data_stream']
+        if md.has_key('data_stream'):
+            data_stream = md['data_stream']
+        else:
+            data_stream = 'none'
         ubproject = md['ub_project.name']
         ubstage = md['ub_project.stage']
         ubversion = md['ub_project.version']
@@ -1370,52 +1381,56 @@ CREATE TABLE IF NOT EXISTS unmerged_files (
         ubstage = md['ub_project.stage']
         ubversion = md['ub_project.version']
         data_tier = md['data_tier']
-        data_stream = md['data_stream']
+        if md.has_key('data_stream'):
+            data_stream = md['data_stream']
+        else:
+            data_stream = 'none'
 
         # Generate a fcl file customized for this merged file.
 
-        fcl = open(self.fclpath, 'w')
-        fcl.write('process_name: Merge\n')
-        fcl.write('services:\n')
-        fcl.write('{\n')
-        fcl.write('  scheduler: { defaultExceptions: false }\n')
-        fcl.write('  FileCatalogMetadata:\n')
-        fcl.write('  {\n')
-        fcl.write('    applicationFamily: "%s"\n' % app_family)
-        fcl.write('    applicationVersion: "%s"\n' % app_version)
-        fcl.write('    fileType: "%s"\n' % file_type)
-        fcl.write('    group: "%s"\n' % group)
-        fcl.write('    runType: "%s"\n' % run_type)
-        fcl.write('  }\n')
-        fcl.write('  FileCatalogMetadataMicroBooNE:\n')
-        fcl.write('  {\n')
-        fcl.write('    FCLName: "%s"\n' % os.path.basename(self.fclpath))
-        fcl.write('    FCLVersion: "%s"\n' % app_version)
-        fcl.write('    ProjectName: "%s"\n' % ubproject)
-        fcl.write('    ProjectStage: "%s"\n' % ubstage)
-        fcl.write('    ProjectVersion: "%s"\n' % ubversion)
-        fcl.write('  }\n')
-        fcl.write('}\n')
-        fcl.write('source:\n')
-        fcl.write('{\n')
-        fcl.write('  module_type: RootInput\n')
-        fcl.write('}\n')
-        fcl.write('physics:\n')
-        fcl.write('{\n')
-        fcl.write('  stream1:  [ out1 ]\n')
-        fcl.write('}\n')
-        fcl.write('outputs:\n')
-        fcl.write('{\n')
-        fcl.write('  out1:\n')
-        fcl.write('  {\n')
-        fcl.write('    module_type: RootOutput\n')
-        fcl.write('    fileName: "%ifb_%tc_merged.root"\n')
-        fcl.write('    dataTier: "%s"\n' % data_tier)
-        fcl.write('    streamName:  "%s"\n' % data_stream)
-        fcl.write('    compressionLevel: 3\n')
-        fcl.write('  }\n')
-        fcl.write('}\n')
-        fcl.close()
+        if file_type != 'root':
+            fcl = open(self.fclpath, 'w')
+            fcl.write('process_name: Merge\n')
+            fcl.write('services:\n')
+            fcl.write('{\n')
+            fcl.write('  scheduler: { defaultExceptions: false }\n')
+            fcl.write('  FileCatalogMetadata:\n')
+            fcl.write('  {\n')
+            fcl.write('    applicationFamily: "%s"\n' % app_family)
+            fcl.write('    applicationVersion: "%s"\n' % app_version)
+            fcl.write('    fileType: "%s"\n' % file_type)
+            fcl.write('    group: "%s"\n' % group)
+            fcl.write('    runType: "%s"\n' % run_type)
+            fcl.write('  }\n')
+            fcl.write('  FileCatalogMetadataMicroBooNE:\n')
+            fcl.write('  {\n')
+            fcl.write('    FCLName: "%s"\n' % os.path.basename(self.fclpath))
+            fcl.write('    FCLVersion: "%s"\n' % app_version)
+            fcl.write('    ProjectName: "%s"\n' % ubproject)
+            fcl.write('    ProjectStage: "%s"\n' % ubstage)
+            fcl.write('    ProjectVersion: "%s"\n' % ubversion)
+            fcl.write('  }\n')
+            fcl.write('}\n')
+            fcl.write('source:\n')
+            fcl.write('{\n')
+            fcl.write('  module_type: RootInput\n')
+            fcl.write('}\n')
+            fcl.write('physics:\n')
+            fcl.write('{\n')
+            fcl.write('  stream1:  [ out1 ]\n')
+            fcl.write('}\n')
+            fcl.write('outputs:\n')
+            fcl.write('{\n')
+            fcl.write('  out1:\n')
+            fcl.write('  {\n')
+            fcl.write('    module_type: RootOutput\n')
+            fcl.write('    fileName: "%ifb_%tc_merged.root"\n')
+            fcl.write('    dataTier: "%s"\n' % data_tier)
+            fcl.write('    streamName:  "%s"\n' % data_stream)
+            fcl.write('    compressionLevel: 3\n')
+            fcl.write('  }\n')
+            fcl.write('}\n')
+            fcl.close()
 
 
         # Generate project name and stash the name in the database.
@@ -1448,9 +1463,10 @@ CREATE TABLE IF NOT EXISTS unmerged_files (
 
         # Copy fcl file to work directory.
 
-        workfcl = os.path.join(tmpworkdir, os.path.basename(self.fclpath))
-        if os.path.abspath(self.fclpath) != os.path.abspath(workfcl):
-            larbatch_posix.copy(self.fclpath, workfcl)
+        if file_type != 'root':
+            workfcl = os.path.join(tmpworkdir, os.path.basename(self.fclpath))
+            if os.path.abspath(self.fclpath) != os.path.abspath(workfcl):
+                larbatch_posix.copy(self.fclpath, workfcl)
 
         # Copy and rename batch script to work directory.
 
@@ -1492,6 +1508,8 @@ CREATE TABLE IF NOT EXISTS unmerged_files (
         # Copy helper scripts to work directory.
 
         helpers = ('root_metadata.py',
+                   'merge_json.py',
+                   'merge_metadata.py',
                    'validate_in_job.py',
                    'mkdir.py',
                    'emptydir.py')
@@ -1555,6 +1573,13 @@ CREATE TABLE IF NOT EXISTS unmerged_files (
         if rc != 0:
             raise RuntimeError, 'Failed to create work tarball in %s' % tmpworkdir
 
+        # Make sure outdir and logdir exist.
+
+        if not larbatch_posix.isdir(self.stobj.outdir):
+            larbatch_posix.makedirs(self.stobj.outdir)
+        if self.stobj.logdir != self.stobj.outdir and not larbatch_posix.isdir(self.stobj.logdir):
+            larbatch_posix.makedirs(self.stobj.logdir)
+
         # Construct jobsub_submit command.
 
         command = ['jobsub_submit']
@@ -1607,7 +1632,8 @@ CREATE TABLE IF NOT EXISTS unmerged_files (
         # Add batch script options.
 
         command.extend([' --group', project_utilities.get_experiment()])
-        command.extend([' -c', os.path.basename(self.fclpath)])
+        if file_type != 'root':
+            command.extend([' -c', os.path.basename(self.fclpath)])
         command.extend([' --nfile', '%d' % max_files_per_job])
         command.extend([' --ups', project_utilities.get_ups_products()])
         if self.probj.release_tag != '':
