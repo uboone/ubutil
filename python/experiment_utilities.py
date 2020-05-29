@@ -37,6 +37,7 @@ def get_dropbox(filename):
 
     # Extract the metadata fields that we need.
     
+    file_format = ''
     file_type = ''
     group = ''
     data_tier = ''
@@ -45,6 +46,8 @@ def get_dropbox(filename):
     subrun = 0
     merge = 0
 
+    if md.has_key('file_format'):
+        file_format = md['file_format']
     if md.has_key('file_type'):
         file_type = md['file_type']
     if md.has_key('group'):
@@ -71,7 +74,7 @@ def get_dropbox(filename):
     #path = '/uboone/data/uboonepro/dropbox/%s/%s/%s' % (file_type, group, data_tier)
     if os.environ.has_key('FTS_DROPBOX'):
         dropbox_root = os.environ['FTS_DROPBOX']
-    elif merge and size < 1000000000:
+    elif merge and size < 1000000000 and (file_format == 'artroot' or file_format == 'root'):
         dropbox_root = '/pnfs/uboone/scratch/uboonepro/dropbox/merge'
     else:
         dropbox_root = '/pnfs/uboone/scratch/uboonepro/dropbox'

@@ -740,7 +740,7 @@ while true; do
     echo $fileurl >> files.list
   else
     ifdh cp $fileurl tempinput/$filename
-    echo tempinput/$filename > files.list
+    echo tempinput/$filename >> files.list
   fi
 
   # Release file.
