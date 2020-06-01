@@ -161,8 +161,14 @@ def merge_metadata(filelist, cpid):
 
             else:
 
-                # Nonmatching nonaggregated keys.
-                # Don't know what to do.
+                # Nonmatching nonaggregated keys handled here.
+                # Some nonmatching keys are allowed.
+                # In these cases, accept the first key and ignore the later nonmatching key.
+
+                if key == 'user':
+                    continue
+
+                # Don't know what to do with this nonmatching key.
 
                 raise RuntimeError, 'Duplicate nonmatching key %s.' % key
 
