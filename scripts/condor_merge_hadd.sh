@@ -816,7 +816,7 @@ fi
 
 # Generate aggregated metadata.
 
-merge_metadata.py consumed_files.list $CPID > ${out}.json
+./merge_metadata.py consumed_files.list $CPID > ${out}.json
 
 # Do root file checks.
 
