@@ -134,7 +134,9 @@ def merge_metadata(filelist, cpid):
                 continue
 
             if key == 'runs':
-                runs.extend(md[key])
+                for runid in md[key]:
+                    if not runid in runs:
+                        runs.append(runid)
                 continue
 
             if key == 'mc.pot':
@@ -185,6 +187,8 @@ def merge_metadata(filelist, cpid):
         merged_md['mc.pot'] = mcpot
     if len(runs) > 0:
         merged_md['runs'] = runs
+    if len(parents) > 0:
+        merged_md['parents'] = parents
 
     # Done.
 
