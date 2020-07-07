@@ -58,7 +58,8 @@ for f in os.listdir('.'):
 
         if len(md) > 0:
             if md.has_key('parents'):
-                for pname in parents:
+                for parent in md['parents']:
+                    pname = parent['file_name']
                     if pname not in this_file_parents:
                         this_file_parents.append(pname)
 
