@@ -903,8 +903,9 @@ CREATE TABLE IF NOT EXISTS unmerged_files (
             dim = ''
 
             q = '''SELECT id, name, size, create_date FROM unmerged_files
-                   WHERE group_id=? and sam_project_id=? ORDER BY create_date;'''
-            c.execute(q, (group_id, 0))
+                   WHERE group_id=? and sam_project_id=? and sam_process_id=?
+                   ORDER BY create_date;'''
+            c.execute(q, (group_id, 0, 0))
             self.conn.commit()
             newrows = c.fetchall()
             for newrow in newrows:
@@ -1153,10 +1154,10 @@ CREATE TABLE IF NOT EXISTS unmerged_files (
                         if len(consumed_files) > 0:
 
                             # Determine file names produced by this process.
-                            # Just look at children of first consumed file.
+                            # Look at children of consumed files.
 
                             dim = '''ischildof:( file_name %s )
-                                 with availability anylocation''' % consumed_files[0]
+                                 with availability anylocation''' % ','.join(consumed_files)
                             files = self.samweb.listFiles(dim)
                             for f in files:
 
@@ -1223,7 +1224,7 @@ CREATE TABLE IF NOT EXISTS unmerged_files (
                             dt = now - t
                             dtsec = dt.total_seconds()
 
-                            if dtsec > 600:
+                            if dtsec > 10800:
 
                                 print 'Project ended: %s' % sam_project
                                 prj_ended = True
