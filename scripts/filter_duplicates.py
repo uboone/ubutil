@@ -45,16 +45,31 @@ for f in os.listdir('.'):
             if parent not in this_file_parents:
                 this_file_parents.append(parent)
 
-        # Extract sam metadata for this root file as python dictionary.
+        # Extract precalculated sam metadata for this file.
+
+        md0 = {}
+        json_file = f + '.json'
+        if project_utilities.safeexist(json_file):
+            mdlines = project_utilities.saferead(json_file)
+            mdtext = ''
+            for line in mdlines:
+                mdtext = mdtext + line
+            try:
+                md0 = json.loads(mdtext)
+            except:
+                md0 = {}
+                pass
+
+        # Extract internal sam metadata for this root file as python dictionary.
 
         md = {}
         try:
             m = extractor_dict.expMetaData(project_utilities.get_experiment(), f)
-            md = m.getmetadata()
+            md = m.getmetadata(md0)
         except:
-            md = {}
+            md = md0
 
-        # Extract internal metadata parents.
+        # Extract metadata parents.
 
         if len(md) > 0:
             if md.has_key('parents'):
@@ -86,6 +101,12 @@ for f in os.listdir('.'):
                     dim += ' and ub_project.stage %s%%' % md['ub_Project.Stage']
                 if md.has_key('ub_Project.Version'):
                     dim += ' and ub_project.version %s' % md['ub_Project.Version']
+                if md.has_key('ub_project.name'):
+                    dim += ' and ub_project.name %s' % md['ub_project.name']
+                if md.has_key('ub_project.stage'):
+                    dim += ' and ub_project.stage %s%%' % md['ub_project.stage']
+                if md.has_key('ub_project.version'):
+                    dim += ' and ub_project.version %s' % md['ub_project.version']
                 s = samweb.listFilesSummary(dimensions=dim)
                 nf = s['file_count']
                 if nf != 0:
