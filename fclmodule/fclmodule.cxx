@@ -54,6 +54,7 @@
 #include <iomanip>
 #include <sstream>
 #include "cetlib/search_path.h"
+#include "cetlib_except/exception.h"
 
 // Walk interface now public.
 
