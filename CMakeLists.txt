@@ -20,6 +20,8 @@ project(ubutil LANGUAGES CXX)
 # cetbuildtools contains our cmake modules
 find_package(cetbuildtools REQUIRED)
 
+list(APPEND CMAKE_MODULE_PATH $ENV{ART_DIR}/Modules)
+
 include(CetCMakeEnv)
 cet_cmake_env()
 
