@@ -6,7 +6,7 @@ include_directories( $ENV{PYTHON_INCLUDE} )
 
 SET ( PYTHON_VERSION $ENV{PYTHON_VERSION} )
 if(PYTHON_VERSION MATCHES v3)
-  find_library(PYTHON NAMES python3.7m PATHS $ENV{PYTHON_LIB})
+  find_library(PYTHON NAMES python3.8m PATHS $ENV{PYTHON_LIB})
 else()
   find_library(PYTHON NAMES python2.7 PATHS $ENV{PYTHON_LIB})
 endif()
