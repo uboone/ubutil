@@ -2,20 +2,16 @@
 # also fine with c2 and e17
 cet_add_compiler_flags(CXX -Wno-register )
 
-include_directories( $ENV{PYTHON_INCLUDE} )
+find_package(PythonInterp REQUIRED)
+find_package(PythonLibs REQUIRED)
 
-SET ( PYTHON_VERSION $ENV{PYTHON_VERSION} )
-if(PYTHON_VERSION MATCHES v3)
-  find_library(PYTHON NAMES python3.8m PATHS $ENV{PYTHON_LIB})
-else()
-  find_library(PYTHON NAMES python2.7 PATHS $ENV{PYTHON_LIB})
-endif()
+include_directories(${PYTHON_INCLUDE_DIRS})
 
-set( CMAKE_SHARED_LIBRARY_PREFIX "" )
 art_make( LIBRARY_NAME fcl
-	  LIB_LIBRARIES ${FHICLCPP}
+	  LIB_LIBRARIES fhiclcpp
 	  		cetlib
 			cetlib_except
-	  		${PYTHON} )
+			${PYTHON_LIBRARIES} )
+set_target_properties(fcl PROPERTIES PREFIX "" SUFFIX ".so")
 
 install_source()
