@@ -1,11 +1,13 @@
 #! /bin/bash
 #------------------------------------------------------------------
 #
-# Purpose: A batch worker script for starting a sam project.
+# Purpose: A batch worker script for starting a sam project.  If
+#          prestage fraction is nonzero, this version prestages
+#          celltree siblings of input project snapshot files.
 #
 # Usage:
 #
-# condor_start_project_crt_merge_v06_26_01_13_33.sh [options]
+# condor_start_project_celltree.sh [options]
 #
 # --sam_user <arg>    - Specify sam user (default $GRID_USER).
 # --sam_group <arg>   - Specify sam group (required).
@@ -431,75 +433,45 @@ if [ $npre -gt 0 ]; then
 
 fi
 
-# Prestage all matching CRT files.
+# Prestage all matching celltree files.
 
-# First loop over binary raw ancestors of files in snapshot and find matching crt binary files.
+# First loop over of files in snapshot and find matching celltree files.
 
 echo
 echo "Files in snapshot:"
 echo
 ifdh translateConstraints "snapshot_for_project_name $SAM_PROJECT with availability physical"
 echo
-echo "Raw binary ancestors of snapshot files:"
+echo "Ancestors of snapshot files:"
 echo
 
-ifdh translateConstraints "file_type data and file_format binary% and data_tier raw and isancestorof: ( snapshot_for_project_name $SAM_PROJECT with availability physical )" > bin.txt
-ifdh translateConstraints "file_type data and file_format binary% and data_tier raw and snapshot_for_project_name $SAM_PROJECT" >> bin.txt
-while read bin
+rm -f celltree.txt
+ifdh translateConstraints "isparentof:( snapshot_for_project_name $SAM_PROJECT with availability physical )" > parents.txt
+while read parent
 do
-  echo $bin
-  ifdh getMetadata $bin > md.txt
-  start=`awk '/Start Time:/{print $3}' md.txt | cut -d+ -f1`
-  end=`awk '/End Time:/{print $3}' md.txt | cut -d+ -f1`
+  echo $parent
 
-  start_fn=`echo ProdRun$start | tr -d - | cut -dT -f1`
+  # Get celltree children of this parent file.
 
-  day=`echo $start | cut -dT -f1`
-  day_sec=`date -d $day +%s`
+  ifdh translateConstraints "ischildof:( file_name $parent ) and file_format root and data_tier celltree and file_name nusel% with availability physical" >> celltree.txt
+done < parents.txt
 
-  yesterday_sec=$(( $day_sec - 86400 ))
-  yesterday_fn=ProdRun`date -d @$yesterday_sec +%Y%m%d`
+# Sort and count celltree files.
 
-  tomorrow_sec=$(( $day_sec + 86400 ))
-  tomorrow_fn=ProdRun`date -d @$tomorrow_sec +%Y%m%d`
-
-  ifdh translateConstraints "file_type data and file_format crt-binaryraw and data_tier raw and start_time<='$end' and end_time>='$start' and file_name ${yesterday_fn}%,${start_fn}%,${tomorrow_fn}%" >> crtraw.txt
-done < bin.txt
-
-# Loop over crt binary files and find matching crt swizzled files.
-
+sort -u celltree.txt > celltree.sort
+ncell=`cat celltree.sort | wc -l`
 echo
-echo "Matching CRT binary files:"
-echo
-sort -u crtraw.txt | while read crtbin
-do
-  echo $crtbin
-  ifdh translateConstraints "file_type data and file_format artroot and \
-    ((ub_project.version prod_v06_26_01_33 and \
-      ub_project.stage crt_swizzle1a,crt_swizzle1b,crt_swizzle1c) or \
-     (ub_project.version prod_v06_26_01_13 and \
-      ub_project.stage crt_swizzle2,crt_swizzle3,crt_swizzle4)) \
-    and ischildof: ( file_name $crtbin)" >> crt_swizzled.txt
-done
-
-echo
-echo "Matching CRT swizzled files:"
-echo
-cat crt_swizzled.txt
-
-ncrt=`cat crt_swizzled.txt | wc -l`
-echo
-echo "Number of CRT swizzled files $ncrt"
+echo "Number of celltree files $ncell"
 echo
 
-# Prestage crt swizzled files.
+# Prestage celltree files.
 
-if [ $ncrt -gt 0 ]; then
-  crt_swizzled_files=(`cat crt_swizzled.txt`)
-  crt_dim_files=`echo ${crt_swizzled_files[*]} | tr ' ' ,`
-  defname=crt_$snapshotdefname
+if [ $ncell -gt 0 ]; then
+  celltree_files=(`cat celltree.sort`)
+  celltree_dim_files=`echo ${celltree_files[*]} | tr ' ' ,`
+  defname=celltree_$snapshotdefname
   echo "Creating dataset definition $defname"
-  samweb create-definition $defname "file_name ${crt_dim_files}"
+  samweb create-definition $defname "file_name ${celltree_dim_files}"
   samweb prestage-dataset --defname $defname
 fi
 
