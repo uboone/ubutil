@@ -73,7 +73,7 @@ for f in os.listdir('.'):
         # Extract metadata parents.
 
         if len(md) > 0:
-            if md.has_key('parents'):
+            if 'parents' in md:
                 for parent in md['parents']:
                     pname = parent['file_name']
                     if pname not in this_file_parents:
@@ -88,25 +88,25 @@ for f in os.listdir('.'):
             if not pname.startswith('CRT'):
                 print('Checking parent %s' % pname)
                 dim = 'ischildof: ( file_name %s with availability physical )' % pname
-                if md.has_key('file_type'):
+                if 'file_type' in md:
                     dim += ' and file_type %s' % md['file_type']
-                if md.has_key('file_format'):
+                if 'file_format' in md:
                     dim += ' and file_format %s' % md['file_format']
-                if md.has_key('data_tier'):
+                if 'data_tier' in md:
                     dim += ' and data_tier %s' % md ['data_tier']
-                if md.has_key('data_stream'):
+                if 'data_stream' in md:
                     dim += ' and data_stream %s' % md['data_stream']
-                if md.has_key('ub_Project.Name'):
+                if 'ub_Project.Name' in md:
                     dim += ' and ub_project.name %s' % md['ub_Project.Name']
-                if md.has_key('ub_Project.Stage'):
+                if 'ub_Project.Stage' in md:
                     dim += ' and ub_project.stage %s%%' % md['ub_Project.Stage']
-                if md.has_key('ub_Project.Version'):
+                if 'ub_Project.Version' in md:
                     dim += ' and ub_project.version %s' % md['ub_Project.Version']
-                if md.has_key('ub_project.name'):
+                if 'ub_project.name' in md:
                     dim += ' and ub_project.name %s' % md['ub_project.name']
-                if md.has_key('ub_project.stage'):
+                if 'ub_project.stage' in md:
                     dim += ' and ub_project.stage %s%%' % md['ub_project.stage']
-                if md.has_key('ub_project.version'):
+                if 'ub_project.version' in md:
                     dim += ' and ub_project.version %s' % md['ub_project.version']
                 s = samweb.listFilesSummary(dimensions=dim)
                 nf = s['file_count']

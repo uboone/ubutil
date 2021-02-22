@@ -148,7 +148,7 @@ def merge_metadata(filelist, cpid):
             
             # Handle nonaggregated metadata keys.
 
-            if not merged_md.has_key(key):
+            if key not in merged_md:
 
                 # If this key is not present in merged metadata, just add it.
 
