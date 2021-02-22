@@ -1096,8 +1096,8 @@ SELECT id FROM merge_groups WHERE
 
         if self.stobj.init_script != '':
             if not larbatch_posix.exists(self.stobj.init_script):
-                raise RuntimeError, 'Worker initialization script %s does not exist.\n' % \
-                    self.stobj.init_script
+                raise RuntimeError('Worker initialization script %s does not exist.\n' % \
+                    self.stobj.init_script)
             work_init_script = os.path.join(tmpworkdir, os.path.basename(self.stobj.init_script))
             if self.stobj.init_script != work_init_script:
                 larbatch_posix.copy(self.stobj.init_script, work_init_script)
@@ -1106,8 +1106,8 @@ SELECT id FROM merge_groups WHERE
 
         if self.stobj.init_source != '':
             if not larbatch_posix.exists(self.stobj.init_source):
-                raise RuntimeError, 'Worker initialization source script %s does not exist.\n' % \
-                    self.stobj.init_source
+                raise RuntimeError('Worker initialization source script %s does not exist.\n' % \
+                    self.stobj.init_source)
             work_init_source = os.path.join(tmpworkdir, os.path.basename(self.stobj.init_source))
             if self.stobj.init_source != work_init_source:
                 larbatch_posix.copy(self.stobj.init_source, work_init_source)
@@ -1116,8 +1116,8 @@ SELECT id FROM merge_groups WHERE
 
         if self.stobj.end_script != '':
             if not larbatch_posix.exists(self.stobj.end_script):
-                raise RuntimeError, 'Worker end-of-job script %s does not exist.\n' % \
-                    self.stobj.end_script
+                raise RuntimeError('Worker end-of-job script %s does not exist.\n' % \
+                    self.stobj.end_script)
             work_end_script = os.path.join(tmpworkdir, os.path.basename(self.stobj.end_script))
             if self.stobj.end_script != work_end_script:
                 larbatch_posix.copy(self.stobj.end_script, work_end_script)
@@ -1186,7 +1186,7 @@ SELECT id FROM merge_groups WHERE
         jobout, joberr = jobinfo.communicate()
         rc = jobinfo.poll()
         if rc != 0:
-            raise RuntimeError, 'Failed to create work tarball in %s' % tmpworkdir
+            raise RuntimeError('Failed to create work tarball in %s' % tmpworkdir)
 
         # Construct jobsub_submit command.
 
