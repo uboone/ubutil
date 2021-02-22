@@ -58,7 +58,7 @@ def getDataGivenFileList(flist,r):
             cur.execute(query)
             row=cur.fetchone()
             for k in r:
-                if k in row.keys() and row[k] is not None:
+                if k in list(row.keys()) and row[k] is not None:
                     if pf is not None:
                         for pfkey in pf:
                             if "EXT" in k and "EXT_" in pfkey:
@@ -140,7 +140,7 @@ def getDataGivenRSList(rslist,r):
         cur.execute(query)
         row=cur.fetchone()
         for k in r:
-            if k in row.keys() and row[k] is not None:
+            if k in list(row.keys()) and row[k] is not None:
                 if pf is not None:
                     for pfkey in pf:
                         if "EXT" in k and "EXT_" in pfkey:
@@ -217,7 +217,7 @@ def getDataGivenRunSubrun(run,subrun,r):
                 if pfkey not in r:
                     r[pfkey]=0    
     for k in r:
-        if k in row.keys() and row[k] is not None:
+        if k in list(row.keys()) and row[k] is not None:
             if pf is not None:
                 for pfkey in pf:
                     if "EXT" in k and "EXT_" in pfkey:
@@ -267,7 +267,7 @@ def getDataGivenRun(run,r):
                     r[pfkey]=0   
 
     for k in r:
-        if k in row.keys() and row[k] is not None:
+        if k in list(row.keys()) and row[k] is not None:
             if pf is not None:
                 for pfkey in pf:
                     if "EXT" in k and "EXT_" in pfkey:
@@ -329,7 +329,7 @@ def getDataGivenWhere(where,r):
             else:
                 missprescale[row['run']].append(1)
         for k in r:
-            if k in row.keys() and row[k] is not None:
+            if k in list(row.keys()) and row[k] is not None:
                 if pf is not None:
                     for pfkey in pf:
                         if "EXT" in k and "EXT_" in pfkey:

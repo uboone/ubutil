@@ -77,7 +77,7 @@ def merge_metadata(filelist, cpid):
 
         # Loop over metadata keys.
 
-        for key in md.keys():
+        for key in list(md.keys()):
 
             # Some keys are ignored or need aggregation.
 
