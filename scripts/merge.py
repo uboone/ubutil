@@ -145,6 +145,7 @@
 #
 ######################################################################
 
+from __future__ import print_function
 import sys, os, datetime, uuid, traceback, tempfile, subprocess
 import threading
 try:
@@ -153,7 +154,6 @@ except ImportError:
     import Queue
 import project, project_utilities, larbatch_posix
 import sqlite3
-from __future__ import print_function
 
 
 def help():

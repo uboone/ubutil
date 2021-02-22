@@ -15,10 +15,10 @@
 #
 ######################################################################
 
+from __future__ import print_function
 import sys, os, subprocess, json, datetime
 import project_utilities
 import extractor_dict
-from __future__ import print_function
 
 samweb = project_utilities.samweb()
 

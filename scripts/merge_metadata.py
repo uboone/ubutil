@@ -33,8 +33,8 @@
 
 # Import stuff.
 
-import sys, json, project_utilities, datetime
 from __future__ import print_function
+import sys, json, project_utilities, datetime
 
 # Function to calculate merged metadata from a file list.
 # Merged metadata python dictionary returned by function.

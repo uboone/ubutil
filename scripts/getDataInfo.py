@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 
+from __future__ import print_function
 import sqlite3
 import argparse
 import sys
@@ -12,7 +13,6 @@ import time
 import logging
 import json
 import confDB
-from __future__ import print_function
 
 def getDataGivenFileList(flist,r):
     #query SAM for each file in file list and gets run and subrun processed from meta data
