@@ -173,7 +173,7 @@ def merge_metadata(filelist, cpid):
 
                 # Don't know what to do with this nonmatching key.
 
-                raise RuntimeError, 'Duplicate nonmatching key %s.' % key
+                raise RuntimeError('Duplicate nonmatching key %s.' % key)
 
 
     # Add aggregated metadata
