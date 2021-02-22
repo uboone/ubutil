@@ -150,6 +150,7 @@ import threading, Queue
 import StringIO
 import project, project_utilities, larbatch_posix
 import sqlite3
+from __future__ import print_function
 
 
 def help():
@@ -166,9 +167,9 @@ def help():
             doprint = 0
         if doprint:
             if len(line) > 2:
-                print line[2:],
+                print(line[2:], end=' ')
             else:
-                print
+                print()
 
 class MergeEngine:
 
@@ -196,7 +197,7 @@ class MergeEngine:
         if xmlfile != '':
             xmlpath = project.normxmlpath(xmlfile)
             if not os.path.exists(xmlpath):
-                print 'XML file not found: %s' % xmlfile
+                print('XML file not found: %s' % xmlfile)
 
             # Use project.py to parse xml file and extract project and stage objects.
 
@@ -208,7 +209,7 @@ class MergeEngine:
 
             if type(self.stobj.fclname) == type([]) and len(self.stobj.fclname) > 0:
                 self.fclpath = os.path.abspath(self.stobj.fclname[0])
-            elif type(self.stobj.fclname) == type('') or type(self.stobj.fclname) == type(u''):
+            elif type(self.stobj.fclname) == type(b'') or type(self.stobj.fclname) == type(u''):
                 self.fclpath = os.path.abspath(self.stobj.fclname)
 
             # Store the absolute path back in stage object.
@@ -312,14 +313,14 @@ CREATE TABLE IF NOT EXISTS unmerged_files (
 
     def update_unmerged_files(self):
 
-        print 'Querying unmerged files from sam.'
+        print('Querying unmerged files from sam.')
         extra_clause = ''
         if self.defname != '':
             extra_clause = 'and defname: %s' % self.defname
         dim = 'merge.merge 1 and merge.merged 0 %s with availability physical' % extra_clause
         files = self.samweb.listFiles(dim)
-        print '%d unmerged files.' % len(files)
-        print 'Updating unmerged_files table in database.'
+        print('%d unmerged files.' % len(files))
+        print('Updating unmerged_files table in database.')
         for f in files:
             self.add_unmerged_file(f)
 
@@ -351,26 +352,26 @@ CREATE TABLE IF NOT EXISTS unmerged_files (
                 if loc['location_type'] == 'tape':
                     on_tape = 1
             if on_tape:
-                print 'File %s is already on tape.' % f
+                print('File %s is already on tape.' % f)
 
                 # Since file is on tape, remove any disk locations.
                 # This shouldn't really ever happen.
             
                 for loc in locs:
                     if loc['location_type'] == 'disk':
-                        print 'Removing disk location.'
+                        print('Removing disk location.')
                         self.samweb.removeFileLocation(f, loc['full_path'])
 
                 # Modify metadata to set merge.merged flag to be true, so that this
                 # file will become invisible to merging.
 
                 mdmod = {'merge.merged': 1}
-                print 'Updating metadata to set merged flag.'
+                print('Updating metadata to set merged flag.')
                 self.samweb.modifyFileMetadata(f, mdmod)
 
             else:
 
-                print 'Adding unmerged file %s' % f
+                print('Adding unmerged file %s' % f)
                 md = self.samweb.getMetadata(f)
                 group_id = self.merge_group(md)
                 size = md['file_size']
@@ -426,15 +427,15 @@ SELECT id FROM merge_groups WHERE
         rows = c.fetchall()
         if len(rows) == 0:
 
-            print "Creating merge group:"
-            print "  file_type = %s" % gtuple[0]
-            print "  file_format = %s" % gtuple[1]
-            print "  data_tier = %s" % gtuple[2]
-            print "  data_stream = %s" % gtuple[3]
-            print "  project = %s" % gtuple[4]
-            print "  stage = %s" % gtuple[5]
-            print "  version = %s" % gtuple[6]
-            print "  run = %d" % gtuple[7]
+            print("Creating merge group:")
+            print("  file_type = %s" % gtuple[0])
+            print("  file_format = %s" % gtuple[1])
+            print("  data_tier = %s" % gtuple[2])
+            print("  data_stream = %s" % gtuple[3])
+            print("  project = %s" % gtuple[4])
+            print("  stage = %s" % gtuple[5])
+            print("  version = %s" % gtuple[6])
+            print("  run = %d" % gtuple[7])
 
             q = '''INSERT INTO merge_groups
                    (file_type, file_format, data_tier, data_stream, project, stage, version, run)
@@ -456,7 +457,7 @@ SELECT id FROM merge_groups WHERE
 
     def update_merges(self):
 
-        print 'Calculating new merges.'
+        print('Calculating new merges.')
 
         # Query and loop over group ids. that have new mergeable files.
 
@@ -542,7 +543,7 @@ SELECT id FROM merge_groups WHERE
         c.execute(q, ('', group_id, '', '', '', 0))
         merge_id = c.lastrowid
 
-        print 'Creating merge with %d files.' % len(file_ids)
+        print('Creating merge with %d files.' % len(file_ids))
 
         # Update the merge_id in each unmerged file row.
 
@@ -572,7 +573,7 @@ SELECT id FROM merge_groups WHERE
 
     def reset(self, merge_id):
 
-        print 'Resetting merged file.'
+        print('Resetting merged file.')
 
         # Querey unmerged files.
 
@@ -586,7 +587,7 @@ SELECT id FROM merge_groups WHERE
         for row in rows:
             id = row[0]
             f = row[1]
-            print 'Checking unmerged file: %s' % f
+            print('Checking unmerged file: %s' % f)
 
             # Get location(s).
 
@@ -596,20 +597,20 @@ SELECT id FROM merge_groups WHERE
                     dir = os.path.join(loc['mount_point'], loc['subdir'])
                     fp = os.path.join(dir, f)
                     if larbatch_posix.exists(fp):
-                        print 'Location OK.'
+                        print('Location OK.')
                     else:
-                        print 'Removing bad location from sam.'
+                        print('Removing bad location from sam.')
                         self.samweb.removeFileLocation(f, loc['full_path'])
 
             # Delete unmerged file from database.
 
-            print 'Deleting unmerged file from database.'
+            print('Deleting unmerged file from database.')
             q = 'DELETE FROM unmerged_files WHERE id=?'
             c.execute(q, (id,))
 
         # Delete merged file from database.
 
-        print 'Deleting merged file from database.'
+        print('Deleting merged file from database.')
         q = 'DELETE FROM merged_files WHERE id=?'
         c.execute(q, (merge_id,))
         self.conn.commit()
@@ -657,15 +658,15 @@ SELECT id FROM merge_groups WHERE
                     ubversion = row[6]
 
                     if merged_file != '':
-                        print '\nStatus=%d, file %s' % (status, merged_file)
+                        print('\nStatus=%d, file %s' % (status, merged_file))
                     else:
-                        print '\nStatus=%d, unnamed file' % status
+                        print('\nStatus=%d, unnamed file' % status)
 
                     if status == 6:
 
-                        print 'Declaring file bad %s' % merged_file
+                        print('Declaring file bad %s' % merged_file)
                         mdmod = {'content_status': 'bad'}
-                        print 'Updating metadata.'
+                        print('Updating metadata.')
                         self.samweb.modifyFileMetadata(merged_file, mdmod)
 
                         # Reset this merged file.
@@ -674,7 +675,7 @@ SELECT id FROM merge_groups WHERE
 
                     elif status == 5:
 
-                        print 'Processing finished for file %s' % merged_file
+                        print('Processing finished for file %s' % merged_file)
                         c = self.conn.cursor()
                         q = 'DELETE FROM merged_files WHERE id=?'
                         c.execute(q, (merge_id,))
@@ -684,7 +685,7 @@ SELECT id FROM merge_groups WHERE
 
                         # Do cleanup for this merged file.
 
-                        print 'Doing cleanup for merged file %s' % merged_file
+                        print('Doing cleanup for merged file %s' % merged_file)
 
                         # First query unmerged files corresponsing to this merged file.
 
@@ -699,21 +700,21 @@ SELECT id FROM merge_groups WHERE
 
                         for f in unmerged_files:
 
-                            print 'Doing cleanup for unmerged file %s' % f
+                            print('Doing cleanup for unmerged file %s' % f)
 
                             # First modify the sam metadata of unmerged files 
                             # to set merge.merged=1.  That will make this
                             # unmerged file invisible to this script.
 
                             mdmod = {'merge.merged': 1}
-                            print 'Updating metadata.'
+                            print('Updating metadata.')
                             self.samweb.modifyFileMetadata(f, mdmod)
 
                             # Remove (disk) locations of unmerged file.
 
                             locs = self.samweb.locateFile(f)
                             if len(locs) > 0:
-                                print 'Cleaning disk locations.'
+                                print('Cleaning disk locations.')
                                 for loc in locs:
                                     if loc['location_type'] == 'disk':
 
@@ -721,18 +722,18 @@ SELECT id FROM merge_groups WHERE
 
                                         dir = os.path.join(loc['mount_point'], loc['subdir'])
                                         fp = os.path.join(dir, f)
-                                        print 'Deleting file from disk.'
+                                        print('Deleting file from disk.')
                                         if larbatch_posix.exists(fp):
                                             larbatch_posix.remove(fp)
 
                                         # Remove location from sam.
 
-                                        print 'Removing location from sam.'
+                                        print('Removing location from sam.')
                                         self.samweb.removeFileLocation(f, loc['full_path'])
 
                             # Delete unmerged file from merge database.
 
-                            print 'Deleting file from merge database: %s' % f
+                            print('Deleting file from merge database: %s' % f)
                             c = self.conn.cursor()
                             q = 'DELETE FROM unmerged_files WHERE name=?'
                             c.execute(q, (f,))
@@ -741,7 +742,7 @@ SELECT id FROM merge_groups WHERE
                         # Cleaning done.
                         # Update status of merged file to 5
 
-                        print 'Cleaning finished.'
+                        print('Cleaning finished.')
                         q = '''UPDATE merged_files SET status=? WHERE id=?;'''
                         c.execute(q, (5, merge_id))
                         self.conn.commit()
@@ -750,18 +751,18 @@ SELECT id FROM merge_groups WHERE
 
                         # Check whether this file has a location.
 
-                        print 'Checking location for file %s' % merged_file
+                        print('Checking location for file %s' % merged_file)
                         locs = self.samweb.locateFile(merged_file)
 
                         # If file has been located, advance to state 4.
 
                         if len(locs) > 0:
-                            print 'File located.'
+                            print('File located.')
                             q = '''UPDATE merged_files SET status=? WHERE id=?;'''
                             c.execute(q, (4, merge_id))
                             self.conn.commit()
                         else:
-                            print 'File not located.'
+                            print('File not located.')
 
                             # Check metadata of this file.
 
@@ -777,7 +778,7 @@ SELECT id FROM merge_groups WHERE
                             # If this file too old, set error status.
 
                             if dt.total_seconds() > 3*24*3600:
-                                print 'File is too old.  Set error status.'
+                                print('File is too old.  Set error status.')
                                 q = '''UPDATE merged_files SET status=? WHERE id=?;'''
                                 c.execute(q, (6, merge_id))
                                 self.conn.commit()
@@ -786,7 +787,7 @@ SELECT id FROM merge_groups WHERE
 
                         # Check whether this file has been declared to sam.
 
-                        print 'Checking metadata for file %s' % merged_file
+                        print('Checking metadata for file %s' % merged_file)
                         md = None
                         try:
                             md = self.samweb.getMetadata(merged_file)
@@ -796,12 +797,12 @@ SELECT id FROM merge_groups WHERE
                         # If file has been declared, advance status to 3.
 
                         if md != None:
-                            print 'File declared.'
+                            print('File declared.')
                             q = '''UPDATE merged_files SET status=? WHERE id=?;'''
                             c.execute(q, (3, merge_id))
                             self.conn.commit()
                         else:
-                            print 'File not declared.'
+                            print('File not declared.')
 
                             # File is not (yet) declared.
 
@@ -810,7 +811,7 @@ SELECT id FROM merge_groups WHERE
                                 # If the project name is invalid, set the status
                                 # back to zero.
 
-                                print 'Malformed project name: %s' % prjname
+                                print('Malformed project name: %s' % prjname)
                                 self.reset(merge_id)
 
                             else:
@@ -836,23 +837,23 @@ SELECT id FROM merge_groups WHERE
                                         # Batch job failed.
                                         # Set status back to 0.
 
-                                        print 'Project ended: %s' % prjname
+                                        print('Project ended: %s' % prjname)
                                         self.reset(merge_id)
 
                                     else:
 
-                                        print 'Project recently ended: %s' % prjname
+                                        print('Project recently ended: %s' % prjname)
 
                                 else:
-                                    print 'Project running: %s' % prjname
+                                    print('Project running: %s' % prjname)
 
 
                     elif status == 0:
 
                         n2 = self.nstat2()
-                        print '%d sam projects with status 2' % n2
+                        print('%d sam projects with status 2' % n2)
                         if n2 >= 200:
-                            print 'Quitting because there are too many jobs with status 2'
+                            print('Quitting because there are too many jobs with status 2')
                             break
 
                         # Ready to merge.
@@ -863,12 +864,12 @@ SELECT id FROM merge_groups WHERE
                             # Check whether this is pssible.
 
                             if self.fclpath == None:
-                                print 'No batch submission because no xml file was specified.'
+                                print('No batch submission because no xml file was specified.')
                                 break
                             if self.numjobs == 0:
-                                print 'Maximum number of batch submissions exceeded.'
+                                print('Maximum number of batch submissions exceeded.')
                                 break
-                            print '%d batch submissions remaining.' % self.numjobs
+                            print('%d batch submissions remaining.' % self.numjobs)
 
                             # Add this file to the merge queue.
 
@@ -961,9 +962,9 @@ SELECT id FROM merge_groups WHERE
 
             if len(output_name) > 190:
                 output_name = '%s_%s.root' % (output_name[:140], uuid.uuid4())
-                print 'Assigning name %s' % output_name
+                print('Assigning name %s' % output_name)
                 if len(output_name) > 190:
-                    print 'Output name is too long.'
+                    print('Output name is too long.')
                     sys.exit(1)
 
             # Remember output name for database update later.
@@ -1040,7 +1041,7 @@ SELECT id FROM merge_groups WHERE
             if len(sam_defnames) > 0:
                 sam_defnames += ':'
             sam_defnames += defname
-            print 'Creating sam definition %s' % defname
+            print('Creating sam definition %s' % defname)
             self.samweb.createDefinition(defname, dim,
                                          user=project_utilities.get_user(), 
                                          group=project_utilities.get_experiment())
@@ -1054,7 +1055,7 @@ SELECT id FROM merge_groups WHERE
 
             # Start sam project.
 
-            print 'Starting project %s' % prjname
+            print('Starting project %s' % prjname)
             self.samweb.startProject(prjname,
                                      defname=defname, 
                                      station=project_utilities.get_experiment(),
@@ -1143,7 +1144,7 @@ SELECT id FROM merge_groups WHERE
                 if helper_path != work_helper:
                     larbatch_posix.copy(helper_path, work_helper)
             else:
-                print 'Helper script %s not found.' % helper
+                print('Helper script %s not found.' % helper)
 
         # Copy helper python modules to work directory.
         # Note that for this to work, these modules must be single files.
@@ -1172,7 +1173,7 @@ SELECT id FROM merge_groups WHERE
                 if helper_path != work_helper:
                     larbatch_posix.copy(helper_path, work_helper)
             else:
-                print 'Helper python module %s not found.' % helper_module
+                print('Helper python module %s not found.' % helper_module)
 
         # Make a tarball out of all of the files in tmpworkdir in stage.workdir
 
@@ -1257,7 +1258,7 @@ SELECT id FROM merge_groups WHERE
             command.extend([' --end-script', os.path.basename(self.stobj.end_script)])
         command.extend([' --init', project_utilities.get_setup_script_path()])
         if self.stobj.validate_on_worker == 1:
-            print 'Validation will be done on the worker node %d' % self.stobj.validate_on_worker
+            print('Validation will be done on the worker node %d' % self.stobj.validate_on_worker)
             command.extend([' --validate'])
             command.extend([' --declare'])
         if self.stobj.copy_to_fts == 1:
@@ -1269,7 +1270,7 @@ SELECT id FROM merge_groups WHERE
 
         # Invoke the job submission command and capture the output.
 
-        print 'Invoke jobsub_submit'
+        print('Invoke jobsub_submit')
         submit_timeout = 3600000
         q = Queue.Queue()
         jobinfo = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
@@ -1308,8 +1309,8 @@ SELECT id FROM merge_groups WHERE
 
             # Batch job submission succeeded.
 
-            print 'Batch job submission succeeded.'
-            print 'Job id = %s' % jobid
+            print('Batch job submission succeeded.')
+            print('Job id = %s' % jobid)
 
             # Update merged_files table with information about this job submission.
 
@@ -1330,14 +1331,14 @@ SELECT id FROM merge_groups WHERE
 
             # Batch job submission failed.
 
-            print 'Batch job submission failed.'
-            print jobout
-            print joberr
+            print('Batch job submission failed.')
+            print(jobout)
+            print(joberr)
 
             # Stop sam projects.
 
             for prj in sam_projects.split(':'):
-                print 'Stopping sam project %s' % prj
+                print('Stopping sam project %s' % prj)
                 self.samweb.stopProject(prj)
 
         # Done.
@@ -1409,7 +1410,7 @@ def check_running(argv):
 def main(argv):
 
     if check_running(argv):
-        print 'Quitting because similar process is already running.'
+        print('Quitting because similar process is already running.')
         sys.exit(0)
 
     # Parse arguments.
@@ -1466,7 +1467,7 @@ def main(argv):
             max_status = int(args[1])
             del args[0:2]
         else:
-            print 'Unknown option %s' % args[0]
+            print('Unknown option %s' % args[0])
             return 1
 
     # Create merge engine.
@@ -1483,7 +1484,7 @@ def main(argv):
 
     # Done.
 
-    print '\nFinished.'
+    print('\nFinished.')
     return 0
 
 if __name__ == '__main__':

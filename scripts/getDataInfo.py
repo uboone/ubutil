@@ -12,6 +12,7 @@ import time
 import logging
 import json
 import confDB
+from __future__ import print_function
 
 def getDataGivenFileList(flist,r):
     #query SAM for each file in file list and gets run and subrun processed from meta data
@@ -32,9 +33,9 @@ def getDataGivenFileList(flist,r):
     try:
         meta=samweb.getMetadataIterator(flist)
     except Exception as e:
-        print "Failed to get metadata from SAM."
-        print "Make sure to setup sam_web_client v2_1 or higher."
-        print e
+        print("Failed to get metadata from SAM.")
+        print("Make sure to setup sam_web_client v2_1 or higher.")
+        print(e)
         sys.exit(0)
 
     missbnb={}
@@ -101,7 +102,7 @@ def getDataGivenFileList(flist,r):
     r['missother']=missother
     r['missprescale']=missprescale
     if mcount != len(flist):
-        print "Warning! Did not get metadata for all files. Looped through %i files, but only got metadata for %i. Check list for repeats or bad file names."%(len(flist),mcount)
+        print("Warning! Did not get metadata for all files. Looped through %i files, but only got metadata for %i. Check list for repeats or bad file names."%(len(flist),mcount))
         logging.debug("Warning! Did not get metadata for all files.")
 
     con.close()
@@ -369,12 +370,12 @@ def getFileListFromDefinition(defname):
     try:
         flist=samweb.listFiles(defname=args.defname)
     except:
-        print "Failed to get the list of files in %s"%args.defname
+        print("Failed to get the list of files in %s"%args.defname)
         sys.exit(1)
 
     flist.sort()
     if (not args.noheader):
-        print "Definition %s contains %i files"%(defname,len(flist))
+        print("Definition %s contains %i files"%(defname,len(flist)))
 
     return flist
 
@@ -386,12 +387,12 @@ def getListFromFile(fname):
         for l in finp:
             flist.append(os.path.basename(l.strip("\n")))
     except Exception as e:
-        print "Failed to read %s"%fname
-        print e
+        print("Failed to read %s"%fname)
+        print(e)
         sys.exit(1)
 
     if (not args.noheader):
-        print "Read %i lines from %s"%(len(flist),fname)
+        print("Read %i lines from %s"%(len(flist),fname))
 
     return flist
 
@@ -525,7 +526,7 @@ dbdir=args.dbdir
 version=args.version
 
 if (args.run is None and args.defname is None and args.where is None and args.file_list is None and args.run_subrun_list is None and args.json_file is None):
-    print "Need to specify run (subrun), or SAM definition, or SQL query, or list of files, or list of runs and subruns, or json file(s) with run/subrun info."
+    print("Need to specify run (subrun), or SAM definition, or SQL query, or list of files, or list of runs and subruns, or json file(s) with run/subrun info.")
     parser.print_help()
     sys.exit(0)
 
@@ -552,8 +553,8 @@ allowedcols.extend(bnbcols)
 allowedcols.extend(numicols)
 
 if not set(map(str.lower, cols))<=set(map(str.lower,allowedcols)):
-    print "Bad format. Allowed columns (case insensitive):"
-    print allowedcols
+    print("Bad format. Allowed columns (case insensitive):")
+    print(allowedcols)
     sys.exit(0)
 
 dbquerybase=getDBQueryBase(cols)
@@ -679,8 +680,8 @@ for var in cols:
         output+="%14.1f"%res[var]
 
 if not args.noheader:
-    print header
-print output
+    print(header)
+print(output)
 
 logging.debug(output)
 
@@ -728,6 +729,6 @@ for r in res:
 
 if mess is not "":
     mess+="\n"
-    print mess 
+    print(mess) 
     logging.warning(mess)
 

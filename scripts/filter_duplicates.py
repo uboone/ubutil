@@ -18,6 +18,7 @@
 import sys, os, subprocess, json, datetime
 import project_utilities
 import extractor_dict
+from __future__ import print_function
 
 samweb = project_utilities.samweb()
 
@@ -33,13 +34,13 @@ if os.path.exists('cpid.txt'):
 if cpid != '':
     dim = 'consumer_process_id %s and consumed_status consumed' % cpid
     parents = samweb.listFiles(dimensions=dim)
-print '%d parents based on sam process id %s' % (len(parents), cpid)
+print('%d parents based on sam process id %s' % (len(parents), cpid))
 
 # Extract sam metadata for each artroot file in the local directory.
 
 for f in os.listdir('.'):
     if f.endswith('.root') or f.endswith('.pndr'):
-        print 'Checking file %s' % f
+        print('Checking file %s' % f)
         this_file_parents = []
         for parent in parents:
             if parent not in this_file_parents:
@@ -85,7 +86,7 @@ for f in os.listdir('.'):
             # Check whether this file is a duplicate.
 
             if not pname.startswith('CRT'):
-                print 'Checking parent %s' % pname
+                print('Checking parent %s' % pname)
                 dim = 'ischildof: ( file_name %s with availability physical )' % pname
                 if md.has_key('file_type'):
                     dim += ' and file_type %s' % md['file_type']
@@ -113,7 +114,7 @@ for f in os.listdir('.'):
 
                     # This file is a duplicate.  Remove it.
 
-                    print 'Deleting duplicate file %s.' % f
+                    print('Deleting duplicate file %s.' % f)
                     os.remove(f)
                     break         # Break out of loop over parents.
 

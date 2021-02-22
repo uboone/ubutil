@@ -34,6 +34,7 @@
 # Import stuff.
 
 import sys, json, project_utilities, datetime
+from __future__ import print_function
 
 # Function to calculate merged metadata from a file list.
 # Merged metadata python dictionary returned by function.
@@ -199,19 +200,19 @@ if __name__ == "__main__":
     # Parse arguments.
 
     if len(sys.argv) < 2:
-        print 'No file list specified.'
+        print('No file list specified.')
         sys.exit(1)
     filelist = sys.argv[1]
     cpid = None
     if len(sys.argv) > 2:
         cpid = int(sys.argv[2])
     if len(sys.argv) > 3:
-        print 'Too many arguments.'
+        print('Too many arguments.')
         sys.exit(1)
     md = merge_metadata(filelist, cpid)
 
     # Print metadata as json string.
 
-    print json.dumps(md, indent=2, sort_keys=True)
+    print(json.dumps(md, indent=2, sort_keys=True))
 
     sys.exit(0)	

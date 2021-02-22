@@ -151,6 +151,7 @@ import threading, Queue
 import StringIO
 import project, project_utilities, larbatch_posix
 import sqlite3
+from __future__ import print_function
 
 
 def help():
@@ -167,9 +168,9 @@ def help():
             doprint = 0
         if doprint:
             if len(line) > 2:
-                print line[2:],
+                print(line[2:], end=' ')
             else:
-                print
+                print()
 
 class MergeEngine:
 
@@ -197,7 +198,7 @@ class MergeEngine:
         if xmlfile != '':
             xmlpath = project.normxmlpath(xmlfile)
             if not os.path.exists(xmlpath):
-                print 'XML file not found: %s' % xmlfile
+                print('XML file not found: %s' % xmlfile)
 
             # Use project.py to parse xml file and extract project and stage objects.
 
@@ -209,7 +210,7 @@ class MergeEngine:
 
             if type(self.stobj.fclname) == type([]) and len(self.stobj.fclname) > 0:
                 self.fclpath = os.path.abspath(self.stobj.fclname[0])
-            elif type(self.stobj.fclname) == type('') or type(self.stobj.fclname) == type(u''):
+            elif type(self.stobj.fclname) == type(b'') or type(self.stobj.fclname) == type(u''):
                 self.fclpath = os.path.abspath(self.stobj.fclname)
 
             # Store the absolute path back in stage object.
@@ -338,7 +339,7 @@ CREATE TABLE IF NOT EXISTS unmerged_files (
 
         if len(self.metadata_queue) > 0:
             for md in self.metadata_queue:
-                print 'Updating metadata for file %s' % md['file_name']
+                print('Updating metadata for file %s' % md['file_name'])
             self.samweb.modifyMetadata(self.metadata_queue)
             self.metadata_queue = []
 
@@ -424,14 +425,14 @@ CREATE TABLE IF NOT EXISTS unmerged_files (
         if self.query_limit == 0 or self.max_groups == 0:
             return
 
-        print 'Querying unmerged files from sam.'
+        print('Querying unmerged files from sam.')
         extra_clause = ''
         if self.defname != '':
             extra_clause = 'and defname: %s' % self.defname
         dim = 'merge.merge 1 and merge.merged 0 %s with availability physical with limit %d' % (
             extra_clause, self.query_limit)
         files = self.samweb.listFiles(dim)
-        print '%d unmerged files.' % len(files)
+        print('%d unmerged files.' % len(files))
 
         # Store unmerged files in a python set.
 
@@ -448,17 +449,17 @@ CREATE TABLE IF NOT EXISTS unmerged_files (
         for row in rows:
             f = row[0]
             unmerged_files.discard(f)
-        print '%d unmerged files remaining after initial purge.' % len(unmerged_files)
+        print('%d unmerged files remaining after initial purge.' % len(unmerged_files))
 
-        print 'Updating unmerged_files table in database.'
+        print('Updating unmerged_files table in database.')
 
         nadd = 0
         while len(unmerged_files) > 0:
             example_file = unmerged_files.pop()
             add_files = self.add_unmerged_file(example_file)
             unmerged_files -= add_files
-            print '\n%d unmerged files remaining.' % len(unmerged_files)
-            print '%d groups added.' % nadd
+            print('\n%d unmerged files remaining.' % len(unmerged_files))
+            print('%d groups added.' % nadd)
             if len(add_files) > 0:
                 nadd += 1
                 if nadd >= self.max_groups:
@@ -471,7 +472,7 @@ CREATE TABLE IF NOT EXISTS unmerged_files (
             row = c.fetchone()
             n = row[0]
             self.conn.commit()
-            print '%d unaffiliated unmerged files.' % n
+            print('%d unaffiliated unmerged files.' % n)
             if n > self.file_limit:
                 break
 
@@ -494,7 +495,7 @@ CREATE TABLE IF NOT EXISTS unmerged_files (
 
         c = None
 
-        print 'Checking location of file %s' % f
+        print('Checking location of file %s' % f)
         on_disk = False
         on_tape = False
 
@@ -510,7 +511,7 @@ CREATE TABLE IF NOT EXISTS unmerged_files (
 
         if on_tape:
 
-            print 'File is on tape.'
+            print('File is on tape.')
 
             # File is on tape
             # Delete and remove any disk locations from sam.
@@ -522,10 +523,10 @@ CREATE TABLE IF NOT EXISTS unmerged_files (
 
                     dir = os.path.join(loc['mount_point'], loc['subdir'])
                     fp = os.path.join(dir, f)
-                    print 'Deleting file from disk.'
+                    print('Deleting file from disk.')
                     if self.exists(fp):
                         larbatch_posix.remove(fp)
-                    print 'Removing disk location from sam.'
+                    print('Removing disk location from sam.')
                     self.samweb.removeFileLocation(f, loc['full_path'])
 
         else:
@@ -543,34 +544,34 @@ CREATE TABLE IF NOT EXISTS unmerged_files (
                     if md['content_status'] == 'good':
                         content_good = True
                 if content_good:
-                    print 'Content status good.'
+                    print('Content status good.')
                 else:
-                    print 'Content status bad.'
+                    print('Content status bad.')
 
                 # Check disk locations.
 
-                print 'Checking disk locations.'
+                print('Checking disk locations.')
                 for loc in locs:
                     if loc['location_type'] == 'disk':
                         dir = os.path.join(loc['mount_point'], loc['subdir'])
                         fp = os.path.join(dir, f)
                         if content_good and self.exists(fp):
-                            print 'Location OK.'
+                            print('Location OK.')
                             on_disk = True
                         else:
-                            print 'Removing bad disk location from sam.'
+                            print('Removing bad disk location from sam.')
                             self.samweb.removeFileLocation(f, loc['full_path'])
                             if self.exists(fp):
                                 larbatch_posix.remove(fp)
                     else:
-                        print 'Removing bad location from sam.'
+                        print('Removing bad location from sam.')
                         self.samweb.removeFileLocation(f, loc['full_path'])
 
         # If file has no valid locations, forget about this file.
 
         if not on_tape and do_check_disk and not on_disk:
-            print 'File has no valid locations.'
-            print 'Forget about this file.'
+            print('File has no valid locations.')
+            print('Forget about this file.')
             if c == None:
                 c = self.conn.cursor()
             q = 'DELETE FROM unmerged_files WHERE name=?;'
@@ -586,7 +587,7 @@ CREATE TABLE IF NOT EXISTS unmerged_files (
 
     def delete_disk_locations(self, f):
 
-        print 'Deleting disk locations for file %s' % f
+        print('Deleting disk locations for file %s' % f)
 
         # Get location(s).
 
@@ -598,10 +599,10 @@ CREATE TABLE IF NOT EXISTS unmerged_files (
 
                 dir = os.path.join(loc['mount_point'], loc['subdir'])
                 fp = os.path.join(dir, f)
-                print 'Deleting file from disk.'
+                print('Deleting file from disk.')
                 if self.exists(fp):
                     larbatch_posix.remove(fp)
-                print 'Removing disk location from sam.'
+                print('Removing disk location from sam.')
                 self.samweb.removeFileLocation(f, loc['full_path'])
 
         # Done
@@ -630,7 +631,7 @@ CREATE TABLE IF NOT EXISTS unmerged_files (
         for md in mds:
 
             f = md['file_name']
-            print 'Checking unmerged file %s' % f
+            print('Checking unmerged file %s' % f)
             locs = locdict[f]
 
             # See if this file is on tape already.
@@ -643,14 +644,14 @@ CREATE TABLE IF NOT EXISTS unmerged_files (
 
             if on_tape:
 
-                print 'File is already on tape.'
+                print('File is already on tape.')
 
                 # File is on tape
                 # Modify metadata to set merge.merged flag to be true, so that this
                 # file will no longer be considered for merging.
 
                 mdmod = {'merge.merged': 1}
-                print 'Updating metadata to set merged flag.'
+                print('Updating metadata to set merged flag.')
                 self.modifyFileMetadata(f, mdmod)
 
                 # Delete and remove any disk locations from sam.
@@ -663,10 +664,10 @@ CREATE TABLE IF NOT EXISTS unmerged_files (
 
                         dir = os.path.join(loc['mount_point'], loc['subdir'])
                         fp = os.path.join(dir, f)
-                        print 'Deleting file from disk.'
+                        print('Deleting file from disk.')
                         if self.exists(fp):
                             larbatch_posix.remove(fp)
-                        print 'Removing disk location from sam.'
+                        print('Removing disk location from sam.')
                         self.samweb.removeFileLocation(f, loc['full_path'])
 
             else:
@@ -674,16 +675,16 @@ CREATE TABLE IF NOT EXISTS unmerged_files (
                 # File is not on tape.
                 # Check disk locations.
 
-                print 'Checking disk locations.'
+                print('Checking disk locations.')
                 for loc in locs:
                     if loc['location_type'] == 'disk':
                         dir = os.path.join(loc['mount_point'], loc['subdir'])
                         fp = os.path.join(dir, f)
                         if self.exists(fp):
-                            print 'Location OK.'
+                            print('Location OK.')
                             on_disk = True
                         else:
-                            print 'Removing bad location from sam.'
+                            print('Removing bad location from sam.')
                             self.samweb.removeFileLocation(f, loc['full_path'])
 
             
@@ -692,7 +693,7 @@ CREATE TABLE IF NOT EXISTS unmerged_files (
 
                 # File has valid disk location.
 
-                print 'Adding unmerged file %s' % f
+                print('Adding unmerged file %s' % f)
                 group_id = self.merge_group(md)
                 if group_id > 0:
                     size = md['file_size']
@@ -711,7 +712,7 @@ CREATE TABLE IF NOT EXISTS unmerged_files (
 
                 # No valid location.
 
-                print 'File does not have a valid location.'
+                print('File does not have a valid location.')
 
         # Done.
 
@@ -728,7 +729,7 @@ CREATE TABLE IF NOT EXISTS unmerged_files (
         # Make sure add list is in form of a python set.
 
         add_files = set(flist)
-        print '\n%d files in initial add group.' % len(add_files)
+        print('\n%d files in initial add group.' % len(add_files))
 
         # Query database to see which of these files already exist.
 
@@ -741,15 +742,15 @@ CREATE TABLE IF NOT EXISTS unmerged_files (
 
         for row in rows:
             f = row[0]
-            print 'Ignoring %s' % f
+            print('Ignoring %s' % f)
             add_files.discard(f)
 
-        print '\b%d files in final add list.' % len(add_files)
+        print('\b%d files in final add list.' % len(add_files))
 
         # Loop over files in add list and do bulk adds.
 
         for f in add_files:            
-            print 'Adding %s' % f
+            print('Adding %s' % f)
             self.add_queue.append(f)
             if len(self.add_queue) >= self.add_queue_max:
                 self.flush_add_queue()
@@ -766,7 +767,7 @@ CREATE TABLE IF NOT EXISTS unmerged_files (
 
     def add_unmerged_file(self, f):
 
-        print '\nAdding example unmerged file %s' % f
+        print('\nAdding example unmerged file %s' % f)
 
         # Add this file and group partners.
 
@@ -834,15 +835,15 @@ CREATE TABLE IF NOT EXISTS unmerged_files (
         rows = c.fetchall()
         if len(rows) == 0:
 
-            print "Creating merge group:"
-            print "  file_type = %s" % gtuple[0]
-            print "  file_format = %s" % gtuple[1]
-            print "  data_tier = %s" % gtuple[2]
-            print "  data_stream = %s" % gtuple[3]
-            print "  project = %s" % gtuple[4]
-            print "  stage = %s" % gtuple[5]
-            print "  version = %s" % gtuple[6]
-            print "  run = %d" % gtuple[7]
+            print("Creating merge group:")
+            print("  file_type = %s" % gtuple[0])
+            print("  file_format = %s" % gtuple[1])
+            print("  data_tier = %s" % gtuple[2])
+            print("  data_stream = %s" % gtuple[3])
+            print("  project = %s" % gtuple[4])
+            print("  stage = %s" % gtuple[5])
+            print("  version = %s" % gtuple[6])
+            print("  run = %d" % gtuple[7])
 
             q = '''INSERT INTO merge_groups
                    (file_type, file_format, data_tier, data_stream, project, stage, version, run)
@@ -876,7 +877,7 @@ CREATE TABLE IF NOT EXISTS unmerged_files (
         for row in rows:
 
             group_id = row[0]
-            print 'Checking merge group %d.' % group_id
+            print('Checking merge group %d.' % group_id)
 
             # Check the number of sam projects.
 
@@ -885,10 +886,10 @@ CREATE TABLE IF NOT EXISTS unmerged_files (
             mrow = c.fetchone()
             self.conn.commit()
             nprj = mrow[0]
-            print '%d sam projects.' % nprj
+            print('%d sam projects.' % nprj)
             if nprj >= self.max_projects:
 
-                print 'Quitting because number of projects is at the maximum.'
+                print('Quitting because number of projects is at the maximum.')
                 break
 
 
@@ -931,13 +932,13 @@ CREATE TABLE IF NOT EXISTS unmerged_files (
             # Calculate age of oldest unmerged file.
 
             create_project = False
-            print 'Checking merge group.'
-            print 'Total size = %d' % total_size
-            print 'Oldest create date = %s' % oldest_create_date
+            print('Checking merge group.')
+            print('Total size = %d' % total_size)
+            print('Oldest create date = %s' % oldest_create_date)
 
             if total_size >= self.min_size:
 
-                print 'Create sam project because total size is greater than minimum size.'
+                print('Create sam project because total size is greater than minimum size.')
                 create_project = True
 
             if not create_project:
@@ -945,7 +946,7 @@ CREATE TABLE IF NOT EXISTS unmerged_files (
                 now = datetime.datetime.utcnow()
                 dt = now - t
                 if dt.total_seconds() > self.max_age:
-                    print 'Create sam project because oldest file is older than maximum age.'
+                    print('Create sam project because oldest file is older than maximum age.')
                     create_project = True
 
             if create_project:
@@ -968,7 +969,7 @@ CREATE TABLE IF NOT EXISTS unmerged_files (
                                         # If we find a file with a duplicate parent, delete
                                         # that file.
 
-                                        print 'Unmerged file %s has duplicate parent.' % f
+                                        print('Unmerged file %s has duplicate parent.' % f)
                                         self.delete_disk_locations(f)
                                         q = 'DELETE FROM unmerged_files WHERE name=?;'
                                         c.execute(q, (f,))
@@ -980,16 +981,16 @@ CREATE TABLE IF NOT EXISTS unmerged_files (
                 # the duplicate processed file having been deleted.
 
                 if create_project:
-                    print 'Duplicate parent check OK.'
+                    print('Duplicate parent check OK.')
                 else:
-                    print 'Duplicate parent check failed.'
+                    print('Duplicate parent check failed.')
 
             if create_project:
 
                 # Create sam dataset definition.
 
                 defname = 'merge_%s' % uuid.uuid4()
-                print 'Creating dataset definition %s' % defname
+                print('Creating dataset definition %s' % defname)
                 self.samweb.createDefinition(defname, dim,
                                              user=project_utilities.get_user(), 
                                              group=project_utilities.get_experiment())
@@ -1001,9 +1002,9 @@ CREATE TABLE IF NOT EXISTS unmerged_files (
                 if num_jobs > nfiles:
                     num_jobs = nfiles
                 max_files_per_job = (nfiles - 1) / num_jobs + 1
-                print 'Number of files = %d' % nfiles
-                print 'Number of batch jobs = %d' % num_jobs
-                print 'Maximum files per job = %d' % max_files_per_job
+                print('Number of files = %d' % nfiles)
+                print('Number of batch jobs = %d' % num_jobs)
+                print('Maximum files per job = %d' % max_files_per_job)
 
                 # Insert a new row into sam_projects table.
 
@@ -1032,17 +1033,17 @@ CREATE TABLE IF NOT EXISTS unmerged_files (
 
         if prjstat.has_key('project_start_time'):
             startstr = prjstat['project_start_time']
-            print 'Project start time = %s' % startstr
+            print('Project start time = %s' % startstr)
             t = datetime.datetime.fromtimestamp(0)
             try:
                 t = datetime.datetime.strptime(startstr, '%Y-%m-%dT%H:%M:%S.%f+00:00')
             except:
-                print 'Malformed time stamp.'
+                print('Malformed time stamp.')
                 t = datetime.datetime.fromtimestamp(0)
             now = datetime.datetime.utcnow()
             dt = now - t
             dtsec = dt.total_seconds()
-            print 'Project age = %d seconds' % dtsec
+            print('Project age = %d seconds' % dtsec)
 
             # If start time is older than 24 hours, stop this project.
 
@@ -1088,14 +1089,14 @@ CREATE TABLE IF NOT EXISTS unmerged_files (
                 num_jobs = row[3]
                 max_files_per_job = row[4]
 
-                print '\nStatus=%d, sam project %s' % (status, sam_project)
+                print('\nStatus=%d, sam project %s' % (status, sam_project))
 
                 if status == 3:
 
                     # Finished.
                     # Delete this project.
 
-                    print 'Deleting project %s' % sam_project
+                    print('Deleting project %s' % sam_project)
 
                     # First validate locations of any unmerged files associated with this process.
 
@@ -1103,7 +1104,7 @@ CREATE TABLE IF NOT EXISTS unmerged_files (
                     c.execute(q, (sam_project_id,))
                     rows = c.fetchall()
                     if len(rows) > 0:
-                        print 'Checking locations of remaining unmerged files.'
+                        print('Checking locations of remaining unmerged files.')
                         for row in rows:
                             f = row[0]
                             self.check_location(f, True)
@@ -1136,11 +1137,11 @@ CREATE TABLE IF NOT EXISTS unmerged_files (
                         procs = prjsum['processes']
 
                     if len(procs) == 0:
-                        print 'No processes.'
+                        print('No processes.')
 
                     for proc in procs:
                         pid = proc['process_id']
-                        print 'SAM process id = %d' % pid
+                        print('SAM process id = %d' % pid)
 
                         # Query files consumed by this process.
 
@@ -1149,7 +1150,7 @@ CREATE TABLE IF NOT EXISTS unmerged_files (
                         files = self.samweb.listFiles(dim)
                         for f in files:
                             consumed_files.append(f)
-                        print 'Number of consumed files = %d' % len(consumed_files)
+                        print('Number of consumed files = %d' % len(consumed_files))
 
                         if len(consumed_files) > 0:
 
@@ -1167,7 +1168,7 @@ CREATE TABLE IF NOT EXISTS unmerged_files (
                                 if md.has_key('process_id'):
                                     if pid == md['process_id']:
 
-                                        print 'Output file = %s' % f
+                                        print('Output file = %s' % f)
 
                                         # Add line to sam_processes table.
 
@@ -1182,7 +1183,7 @@ CREATE TABLE IF NOT EXISTS unmerged_files (
                                         # Update unmerged files table.
 
                                         for consumed_file in consumed_files:
-                                            print 'Unmerged file %s' % consumed_file
+                                            print('Unmerged file %s' % consumed_file)
 
                                         # Update process id join with unmerged file.
 
@@ -1226,13 +1227,13 @@ CREATE TABLE IF NOT EXISTS unmerged_files (
 
                             if dtsec > 10800:
 
-                                print 'Project ended: %s' % sam_project
+                                print('Project ended: %s' % sam_project)
                                 prj_ended = True
 
                             else:
 
-                                print 'Project cooling off (ended %d seconds ago): %s' % (
-                                    dtsec, sam_project)
+                                print('Project cooling off (ended %d seconds ago): %s' % (
+                                    dtsec, sam_project))
 
                     if prj_ended:
 
@@ -1249,7 +1250,7 @@ CREATE TABLE IF NOT EXISTS unmerged_files (
                         # Project is in an unkillable state.
                         # Just forget about this project.
 
-                        print 'Forgetting about this project.'
+                        print('Forgetting about this project.')
                         q = 'UPDATE sam_projects SET status=? WHERE id=?;'
                         c.execute(q, (2, sam_project_id))
                         self.conn.commit()
@@ -1258,18 +1259,18 @@ CREATE TABLE IF NOT EXISTS unmerged_files (
 
                         # Project has started, but has not ended.
 
-                        print 'Project %s has started, but has not yet ended.' % sam_project
+                        print('Project %s has started, but has not yet ended.' % sam_project)
 
                         # Figure out if we should stop this project.
 
                         stop_project = self.should_stop_project(prjstat)
 
                         if stop_project:
-                            print 'Stop project %s' % sam_project
+                            print('Stop project %s' % sam_project)
                             try:
                                 self.samweb.stopProject(sam_project)
                             except:
-                                print 'Unable to stop project.'
+                                print('Unable to stop project.')
 
                             # Advance the status to 2.
 
@@ -1282,7 +1283,7 @@ CREATE TABLE IF NOT EXISTS unmerged_files (
 
                         # Project has not started.
 
-                        print 'Project %s has not started.' % sam_project
+                        print('Project %s has not started.' % sam_project)
 
                         # Check submit time.
 
@@ -1292,14 +1293,14 @@ CREATE TABLE IF NOT EXISTS unmerged_files (
                         self.conn.commit()
                         stime_str = row[0]
                         stime = datetime.datetime.strptime(stime_str, '%Y-%m-%d %H:%M:%S')
-                        print 'Submit time = %s' % stime_str
+                        print('Submit time = %s' % stime_str)
 
                         now = datetime.datetime.now()
                         now_str = datetime.datetime.strftime(now, '%Y-%m-%d %H:%M:%S')
-                        print 'Current time = %s' % now_str
+                        print('Current time = %s' % now_str)
 
                         dt = now - stime
-                        print 'Project age = %s' % dt
+                        print('Project age = %s' % dt)
 
                         if dt.total_seconds() > 24*3600:
 
@@ -1309,7 +1310,7 @@ CREATE TABLE IF NOT EXISTS unmerged_files (
                             # A subsequent invocation of this script will handle
                             # the ended project.
 
-                            print 'Start project %s' % sam_project
+                            print('Start project %s' % sam_project)
                             try:
                                 self.samweb.startProject(sam_project,
                                                          defname=defname, 
@@ -1317,10 +1318,10 @@ CREATE TABLE IF NOT EXISTS unmerged_files (
                                                          group=project_utilities.get_experiment(),
                                                          user=project_utilities.get_user())
 
-                                print 'Stop project %s' % sam_project
+                                print('Stop project %s' % sam_project)
                                 self.samweb.stopProject(sam_project)
                             except:
-                                print 'Failed to start or end project.'
+                                print('Failed to start or end project.')
 
                             # Advance the status to 2.
 
@@ -1360,7 +1361,7 @@ CREATE TABLE IF NOT EXISTS unmerged_files (
         c.execute(q, (sam_project_id,))
         row = c.fetchone()
         if row == None:
-            print 'No files associated with this project.'
+            print('No files associated with this project.')
             q = 'DELETE FROM sam_projects WHERE id=?'
             c.execute(q, (sam_project_id,))
             self.conn.commit()
@@ -1437,12 +1438,12 @@ CREATE TABLE IF NOT EXISTS unmerged_files (
         # Generate project name and stash the name in the database.
 
         prjname = self.samweb.makeProjectName(defname)
-        print 'Submitting batch job for project %s' % prjname
+        print('Submitting batch job for project %s' % prjname)
 
         # Start project now.
 
         if num_jobs > 1:
-            print 'Starting sam project %s' % prjname
+            print('Starting sam project %s' % prjname)
             try:
                 self.samweb.startProject(prjname,
                                          defname=defname, 
@@ -1452,7 +1453,7 @@ CREATE TABLE IF NOT EXISTS unmerged_files (
             except:
                 pass
         else:
-            print 'Project will be started by batch job.'
+            print('Project will be started by batch job.')
 
         # Temporary directory where we will copy the batch script.
 
@@ -1530,7 +1531,7 @@ CREATE TABLE IF NOT EXISTS unmerged_files (
                 if helper_path != work_helper:
                     larbatch_posix.copy(helper_path, work_helper)
             else:
-                print 'Helper script %s not found.' % helper
+                print('Helper script %s not found.' % helper)
 
         # Copy helper python modules to work directory.
         # Note that for this to work, these modules must be single files.
@@ -1559,7 +1560,7 @@ CREATE TABLE IF NOT EXISTS unmerged_files (
                 if helper_path != work_helper:
                     larbatch_posix.copy(helper_path, work_helper)
             else:
-                print 'Helper python module %s not found.' % helper_module
+                print('Helper python module %s not found.' % helper_module)
 
         # Make a tarball out of all of the files in tmpworkdir in stage.workdir
 
@@ -1654,7 +1655,7 @@ CREATE TABLE IF NOT EXISTS unmerged_files (
             command.extend([' --end-script', os.path.basename(self.stobj.end_script)])
         command.extend([' --init', project_utilities.get_setup_script_path()])
         if self.stobj.validate_on_worker == 1:
-            print 'Validation will be done on the worker node %d' % self.stobj.validate_on_worker
+            print('Validation will be done on the worker node %d' % self.stobj.validate_on_worker)
             command.extend([' --validate'])
             command.extend([' --declare'])
         if self.stobj.copy_to_fts == 1:
@@ -1668,7 +1669,7 @@ CREATE TABLE IF NOT EXISTS unmerged_files (
 
         # Invoke the job submission command and capture the output.
 
-        print 'Invoke jobsub_submit'
+        print('Invoke jobsub_submit')
         submit_timeout = 3600000
         q = Queue.Queue()
         jobinfo = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
@@ -1713,9 +1714,9 @@ CREATE TABLE IF NOT EXISTS unmerged_files (
 
             # Batch job submission succeeded.
 
-            print 'Batch job submission succeeded.'
-            print 'Job id = %s' % jobid
-            print 'Cluster id = %s' % clusid
+            print('Batch job submission succeeded.')
+            print('Job id = %s' % jobid)
+            print('Cluster id = %s' % clusid)
 
             # Update sam_projects table with information about this job submission.
 
@@ -1734,14 +1735,14 @@ CREATE TABLE IF NOT EXISTS unmerged_files (
 
             # Batch job submission failed.
 
-            print 'Batch job submission failed.'
-            print jobout
-            print joberr
+            print('Batch job submission failed.')
+            print(jobout)
+            print(joberr)
 
             # Stop sam projects.
 
             for prj in sam_projects.split(':'):
-                print 'Stopping sam project %s' % prj
+                print('Stopping sam project %s' % prj)
                 self.samweb.stopProject(prj)
 
 
@@ -1769,7 +1770,7 @@ CREATE TABLE IF NOT EXISTS unmerged_files (
                 sam_process_id = row[1]
                 merged_file = row[2]
 
-                print '\nStatus=%d, file name %s' % (status, merged_file)
+                print('\nStatus=%d, file name %s' % (status, merged_file))
 
                 if status == 3 or status == 4:
 
@@ -1784,12 +1785,12 @@ CREATE TABLE IF NOT EXISTS unmerged_files (
                     c.execute(q, (merge_id,))
                     rows = c.fetchall()
                     if len(rows) > 0:
-                        print 'Checking locations of remaining unmerged files.'
+                        print('Checking locations of remaining unmerged files.')
                         for row in rows:
                             f = row[0]
                             self.check_location(f, True)
 
-                    print 'Deleting process.'
+                    print('Deleting process.')
 
                     q = 'UPDATE unmerged_files SET sam_process_id=? WHERE sam_process_id=?;'
                     c.execute(q, (0, merge_id))
@@ -1804,7 +1805,7 @@ CREATE TABLE IF NOT EXISTS unmerged_files (
                     # Located.
                     # Do cleanup for this merged file.
 
-                    print 'Doing cleanup for merged file %s' % merged_file
+                    print('Doing cleanup for merged file %s' % merged_file)
 
                     # First query unmerged files corresponsing to this merged file.
 
@@ -1820,14 +1821,14 @@ CREATE TABLE IF NOT EXISTS unmerged_files (
 
                     for f in unmerged_files:
 
-                        print 'Doing cleanup for unmerged file %s' % f
+                        print('Doing cleanup for unmerged file %s' % f)
 
                         # First modify the sam metadata of unmerged files 
                         # to set merge.merged=1.  That will make this
                         # unmerged file invisible to this script.
 
                         mdmod = {'merge.merged': 1}
-                        print 'Updating metadata.'
+                        print('Updating metadata.')
                         self.modifyFileMetadata(f, mdmod)
 
                         # Delete disk locations for unmerged file.
@@ -1836,7 +1837,7 @@ CREATE TABLE IF NOT EXISTS unmerged_files (
 
                         # Print message about deleting file from database.
 
-                        print 'Deleting file from merge database: %s' % f
+                        print('Deleting file from merge database: %s' % f)
 
                     # Done looping over unmerged files.
 
@@ -1844,7 +1845,7 @@ CREATE TABLE IF NOT EXISTS unmerged_files (
 
                     # Construct a query to do the database deletions in a single query.
 
-                    print 'Deleting unmerged files from database.'
+                    print('Deleting unmerged files from database.')
                     placeholders = ('?,' * len(unmerged_files))[:-1]
                     q = 'DELETE FROM unmerged_files WHERE name IN (%s);' % placeholders
                     c.execute(q, unmerged_files)
@@ -1854,7 +1855,7 @@ CREATE TABLE IF NOT EXISTS unmerged_files (
                     # Cleaning done.
                     # Update status of sam process to 3
 
-                    print 'Cleaning finished.'
+                    print('Cleaning finished.')
                     q = '''UPDATE sam_processes SET status=? WHERE id=?;'''
                     c.execute(q, (3, merge_id))
                     self.conn.commit()
@@ -1868,14 +1869,14 @@ CREATE TABLE IF NOT EXISTS unmerged_files (
 
                     if on_tape:
 
-                        print 'File located.'
+                        print('File located.')
                         q = 'UPDATE sam_processes SET status=? WHERE id=?;'
                         c.execute(q, (2, merge_id))
                         self.conn.commit()
 
                     else:
 
-                        print 'File not located.'
+                        print('File not located.')
 
                         # Check metadata of this file.
 
@@ -1888,12 +1889,12 @@ CREATE TABLE IF NOT EXISTS unmerged_files (
                         now = datetime.datetime.utcnow()
                         dt = now - t
                         dtsec = dt.total_seconds()
-                        print 'File age = %d seconds.' % dtsec
+                        print('File age = %d seconds.' % dtsec)
                         if dtsec > 3*24*3600:
 
                             # File too old, set error status.
 
-                            print 'File is too old.  Set error status.'
+                            print('File is too old.  Set error status.')
                             q = '''UPDATE sam_processes SET status=? WHERE id=?;'''
                             c.execute(q, (4, merge_id))
                             self.conn.commit()
@@ -1901,7 +1902,7 @@ CREATE TABLE IF NOT EXISTS unmerged_files (
                             # Also declare file bad in sam
 
                             mdmod = {'content_status': 'bad'}
-                            print 'Setting file bad status in sam.'
+                            print('Setting file bad status in sam.')
                             self.modifyFileMetadata(merged_file, mdmod)
                             self.flush_metadata()
 
@@ -1915,7 +1916,7 @@ CREATE TABLE IF NOT EXISTS unmerged_files (
 
     def clean_merge_groups(self):
 
-        print '\nCleaning merge groups.'
+        print('\nCleaning merge groups.')
 
         # Loop over merge groups.
 
@@ -1933,7 +1934,7 @@ CREATE TABLE IF NOT EXISTS unmerged_files (
             row = c.fetchone()
             n = row[0]
             if n == 0:
-                print 'Deleting group %d' % group_id
+                print('Deleting group %d' % group_id)
 
                 q = 'DELETE FROM merge_groups WHERE id=?'
                 c.execute(q, (group_id,))
@@ -1986,7 +1987,7 @@ def check_running(argv):
 def main(argv):
 
     if check_running(argv):
-        print 'Quitting because similar process is already running.'
+        print('Quitting because similar process is already running.')
         sys.exit(0)
 
     # Parse arguments.
@@ -2063,7 +2064,7 @@ def main(argv):
             do_phase3 = True
             del args[0]
         else:
-            print 'Unknown option %s' % args[0]
+            print('Unknown option %s' % args[0])
             return 1
 
     # If no phase option, do all three phases.
@@ -2089,7 +2090,7 @@ def main(argv):
 
     # Done.
 
-    print '\nFinished.'
+    print('\nFinished.')
     return 0
 
 if __name__ == '__main__':
