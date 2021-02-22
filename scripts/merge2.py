@@ -168,7 +168,7 @@ def help():
             doprint = 0
         if doprint:
             if len(line) > 2:
-                print(line[2:], end=' ')
+                print(line[2:].rstrip())
             else:
                 print()
 
@@ -382,7 +382,7 @@ CREATE TABLE IF NOT EXISTS unmerged_files (
         base = os.path.basename(npath)
         if dir == '':
             dir = '.'
-        if not self.dircache.has_key(dir):
+        if dir not in self.dircache:
             self.dircache[dir] = set()
             try:
                 self.dircache[dir] = set(larbatch_posix.listdir(dir))
@@ -540,7 +540,7 @@ CREATE TABLE IF NOT EXISTS unmerged_files (
 
                 content_good = False
                 md = self.samweb.getMetadata(f)
-                if md.has_key('content_status'):
+                if 'content_status' in md:
                     if md['content_status'] == 'good':
                         content_good = True
                 if content_good:
@@ -800,7 +800,7 @@ CREATE TABLE IF NOT EXISTS unmerged_files (
         file_type = md['file_type']
         file_format = md['file_format']
         data_tier = md['data_tier']
-        if md.has_key('data_stream'):
+        if 'data_stream' in md:
             data_stream = md['data_stream']
         else:
             data_stream = 'none'
@@ -957,9 +957,9 @@ CREATE TABLE IF NOT EXISTS unmerged_files (
                 mds = self.samweb.getMultipleMetadata(file_names)
                 for md in mds:
                     f = md['file_name']
-                    if md.has_key('parents'):
+                    if 'parents' in md:
                         for parentdict in md['parents']:
-                            if parentdict.has_key('file_name'):
+                            if 'file_name' in parentdict:
                                 parent = parentdict['file_name']
                                 if not parent.startswith('CRT'):
                                     if parent not in parents:
@@ -1031,7 +1031,7 @@ CREATE TABLE IF NOT EXISTS unmerged_files (
 
         # Check the project start time.
 
-        if prjstat.has_key('project_start_time'):
+        if 'project_start_time' in prjstat:
             startstr = prjstat['project_start_time']
             print('Project start time = %s' % startstr)
             t = datetime.datetime.fromtimestamp(0)
@@ -1133,7 +1133,7 @@ CREATE TABLE IF NOT EXISTS unmerged_files (
                     # Loop over processes.
 
                     procs = []
-                    if prjsum.has_key('processes'):
+                    if 'processes' in prjsum:
                         procs = prjsum['processes']
 
                     if len(procs) == 0:
@@ -1165,7 +1165,7 @@ CREATE TABLE IF NOT EXISTS unmerged_files (
                                 # Need to verify process_id.
 
                                 md = self.samweb.getMetadata(f)
-                                if md.has_key('process_id'):
+                                if 'process_id' in md:
                                     if pid == md['process_id']:
 
                                         print('Output file = %s' % f)
@@ -1213,7 +1213,7 @@ CREATE TABLE IF NOT EXISTS unmerged_files (
                     except:
                         prj_started = False
                         prjstat = {}
-                    if prjstat.has_key('project_end_time'):
+                    if 'project_end_time' in prjstat:
                         endstr = prjstat['project_end_time']
                         if len(endstr) > 1:
 
@@ -1243,7 +1243,7 @@ CREATE TABLE IF NOT EXISTS unmerged_files (
                         c.execute(q, (2, sam_project_id))
                         self.conn.commit()
 
-                    elif prj_started and prjstat.has_key('project_status') and \
+                    elif prj_started and 'project_status' in prjstat and \
                          (prjstat['project_status'] == 'reserved' or \
                           prjstat['project_status'] == 'starting'):
 
@@ -1383,7 +1383,7 @@ CREATE TABLE IF NOT EXISTS unmerged_files (
         ubstage = md['ub_project.stage']
         ubversion = md['ub_project.version']
         data_tier = md['data_tier']
-        if md.has_key('data_stream'):
+        if 'data_stream' in md:
             data_stream = md['data_stream']
         else:
             data_stream = 'none'

@@ -167,7 +167,7 @@ def help():
             doprint = 0
         if doprint:
             if len(line) > 2:
-                print(line[2:], end=' ')
+                print(line[2:].rstrip())
             else:
                 print()
 
@@ -929,7 +929,7 @@ SELECT id FROM merge_groups WHERE
             grandparents = set([])
             for unmerged_file in unmerged_files:
                 md = self.samweb.getMetadata(unmerged_file)
-                if md.has_key('parents'):
+                if 'parents' in md:
                     for parent in md['parents']:
                         pname = parent['file_name']
                         if not pname in grandparents:
