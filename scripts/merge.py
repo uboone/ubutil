@@ -146,8 +146,11 @@
 ######################################################################
 
 import sys, os, datetime, uuid, traceback, tempfile, subprocess
-import threading, Queue
-import StringIO
+import threading
+try:
+    import queue as Queue
+except ImportError:
+    import Queue
 import project, project_utilities, larbatch_posix
 import sqlite3
 from __future__ import print_function
