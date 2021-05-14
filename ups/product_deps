@@ -4,7 +4,7 @@
 # The version should be of the form vxx_yy_zz (e.g. v01_02_03)
 parent ubutil v09_22_02
 
-defaultqual e19
+defaultqual e20
 
 # These optional lines define the installed directories where headers,
 # libraries, and executables will be found.
@@ -59,6 +59,8 @@ c7:debug	c7:debug	-nq-		-nq-            -nq-
 c7:prof		c7:prof		-nq-		-nq-            -nq-
 e19:debug       e19:debug       -nq-            -nq-            -nq-
 e19:prof        e19:prof        -nq-            -nq-            -nq-
+e20:debug       e20:debug       -nq-            -nq-            -nq-
+e20:prof        e20:prof        -nq-            -nq-            -nq-
 
 end_qualifier_list
 
