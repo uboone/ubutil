@@ -1482,33 +1482,33 @@ CREATE TABLE IF NOT EXISTS unmerged_files (
 
         # Copy worker initialization script to work directory.
 
-        if self.stobj.init_script != '':
-            if not larbatch_posix.exists(self.stobj.init_script):
-                raise RuntimeError('Worker initialization script %s does not exist.\n' % \
-                    self.stobj.init_script)
-            work_init_script = os.path.join(tmpworkdir, os.path.basename(self.stobj.init_script))
-            if self.stobj.init_script != work_init_script:
-                larbatch_posix.copy(self.stobj.init_script, work_init_script)
+        #if self.stobj.init_script != '':
+        #    if not larbatch_posix.exists(self.stobj.init_script):
+        #        raise RuntimeError, 'Worker initialization script %s does not exist.\n' % \
+        #            self.stobj.init_script
+        #    work_init_script = os.path.join(tmpworkdir, os.path.basename(self.stobj.init_script))
+        #    if self.stobj.init_script != work_init_script:
+        #        larbatch_posix.copy(self.stobj.init_script, work_init_script)
 
         # Copy worker initialization source script to work directory.
 
-        if self.stobj.init_source != '':
-            if not larbatch_posix.exists(self.stobj.init_source):
-                raise RuntimeError('Worker initialization source script %s does not exist.\n' % \
-                    self.stobj.init_source)
-            work_init_source = os.path.join(tmpworkdir, os.path.basename(self.stobj.init_source))
-            if self.stobj.init_source != work_init_source:
-                larbatch_posix.copy(self.stobj.init_source, work_init_source)
+        #if self.stobj.init_source != '':
+        #    if not larbatch_posix.exists(self.stobj.init_source):
+        #        raise RuntimeError, 'Worker initialization source script %s does not exist.\n' % \
+        #            self.stobj.init_source
+        #    work_init_source = os.path.join(tmpworkdir, os.path.basename(self.stobj.init_source))
+        #    if self.stobj.init_source != work_init_source:
+        #        larbatch_posix.copy(self.stobj.init_source, work_init_source)
 
         # Copy worker end-of-job script to work directory.
 
-        if self.stobj.end_script != '':
-            if not larbatch_posix.exists(self.stobj.end_script):
-                raise RuntimeError('Worker end-of-job script %s does not exist.\n' % \
-                    self.stobj.end_script)
-            work_end_script = os.path.join(tmpworkdir, os.path.basename(self.stobj.end_script))
-            if self.stobj.end_script != work_end_script:
-                larbatch_posix.copy(self.stobj.end_script, work_end_script)
+        #if self.stobj.end_script != '':
+        #    if not larbatch_posix.exists(self.stobj.end_script):
+        #        raise RuntimeError, 'Worker end-of-job script %s does not exist.\n' % \
+        #            self.stobj.end_script
+        #    work_end_script = os.path.join(tmpworkdir, os.path.basename(self.stobj.end_script))
+        #    if self.stobj.end_script != work_end_script:
+        #        larbatch_posix.copy(self.stobj.end_script, work_end_script)
 
         # Copy helper scripts to work directory.
 
@@ -1650,12 +1650,12 @@ CREATE TABLE IF NOT EXISTS unmerged_files (
         command.extend([' --logdir', self.stobj.logdir])
         if self.stobj.schema != '':
             command.extend([' --sam_schema', self.stobj.schema])
-        if self.stobj.init_script != '':
-            command.extend([' --init-script', os.path.basename(self.stobj.init_script)])
-        if self.stobj.init_source != '':
-            command.extend([' --init-source', os.path.basename(self.stobj.init_source)])
-        if self.stobj.end_script != '':
-            command.extend([' --end-script', os.path.basename(self.stobj.end_script)])
+        #if self.stobj.init_script != '':
+        #    command.extend([' --init-script', os.path.basename(self.stobj.init_script)])
+        #if self.stobj.init_source != '':
+        #    command.extend([' --init-source', os.path.basename(self.stobj.init_source)])
+        #if self.stobj.end_script != '':
+        #    command.extend([' --end-script', os.path.basename(self.stobj.end_script)])
         command.extend([' --init', project_utilities.get_setup_script_path()])
         if self.stobj.validate_on_worker == 1:
             print('Validation will be done on the worker node %d' % self.stobj.validate_on_worker)
