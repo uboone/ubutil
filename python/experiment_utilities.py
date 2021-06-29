@@ -38,6 +38,7 @@ def get_dropbox(filename):
 
     # Extract the metadata fields that we need.
     
+    file_format = ''
     file_type = ''
     group = ''
     data_tier = ''
@@ -46,6 +47,8 @@ def get_dropbox(filename):
     subrun = 0
     merge = 0
 
+    if 'file_format' in md:
+        file_format = md['file_format']
     if 'file_type' in md:
         file_type = md['file_type']
     if 'group' in md:
@@ -72,7 +75,7 @@ def get_dropbox(filename):
     #path = '/uboone/data/uboonepro/dropbox/%s/%s/%s' % (file_type, group, data_tier)
     if 'FTS_DROPBOX' in os.environ:
         dropbox_root = os.environ['FTS_DROPBOX']
-    elif merge and size < 1000000000:
+    elif merge and size < 1000000000 and (file_format == 'artroot' or file_format == 'root'):
         dropbox_root = '/pnfs/uboone/scratch/uboonepro/dropbox/merge'
     else:
         dropbox_root = '/pnfs/uboone/scratch/uboonepro/dropbox'
@@ -132,6 +135,8 @@ def get_sam_metadata(project, stage):
         result = result + ' ]\n'
     result = result + '}\n'
     result = result + 'services.TFileMetadataMicroBooNE: @local::microboone_tfile_metadata\n'
+    if hasattr(stage,'anamerge') and stage.anamerge == '1':
+        result = result + 'services.TFileMetadataMicroBooNE.Merge: true\n'
 
     return result
 

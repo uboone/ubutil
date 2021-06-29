@@ -57,8 +57,6 @@ end_product_list
 qualifier	art		larbatch	python	jobsub_client	notes
 c7:debug	c7:debug	-nq-		-nq-            -nq-
 c7:prof		c7:prof		-nq-		-nq-            -nq-
-e19:debug       e19:debug       -nq-            -nq-            -nq-
-e19:prof        e19:prof        -nq-            -nq-            -nq-
 e20:debug       e20:debug       -nq-            -nq-            -nq-
 e20:prof        e20:prof        -nq-            -nq-            -nq-
 

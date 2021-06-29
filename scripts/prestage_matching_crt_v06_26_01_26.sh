@@ -151,7 +151,7 @@ do
   tomorrow_sec=$(( $day_sec + 86400 ))
   tomorrow_fn=ProdRun`date -d @$tomorrow_sec +%Y%m%d`
 
-  samweb list-files "file_type data and file_format crt-binaryraw and data_tier raw and start_time<='$end' and end_time>='$start' and file_name ${yesterday_fn},${start_fn}%,${tomorrow_fn}%" >> $crtraw
+  samweb list-files "file_type data and file_format crt-binaryraw and data_tier raw and start_time<='$end' and end_time>='$start' and file_name ${yesterday_fn}%,${start_fn}%,${tomorrow_fn}%" >> $crtraw
 done < $binraw
 echo
 sort -u $crtraw
