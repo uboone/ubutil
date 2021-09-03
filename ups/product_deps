@@ -42,12 +42,15 @@ table_fragment_end
 
 # With "product  version" table below, we now define depdendencies
 # Add the dependent product and version
+# disable jobsub_client so we can run the CI tests
+# see https://cdcvs.fnal.gov/redmine/issues/26182
+# and the associated RITM1017096, https://cdcvs.fnal.gov/redmine/issues/24968
 
 product          version
 art             v3_09_03
 larbatch        v01_56_01
 python          v3_9_2
-jobsub_client   -		-	optional
+jobsub_client   v0_0_0		-	optional
 cetbuildtools  v8_15_00        -       only_for_build
 end_product_list
 
