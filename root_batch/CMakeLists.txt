@@ -14,5 +14,5 @@ LIST(APPEND nonexes root_analyze.py cint_analyze.py )
 message(STATUS "Executable python modules ${exes}")
 message(STATUS "Non-executable python modules ${nonexes}")
 
-install(FILES ${nonexes} DESTINATION ${product}/${version}/python)
+install(FILES ${nonexes} DESTINATION python)
 install_scripts(LIST ${exes})
