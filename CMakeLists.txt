@@ -13,9 +13,9 @@
 # ======================================================================
 
 
-cmake_minimum_required (VERSION 3.12...3.18 FATAL_ERROR)
+cmake_minimum_required(VERSION 3.19 FATAL_ERROR)
 
-project(ubutil LANGUAGES CXX)
+project(ubutil VERSION 09.28.00.01 LANGUAGES CXX)
 
 # cetbuildtools contains our cmake modules
 find_package(cetbuildtools REQUIRED)
@@ -25,23 +25,11 @@ list(APPEND CMAKE_MODULE_PATH $ENV{ART_DIR}/Modules)
 include(CetCMakeEnv)
 cet_cmake_env()
 
-set_install_root()
-
-# -Wno-register is not recognized by e15
-if( ${qualifier} STREQUAL "e17" )
-cet_set_compiler_flags(DIAGS CAUTIOUS
-  WERROR
-  NO_UNDEFINED
-  EXTRA_FLAGS -pedantic -Wno-error=register -Wno-register
-)
-else()
 cet_set_compiler_flags(DIAGS CAUTIOUS
   WERROR
   NO_UNDEFINED
   EXTRA_FLAGS -pedantic
 )
-endif()
-
 
 cet_report_compiler_flags()
 
@@ -50,8 +38,6 @@ find_ups_product( art )
 find_ups_product( fhiclcpp )
 find_ups_product( cetlib )
 find_ups_product( cetlib_except )
-
-
 
 # macros for dictionary and simple_plugin
 include(ArtMake)

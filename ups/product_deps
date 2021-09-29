@@ -2,7 +2,7 @@
 
 # The *parent* line must the first non-commented line and defines this product and version
 # The version should be of the form vxx_yy_zz (e.g. v01_02_03)
-parent ubutil v09_28_00
+parent ubutil v09_28_00_01
 
 defaultqual e20
 
@@ -26,7 +26,6 @@ defaultqual e20
 #
 incdir  -
 fcldir  product_dir    job
-libdir  fq_dir         python
 bindir  product_dir    bin
 
 # table fragment to set various environment variables.
@@ -37,18 +36,18 @@ table_fragment_begin
     envSet(SAM_EXPERIMENT, uboone)
     pathPrepend(PYTHONPATH, ${UPS_PROD_DIR}/bin)
     pathPrepend(PYTHONPATH, ${UPS_PROD_DIR}/python)
-    pathPrepend(PYTHONPATH, ${UBUTIL_FQ_DIR}/python)
+    pathPrepend(PYTHONPATH, ${UBUTIL_FQ_DIR}/lib)
 table_fragment_end
 
 # With "product  version" table below, we now define depdendencies
 # Add the dependent product and version
 
 product          version
-art             v3_06_03
+art             v3_09_03
 larbatch        v01_56_01
-python          v3_8_3b
+python          v3_9_2
 jobsub_client   -		-	optional
-cetbuildtools	v7_17_01	-	only_for_build
+cetbuildtools  v8_17_03        -       only_for_build
 end_product_list
 
 
@@ -57,8 +56,6 @@ end_product_list
 qualifier	art		larbatch	python	jobsub_client	notes
 c7:debug	c7:debug	-nq-		-nq-            -nq-
 c7:prof		c7:prof		-nq-		-nq-            -nq-
-e19:debug       e19:debug       -nq-            -nq-            -nq-
-e19:prof        e19:prof        -nq-            -nq-            -nq-
 e20:debug       e20:debug       -nq-            -nq-            -nq-
 e20:prof        e20:prof        -nq-            -nq-            -nq-
 

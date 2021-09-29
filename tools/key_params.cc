@@ -330,9 +330,8 @@ int main(int argc, char** argv)
     return 1;
   }
 
-  fhicl::ParameterSet pset;
   cet::filepath_lookup maker(pathvar);
-  fhicl::make_ParameterSet(fcl, maker, pset);
+  auto const pset = fhicl::ParameterSet::make(fcl, maker);
 
   // Analyze parameter set.
 
