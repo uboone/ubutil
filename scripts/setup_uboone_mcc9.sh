@@ -75,7 +75,7 @@ if [ `uname` != Darwin ]; then
   setup git
 fi
 setup gitflow
-setup mrb
+setup mrb -o
 setup ubtools
 
 # Define the value of MRB_PROJECT. This can be used

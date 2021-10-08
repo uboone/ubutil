@@ -572,11 +572,10 @@ static PyObject* make_pset(PyObject* self, PyObject *args)
   // Make parameter set.
 
   PyObject* result = 0;
-  fhicl::ParameterSet pset;
+  try {
   std::string pathvar("FHICL_FILE_PATH");
   cet::filepath_lookup maker(pathvar);
-  try {
-    fhicl::make_ParameterSet(fclstr, maker, pset);
+    auto pset = fhicl::ParameterSet::make(fclstr, maker);
     PythonDictConverter converter;
     pset.walk(converter);
     result = converter.result();
@@ -667,4 +666,3 @@ extern "C" {
 }
 
 #endif
-
