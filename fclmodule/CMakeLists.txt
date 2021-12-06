@@ -9,8 +9,8 @@ include_directories(${Python_INCLUDE_DIRS})
 
 art_make( LIBRARY_NAME fcl
 	  LIB_LIBRARIES fhiclcpp
-	  		cetlib
-			cetlib_except
+	  		cetlib::cetlib
+			cetlib_except::cetlib_except
 			Python::Python )
 set_target_properties(fcl PROPERTIES PREFIX "" SUFFIX ".so")
 

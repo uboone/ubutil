@@ -1,1 +1,1 @@
-cet_make_exec( key_params LIBRARIES ${FHICLCPP} cetlib cetlib_except )
+cet_make_exec( key_params LIBRARIES fhiclcpp::fhiclcpp cetlib::cetlib cetlib_except::cetlib_except )
