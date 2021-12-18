@@ -728,6 +728,12 @@ CREATE TABLE IF NOT EXISTS unmerged_files (
         # Make sure add list is in form of a python set.
 
         add_files = set(flist)
+
+        # Make sure the number of files isn't too large for sqlite to handle.
+
+        while len(add_files) > 500:
+            add_files.pop()
+
         print '\n%d files in initial add group.' % len(add_files)
 
         # Query database to see which of these files already exist.
@@ -1224,7 +1230,8 @@ CREATE TABLE IF NOT EXISTS unmerged_files (
                             dt = now - t
                             dtsec = dt.total_seconds()
 
-                            if dtsec > 10800:
+                            #if dtsec > 10800:
+                            if dtsec > 3600:
 
                                 print 'Project ended: %s' % sam_project
                                 prj_ended = True
