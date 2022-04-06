@@ -371,7 +371,8 @@ void PythonDictConverter::add_object(key_t const& key, PyObject* pyobj)
   }
 }
 
-static std::string format(PyObject* obj, unsigned int pos, unsigned int indent, unsigned int maxlen)
+static std::string format(PyObject* obj, unsigned int pos, unsigned int indent,
+                          unsigned int maxlen, unsigned int depth)
 //
 // Purpose: Convert a python object to a prettified string.  The resulting string
 //          is suppsed to be valid fcl code.
@@ -381,6 +382,7 @@ static std::string format(PyObject* obj, unsigned int pos, unsigned int indent, 
 //                     since the last newline).
 //            indent - Indentation level (spaces) for multiline formatting.
 //            maxlen - Maximum line length before breaking.
+//            depth  - Recursion depth.
 //
 // Returns: c++ string.
 //
@@ -446,7 +448,7 @@ static std::string format(PyObject* obj, unsigned int pos, unsigned int indent, 
       std::string ks = python_to_cxx_str(key);
       ss << std::setw(indent) << ""
 	 << std::setw(keymaxlen) << std::left << ks << " : "
-	 << format(value, indent + keymaxlen + 3, indent+2, maxlen)
+	 << format(value, indent + keymaxlen + 3, indent+2, maxlen, depth+1)
 	 << '\n';
     }
     if(n == 0)
@@ -488,7 +490,7 @@ static std::string format(PyObject* obj, unsigned int pos, unsigned int indent, 
 
       // Get the formatted string representation of this object.
 
-      std::string f = format(ele, pos, break_indent, maxlen);
+      std::string f = format(ele, pos, break_indent, maxlen, depth+1);
 
       // Get the number of characters before the first newline.
 
@@ -504,7 +506,8 @@ static std::string format(PyObject* obj, unsigned int pos, unsigned int indent, 
       if(i > 0 && (force_break || pos + n1 > maxlen)) {
 	ss << '\n' << std::setw(break_indent) << "";
 	pos = break_indent;
-	f = format(ele, pos, break_indent, maxlen);
+	f = format(ele, pos, break_indent, maxlen, depth+1);
+        fs = f.size();
       }
 
       // Print this element
@@ -621,7 +624,7 @@ static PyObject* pretty(PyObject* self, PyObject *args)
     // Otherwise, extract the first element.
 
     PyObject* obj = PySequence_GetItem(args, 0);
-    std::string s = format(obj, 0, 0, 80);
+    std::string s = format(obj, 0, 0, 80, 0);
     result = cxx_str_to_python(s);
   }
 
