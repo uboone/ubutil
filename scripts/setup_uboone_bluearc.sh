@@ -67,7 +67,9 @@ if [ `uname` != Darwin ]; then
   # Work around git table file bugs.
 
   export PATH=`dropit git`
-  export LD_LIBRARY_PATH=`dropit -p $LD_LIBRARY_PATH git`
+  if [ x$LD_LIBRARY_PATH != x ]; then
+    export LD_LIBRARY_PATH=`dropit -p $LD_LIBRARY_PATH git`
+  fi
   setup git
 fi
 setup gitflow
