@@ -44,7 +44,7 @@ table_fragment_end
 
 product          version
 art             v3_09_03
-larbatch        v01_57_00
+larbatch        v01_57_01
 python          v3_9_2
 jobsub_client   -		-	optional
 cetbuildtools  v8_18_09        -       only_for_build
