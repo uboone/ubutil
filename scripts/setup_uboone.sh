@@ -13,7 +13,11 @@ UBOONE_BLUEARC_DATA="/uboone/data/"
 
 for dir in $FERMIOSG_LARSOFT_DIR
 do
-  if [[ -f $dir/setup ]]; then
+  if [[ -f $dir/../setup_larsoft.sh ]]; then
+    echo "Setting up larsoft UPS area... ${dir}"
+    source $dir/../setup_larsoft.sh
+    break
+  elif [[ -f $dir/setup ]]; then
     echo "Setting up larsoft UPS area... ${dir}"
     source $dir/setup
     break
