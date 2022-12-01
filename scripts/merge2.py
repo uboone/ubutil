@@ -1491,7 +1491,7 @@ CREATE TABLE IF NOT EXISTS unmerged_files (
         if md.has_key('data_stream'):
             data_stream = md['data_stream']
         else:
-            data_stream = 'none'
+            data_stream = ''
 
         # Generate a fcl file customized for this merged file.
 
@@ -1533,7 +1533,8 @@ CREATE TABLE IF NOT EXISTS unmerged_files (
             fcl.write('    module_type: RootOutput\n')
             fcl.write('    fileName: "%ifb_%tc_merged.root"\n')
             fcl.write('    dataTier: "%s"\n' % data_tier)
-            fcl.write('    streamName:  "%s"\n' % data_stream)
+            if data_stream != '':
+                fcl.write('    streamName:  "%s"\n' % data_stream)
             fcl.write('    compressionLevel: 3\n')
             fcl.write('  }\n')
             fcl.write('}\n')
@@ -2011,7 +2012,7 @@ CREATE TABLE IF NOT EXISTS unmerged_files (
                         dt = now - t
                         dtsec = dt.total_seconds()
                         print 'File age = %d seconds.' % dtsec
-                        if dtsec > 3*24*3600:
+                        if dtsec > 24*3600:
 
                             # File too old, set error status.
 
