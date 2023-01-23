@@ -19,8 +19,12 @@
 # --stage <stage>     - Project stage.
 # --defname <defname> - Process files belonging to this definition (optional).
 # --database <path>   - Path of sqlite database file (default "merge.db").
+# --logdir <dir>      - Specify directory to store log files.
+#                       If specified each invocation generates a unique set of log files.
+#                       If not specified, output to stdout and stderr (no log files).
 # --max_size <bytes>  - Maximum merged file size in bytes (default 2.5e9).
 # --min_size <bytes>  - Minimum merged file size in bytes (default 1e9).
+# --max_count <n>     - Maximum number of files to merge per merged file (default no limit).
 # --max_age <seconds> - Maximum unmerged file age in seconds (default 72 hours).
 #                       Optionally use suffix 'h' for hours, 'd' for days.
 # --max_projects <n>  - Maximum number of projects.
@@ -30,6 +34,9 @@
 # --phase1            - Phase 1 (scan unmerged files).
 # --phase2            - Phase 2 (submit & monitor projects).
 # --phase3            - Phase 3 (monitor and clean up merged files).
+# --nobatch           - Inform the script that no merging batch jobs are
+#                       running or pending.  This sets various timeouts
+#                       related to sam projects to zero.
 #
 ######################################################################
 #
@@ -117,6 +124,8 @@
 #    G. Project stage (text).
 #    H. Project version (text).
 #    I. Run number (integer).
+#    J. Application family (text).
+#    K. Application name (text).
 #
 # III. Table sam_projects.
 #
@@ -180,8 +189,9 @@ class MergeEngine:
     # Constructor.
 
     def __init__(self, xmlfile, projectname, stagename, defname,
-                 database, max_size, min_size, max_age, 
-                 max_projects, max_groups, query_limit, file_limit):
+                 database, max_size, min_size, max_count, max_age, 
+                 max_projects, max_groups, query_limit, file_limit,
+                 nobatch):
 
         # Open database connection.
 
@@ -233,11 +243,13 @@ class MergeEngine:
         self.defname = defname     # File selectionn dataset definition.
         self.max_size = max_size   # Maximum merge file size in bytes.
         self.min_size = min_size   # Minimum merge file size in bytes.
+        self.max_count = max_count # Maximum number of files to merge per merged file.
         self.max_age = max_age     # Maximum unmerged file age in seconds.
         self.max_projects = max_projects  # Maximum number of sam projects.
         self.max_groups = max_groups      # Maximum number of new merges groups per invocation.
         self.query_limit = query_limit    # Maximum number of files to query from sam.
         self.file_limit = file_limit      # Maximum number of unmerged files.
+        self.nobatch = nobatch     # Flag indicating that no batch jobs are pending.
 
         # Cache of directory contents.
 
@@ -285,7 +297,9 @@ CREATE TABLE IF NOT EXISTS merge_groups (
   project text NOT NULL,
   stage text NOT NULL,
   version text NOT NULL,
-  run integer
+  run integer,
+  app_family NOT NULL,
+  app_name NOT NULL
 );'''
         c.execute(q)
 
@@ -396,13 +410,48 @@ CREATE TABLE IF NOT EXISTS unmerged_files (
         return result
 
 
+    # Get multiple metadata function.
+    # Similar as samweb.getMultipleMetadata, but no implicit maximum size.
+
+    def get_multiple_metadata(self, file_names):
+        result = []
+        q = []
+        print 'Getting multiple metadata for %d files.' % len(file_names)
+
+        # Loop over files.
+
+        for f in file_names:
+            #print 'Getting multiple metadata for file %s' %f
+            q.append(f)
+
+            # Maybe flush queue.
+
+            if len(q) >= self.metadata_queue_max:
+                mds = self.samweb.getMultipleMetadata(q)
+                for md in mds:
+                    result.append(md)
+                q = []
+
+        # Final queue flush.
+
+        if len(q) > 0:
+            mds = self.samweb.getMultipleMetadata(q)
+            for md in mds:
+                result.append(md)
+
+        # Done.
+
+        print 'Got metadata for %d files.' % len(result)
+        return result
+
+
     # Function to return dimension corresponding to group id.
 
     def get_group_dim(self, group_id):
 
         c = self.conn.cursor()
         q = '''SELECT file_type, file_format, data_tier, data_stream,
-               project, stage, version, run
+               project, stage, version, run, app_family, app_name
                FROM merge_groups WHERE id=?'''
         c.execute(q, (group_id,))
         row = c.fetchone()
@@ -411,12 +460,12 @@ CREATE TABLE IF NOT EXISTS unmerged_files (
         if data_stream == 'none':
             dim = '''file_type %s and file_format %s and data_tier %s
                      and ub_project.name %s and ub_project.stage %s and ub_project.version %s
-                     and run_number %d
+                     and run_number %d and family %s and application %s
                      and merge.merge 1 and merge.merged 0''' % (row[:3] + row[4:])
         else:
             dim = '''file_type %s and file_format %s and data_tier %s and data_stream %s
                      and ub_project.name %s and ub_project.stage %s and ub_project.version %s
-                     and run_number %d
+                     and run_number %d and family %s and application %s
                      and merge.merge 1 and merge.merged 0''' % row
         return dim
 
@@ -650,11 +699,11 @@ CREATE TABLE IF NOT EXISTS unmerged_files (
                 print('File is already on tape.')
 
                 # File is on tape
-                # Modify metadata to set merge.merged flag to be true, so that this
+                # Modify metadata to set merge.merge flag to be false, so that this
                 # file will no longer be considered for merging.
 
-                mdmod = {'merge.merged': 1}
-                print('Updating metadata to set merged flag.')
+                mdmod = {'merge.merge': 0}
+                print('Updating metadata to reset merge flag.')
                 self.modifyFileMetadata(f, mdmod)
 
                 # Delete and remove any disk locations from sam.
@@ -683,7 +732,7 @@ CREATE TABLE IF NOT EXISTS unmerged_files (
                     if loc['location_type'] == 'disk':
                         dir = os.path.join(loc['mount_point'], loc['subdir'])
                         fp = os.path.join(dir, f)
-                        if self.exists(fp):
+                        if larbatch_posix.exists(fp):
                             print('Location OK.')
                             on_disk = True
                         else:
@@ -735,19 +784,40 @@ CREATE TABLE IF NOT EXISTS unmerged_files (
         print('\n%d files in initial add group.' % len(add_files))
 
         # Query database to see which of these files already exist.
+        # Limit size of queries to what sqlite can handle.
 
         c = self.conn.cursor()
-        placeholders = ('?,'*len(add_files))[:-1]
-        q = 'SELECT name FROM unmerged_files WHERE name IN (%s);' % placeholders
-        c.execute(q, tuple(add_files))
-        rows = c.fetchall()
-        self.conn.commit()
+        uq = []
+        existing_files = []
+        for f in add_files:
+            uq.append(f)
 
-        for row in rows:
-            f = row[0]
+            # Maybe flush add queue.
+
+            if len(uq) >= 500:
+                placeholders = ('?,'*len(uq))[:-1]
+                q = 'SELECT name FROM unmerged_files WHERE name IN (%s);' % placeholders
+                c.execute(q, uq)
+                rows = c.fetchall()
+                for row in rows:
+                    existing_files.append(row[0])
+                uq = []
+
+        # Final queue flush.
+
+        if len(uq) > 0:
+            placeholders = ('?,'*len(uq))[:-1]
+            q = 'SELECT name FROM unmerged_files WHERE name IN (%s);' % placeholders
+            c.execute(q, uq)
+            rows = c.fetchall()
+            for row in rows:
+                existing_files.append(row[0])
+
+        # Remove existing files from add queue.
+
+        for f in existing_files:
             print('Ignoring %s' % f)
             add_files.discard(f)
-
         print('\b%d files in final add list.' % len(add_files))
 
         # Loop over files in add list and do bulk adds.
@@ -798,7 +868,32 @@ CREATE TABLE IF NOT EXISTS unmerged_files (
 
         group_id = -1
 
-        # Create group 8-tuple.
+        # Check that all nine required metadata fields are included.  If not return 0.
+        # Metadata field 'data_stream' is optional.
+
+        if not 'file_type' in md:
+            return 0
+        if not 'file_format' in md:
+            return 0
+        if not 'data_tier' in md:
+            return 0
+        if not 'ub_project.name' in md:
+            return 0
+        if not 'ub_project.stage' in md:
+            return 0
+        if not 'ub_project.version' in md:
+            return 0
+        if not 'runs' in md:
+            return 0
+        if not 'application' in md:
+            return 0
+        else:
+            if not 'family' in md['application']:
+                return 0
+            if not 'name' in md['application']:
+                return 0
+
+        # Create group 10-tuple.
 
         file_type = md['file_type']
         file_format = md['file_format']
@@ -814,8 +909,10 @@ CREATE TABLE IF NOT EXISTS unmerged_files (
         run = 0
         if len(runs) > 0:
             run = runs[0][0]
+        app_family = md['application']['family']
+        app_name = md['application']['name']
         gtuple = (file_type, file_format, data_tier, data_stream,
-                  ubproject, ubstage, ubversion, run)
+                  ubproject, ubstage, ubversion, run, app_family, app_name)
 
         # Filter undefined merge groups.
 
@@ -833,7 +930,9 @@ CREATE TABLE IF NOT EXISTS unmerged_files (
                and project=?
                and stage=?
                and version=?
-               and run=?'''
+               and run=?
+               and app_family=?
+               and app_name=?'''
         c.execute(q, gtuple)
         rows = c.fetchall()
         if len(rows) == 0:
@@ -847,10 +946,12 @@ CREATE TABLE IF NOT EXISTS unmerged_files (
             print("  stage = %s" % gtuple[5])
             print("  version = %s" % gtuple[6])
             print("  run = %d" % gtuple[7])
+            print("  app_family = %s" % gtuple[8])
+            print("  app_name = %s" % gtuple[9])
 
             q = '''INSERT INTO merge_groups
-                   (file_type, file_format, data_tier, data_stream, project, stage, version, run)
-                   VALUES(?,?,?,?,?,?,?,?);'''
+                   (file_type, file_format, data_tier, data_stream, project, stage, version, run, app_family, app_name)
+                   VALUES(?,?,?,?,?,?,?,?,?,?);'''
             c.execute(q, gtuple)
             group_id = c.lastrowid
 
@@ -957,7 +1058,7 @@ CREATE TABLE IF NOT EXISTS unmerged_files (
                 # Check for duplicate processed files in ths project.
 
                 parents = set()
-                mds = self.samweb.getMultipleMetadata(file_names)
+                mds = self.get_multiple_metadata(file_names)
                 for md in mds:
                     f = md['file_name']
                     if 'parents' in md:
@@ -1005,6 +1106,9 @@ CREATE TABLE IF NOT EXISTS unmerged_files (
                 if num_jobs > nfiles:
                     num_jobs = nfiles
                 max_files_per_job = (nfiles - 1) / num_jobs + 1
+                if max_files_per_job > self.max_count and self.max_count > 0:
+                    max_files_per_job = self.max_count
+                    num_jobs = (nfiles - 1) / max_files_per_job + 1
                 print('Number of files = %d' % nfiles)
                 print('Number of batch jobs = %d' % num_jobs)
                 print('Maximum files per job = %d' % max_files_per_job)
@@ -1050,7 +1154,7 @@ CREATE TABLE IF NOT EXISTS unmerged_files (
 
             # If start time is older than 24 hours, stop this project.
 
-            if dtsec > 24*3600:
+            if self.nobatch or dtsec > 24*3600:
                 result = True
 
         else:
@@ -1189,11 +1293,29 @@ CREATE TABLE IF NOT EXISTS unmerged_files (
                                             print('Unmerged file %s' % consumed_file)
 
                                         # Update process id join with unmerged file.
+                                        # Make sure query doesn't get too large for sqlite
+                                        # to handle.
 
-                                        placeholders = ('?,'*len(consumed_files))[:-1]
-                                        q = '''UPDATE unmerged_files SET sam_process_id=? 
-                                               WHERE name IN (%s);''' % placeholders
-                                        c.execute(q, (merge_id,) + tuple(consumed_files))
+                                        uq = []
+                                        for f in consumed_files:
+                                            uq.append(f)
+
+                                            # Maybe flush queue.
+
+                                            if len(uq) >= 500:
+                                                placeholders = ('?,'*len(uq))[:-1]
+                                                q = '''UPDATE unmerged_files SET sam_process_id=? 
+                                                       WHERE name IN (%s);''' % placeholders
+                                                c.execute(q, (merge_id,) + tuple(uq))
+                                                uq = []
+
+                                        # Final queue flush.
+
+                                        if len(uq) > 0:
+                                            placeholders = ('?,'*len(uq))[:-1]
+                                            q = '''UPDATE unmerged_files SET sam_process_id=? 
+                                                   WHERE name IN (%s);''' % placeholders
+                                            c.execute(q, (merge_id,) + tuple(uq))
                                         self.conn.commit()
 
                     # Update project status to 3.
@@ -1218,17 +1340,19 @@ CREATE TABLE IF NOT EXISTS unmerged_files (
                         prjstat = {}
                     if 'project_end_time' in prjstat:
                         endstr = prjstat['project_end_time']
+                        endstr = endstr.split('+')[0]
+                        endstr = endstr.split('.')[0]
                         if len(endstr) > 1:
 
                             # Calculate how long since the project ended.
 
-                            t = datetime.datetime.strptime(endstr,
-                                                           '%Y-%m-%dT%H:%M:%S.%f+00:00')
+                            t = datetime.datetime.strptime(endstr, '%Y-%m-%dT%H:%M:%S')
                             now = datetime.datetime.utcnow()
                             dt = now - t
                             dtsec = dt.total_seconds()
 
-                            if dtsec > 10800:
+                            #if dtsec > 10800:
+                            if self.nobatch or dtsec > 3600:
 
                                 print('Project ended: %s' % sam_project)
                                 prj_ended = True
@@ -1305,7 +1429,7 @@ CREATE TABLE IF NOT EXISTS unmerged_files (
                         dt = now - stime
                         print('Project age = %s' % dt)
 
-                        if dt.total_seconds() > 24*3600:
+                        if self.nobatch or dt.total_seconds() > 24*3600:
 
                             # If project age is greater than 24 hours, start and then
                             # immediately stop this project, so that no batch job can
@@ -1389,7 +1513,7 @@ CREATE TABLE IF NOT EXISTS unmerged_files (
         if 'data_stream' in md:
             data_stream = md['data_stream']
         else:
-            data_stream = 'none'
+            data_stream = ''
 
         # Generate a fcl file customized for this merged file.
 
@@ -1431,7 +1555,8 @@ CREATE TABLE IF NOT EXISTS unmerged_files (
             fcl.write('    module_type: RootOutput\n')
             fcl.write('    fileName: "%ifb_%tc_merged.root"\n')
             fcl.write('    dataTier: "%s"\n' % data_tier)
-            fcl.write('    streamName:  "%s"\n' % data_stream)
+            if data_stream != '':
+                fcl.write('    streamName:  "%s"\n' % data_stream)
             fcl.write('    compressionLevel: 3\n')
             fcl.write('  }\n')
             fcl.write('}\n')
@@ -1742,12 +1867,14 @@ CREATE TABLE IF NOT EXISTS unmerged_files (
             print(jobout)
             print(joberr)
 
-            # Stop sam projects.
+            # Stop sam project.
 
-            for prj in sam_projects.split(':'):
-                print('Stopping sam project %s' % prj)
-                self.samweb.stopProject(prj)
-
+            if num_jobs > 1:
+                print 'Stopping sam project %s' % prjname
+                try:
+                    self.samweb.stopProject(prjname)
+                except:
+                    pass
 
     # Update statuses of sam processes / merged files.
 
@@ -1847,11 +1974,27 @@ CREATE TABLE IF NOT EXISTS unmerged_files (
                     self.flush_metadata()
 
                     # Construct a query to do the database deletions in a single query.
+                    # Make sure that the query doesn't get too big for sqlite.
 
                     print('Deleting unmerged files from database.')
-                    placeholders = ('?,' * len(unmerged_files))[:-1]
-                    q = 'DELETE FROM unmerged_files WHERE name IN (%s);' % placeholders
-                    c.execute(q, unmerged_files)
+                    uq = []
+                    for f in unmerged_files:
+                        uq.append(f)
+
+                        # Maybe flush queue.
+
+                        if len(uq) >= 500:
+                            placeholders = ('?,' * len(uq))[:-1]
+                            q = 'DELETE FROM unmerged_files WHERE name IN (%s);' % placeholders
+                            c.execute(q, uq)
+                            uq = []
+
+                    # Final queue flush.
+
+                    if len(uq) > 0:
+                        placeholders = ('?,' * len(uq))[:-1]
+                        q = 'DELETE FROM unmerged_files WHERE name IN (%s);' % placeholders
+                        c.execute(q, uq)
                     self.conn.commit()
 
                     # End of loop over unmerged files.
@@ -1893,7 +2036,7 @@ CREATE TABLE IF NOT EXISTS unmerged_files (
                         dt = now - t
                         dtsec = dt.total_seconds()
                         print('File age = %d seconds.' % dtsec)
-                        if dtsec > 3*24*3600:
+                        if dtsec > 24*3600:
 
                             # File too old, set error status.
 
@@ -2000,8 +2143,10 @@ def main(argv):
     stagename = ''
     database = 'merge.db'
     defname = ''
+    logdir = ''
     max_size = 2500000000
     min_size = 1000000000
+    max_count = 0
     max_age = 3*24*3600
     max_projects = 500
     max_groups = 100
@@ -2010,6 +2155,7 @@ def main(argv):
     do_phase1 = False
     do_phase2 = False
     do_phase3 = False
+    nobatch = False
 
     args = argv[1:]
     while len(args) > 0:
@@ -2031,11 +2177,17 @@ def main(argv):
         elif args[0] == '--defname' and len(args) > 1:
             defname = args[1]
             del args[0:2]
+        elif args[0] == '--logdir' and len(args) > 1:
+            logdir = args[1]
+            del args[0:2]
         elif args[0] == '--max_size' and len(args) > 1:
             max_size = int(args[1])
             del args[0:2]
         elif args[0] == '--min_size' and len(args) > 1:
             min_size = int(args[1])
+            del args[0:2]
+        elif args[0] == '--max_count' and len(args) > 1:
+            max_count = int(args[1])
             del args[0:2]
         elif args[0] == '--max_age' and len(args) > 1:
             if args[1][-1] == 'h' or args[1][-1] == 'H':
@@ -2066,9 +2218,45 @@ def main(argv):
         elif args[0] == '--phase3':
             do_phase3 = True
             del args[0]
+        elif args[0] == '--nobatch':
+            nobatch = True
+            del args[0]
         else:
             print('Unknown option %s' % args[0])
             return 1
+
+    # Check if we want to generate log files.
+
+    if logdir != '':
+
+        # Try to make logdir if it doesn't exist.
+
+        if not os.path.exists(logdir):
+            os.makedirs(logdir)
+
+        # Make sure log directory exists.
+            
+        if os.path.exists(logdir):
+
+            # Generate unique names for stdout and stderr log files using current time
+            # according to the pattern merge_YYYYmmDD_HHMM.out/.err
+
+            now = datetime.datetime.now()
+            merge_name = 'merge_%s' % datetime.datetime.strftime(now, '%Y%m%d_%H%M')
+            outpath = '%s/%s.out' % (logdir, merge_name)
+            errpath = '%s/%s.err' % (logdir, merge_name)
+
+            # Override sys.stdout and sys.stderr
+
+            sys.stdout = open(outpath, 'w')
+            sys.stderr = open(errpath, 'w')
+
+        else:
+
+            # If log directory doesn't exist, write output to stdout and stderr.
+
+            print 'Log directory does not exist.'
+            logdir = ''
 
     # If no phase option, do all three phases.
 
@@ -2080,8 +2268,9 @@ def main(argv):
     # Create merge engine.
 
     engine = MergeEngine(xmlfile, projectname, stagename, defname,
-                         database, max_size, min_size, max_age,
-                         max_projects, max_groups, query_limit, file_limit)
+                         database, max_size, min_size, max_count, max_age,
+                         max_projects, max_groups, query_limit, file_limit,
+                         nobatch)
     if do_phase1:
         engine.update_unmerged_files()
     if do_phase2:
