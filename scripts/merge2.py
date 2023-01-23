@@ -124,6 +124,8 @@
 #    G. Project stage (text).
 #    H. Project version (text).
 #    I. Run number (integer).
+#    J. Application family (text).
+#    K. Application name (text).
 #
 # III. Table sam_projects.
 #
@@ -291,7 +293,9 @@ CREATE TABLE IF NOT EXISTS merge_groups (
   project text NOT NULL,
   stage text NOT NULL,
   version text NOT NULL,
-  run integer
+  run integer,
+  app_family NOT NULL,
+  app_name NOT NULL
 );'''
         c.execute(q)
 
@@ -443,7 +447,7 @@ CREATE TABLE IF NOT EXISTS unmerged_files (
 
         c = self.conn.cursor()
         q = '''SELECT file_type, file_format, data_tier, data_stream,
-               project, stage, version, run
+               project, stage, version, run, app_family, app_name
                FROM merge_groups WHERE id=?'''
         c.execute(q, (group_id,))
         row = c.fetchone()
@@ -452,12 +456,12 @@ CREATE TABLE IF NOT EXISTS unmerged_files (
         if data_stream == 'none':
             dim = '''file_type %s and file_format %s and data_tier %s
                      and ub_project.name %s and ub_project.stage %s and ub_project.version %s
-                     and run_number %d
+                     and run_number %d and family %s and application %s
                      and merge.merge 1 and merge.merged 0''' % (row[:3] + row[4:])
         else:
             dim = '''file_type %s and file_format %s and data_tier %s and data_stream %s
                      and ub_project.name %s and ub_project.stage %s and ub_project.version %s
-                     and run_number %d
+                     and run_number %d and family %s and application %s
                      and merge.merge 1 and merge.merged 0''' % row
         return dim
 
@@ -860,7 +864,7 @@ CREATE TABLE IF NOT EXISTS unmerged_files (
 
         group_id = -1
 
-        # Check that all seven required metadata fields are included.  If not return 0.
+        # Check that all nine required metadata fields are included.  If not return 0.
         # Metadata field 'data_stream' is optional.
 
         if not 'file_type' in md:
@@ -877,8 +881,15 @@ CREATE TABLE IF NOT EXISTS unmerged_files (
             return 0
         if not 'runs' in md:
             return 0
+        if not 'application' in md:
+            return 0
+        else:
+            if not 'family' in md['application']:
+                return 0
+            if not 'name' in md['application']:
+                return 0
 
-        # Create group 8-tuple.
+        # Create group 10-tuple.
 
         file_type = md['file_type']
         file_format = md['file_format']
@@ -894,8 +905,10 @@ CREATE TABLE IF NOT EXISTS unmerged_files (
         run = 0
         if len(runs) > 0:
             run = runs[0][0]
+        app_family = md['application']['family']
+        app_name = md['application']['name']
         gtuple = (file_type, file_format, data_tier, data_stream,
-                  ubproject, ubstage, ubversion, run)
+                  ubproject, ubstage, ubversion, run, app_family, app_name)
 
         # Filter undefined merge groups.
 
@@ -913,7 +926,9 @@ CREATE TABLE IF NOT EXISTS unmerged_files (
                and project=?
                and stage=?
                and version=?
-               and run=?'''
+               and run=?
+               and app_family=?
+               and app_name=?'''
         c.execute(q, gtuple)
         rows = c.fetchall()
         if len(rows) == 0:
@@ -927,10 +942,12 @@ CREATE TABLE IF NOT EXISTS unmerged_files (
             print "  stage = %s" % gtuple[5]
             print "  version = %s" % gtuple[6]
             print "  run = %d" % gtuple[7]
+            print "  app_family = %s" % gtuple[8]
+            print "  app_name = %s" % gtuple[9]
 
             q = '''INSERT INTO merge_groups
-                   (file_type, file_format, data_tier, data_stream, project, stage, version, run)
-                   VALUES(?,?,?,?,?,?,?,?);'''
+                   (file_type, file_format, data_tier, data_stream, project, stage, version, run, app_family, app_name)
+                   VALUES(?,?,?,?,?,?,?,?,?,?);'''
             c.execute(q, gtuple)
             group_id = c.lastrowid
 
@@ -1319,12 +1336,13 @@ CREATE TABLE IF NOT EXISTS unmerged_files (
                         prjstat = {}
                     if prjstat.has_key('project_end_time'):
                         endstr = prjstat['project_end_time']
+                        endstr = endstr.split('+')[0]
+                        endstr = endstr.split('.')[0]
                         if len(endstr) > 1:
 
                             # Calculate how long since the project ended.
 
-                            t = datetime.datetime.strptime(endstr,
-                                                           '%Y-%m-%dT%H:%M:%S.%f+00:00')
+                            t = datetime.datetime.strptime(endstr, '%Y-%m-%dT%H:%M:%S')
                             now = datetime.datetime.utcnow()
                             dt = now - t
                             dtsec = dt.total_seconds()
@@ -1845,12 +1863,14 @@ CREATE TABLE IF NOT EXISTS unmerged_files (
             print jobout
             print joberr
 
-            # Stop sam projects.
+            # Stop sam project.
 
-            for prj in sam_projects.split(':'):
-                print 'Stopping sam project %s' % prj
-                self.samweb.stopProject(prj)
-
+            if num_jobs > 1:
+                print 'Stopping sam project %s' % prjname
+                try:
+                    self.samweb.stopProject(prjname)
+                except:
+                    pass
 
     # Update statuses of sam processes / merged files.
 

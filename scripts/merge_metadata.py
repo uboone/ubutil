@@ -144,6 +144,7 @@ def merge_metadata(filelist, cpid):
                     mcpot = md[key]
                 else:
                     mcpot += md[key]
+                continue
             
             # Handle nonaggregated metadata keys.
 
