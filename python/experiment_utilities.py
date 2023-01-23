@@ -10,7 +10,15 @@
 #
 #----------------------------------------------------------------------
 
-import os, pycurl
+import os
+
+# Don't fail on pycurl import error.
+
+try:
+    import pycurl
+except ImportError:
+    pass
+
 from StringIO import StringIO
 import larbatch_posix
 
