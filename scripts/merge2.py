@@ -161,6 +161,10 @@ import StringIO
 import project, project_utilities, larbatch_posix
 import sqlite3
 
+# Global variables.
+
+using_jobsub_lite = None
+
 
 def help():
 
@@ -395,6 +399,12 @@ CREATE TABLE IF NOT EXISTS unmerged_files (
         base = os.path.basename(npath)
         if dir == '':
             dir = '.'
+
+        # Force check.
+
+        if self.dircache.has_key(dir):
+            del self.dircache[dir]
+
         if not self.dircache.has_key(dir):
             self.dircache[dir] = set()
             try:
@@ -1748,6 +1758,8 @@ CREATE TABLE IF NOT EXISTS unmerged_files (
 
         # Copy tarball containing fcl file and helpers.
 
+        if check_jobsub_lite():
+            command.append('--use-pnfs-dropbox')
         command.extend(['-f', 'dropbox://%s' % tmptar])
 
         # Batch script.
@@ -1826,6 +1838,8 @@ CREATE TABLE IF NOT EXISTS unmerged_files (
             for line in jobout.split('\n'):
                 if "JobsubJobId" in line:
                     jobid = line.strip().split()[-1]
+                elif "Use job id" in line:
+                    jobid = line.strip().split()[3]
             if jobid != '':
                 words = jobid.split('@')
                 if len(words) == 2:
@@ -2085,6 +2099,36 @@ CREATE TABLE IF NOT EXISTS unmerged_files (
 
         self.conn.commit()
         return
+
+
+# Check whether we are using jobsub_lite.
+# Return true if yes.
+# Result is cached.
+
+def check_jobsub_lite():
+
+    global using_jobsub_lite
+
+    # Check cached result.
+
+    if using_jobsub_lite == None:
+        using_jobsub_lite = False
+
+        # Check jobsub_submit version.
+
+        jobinfo = subprocess.Popen(['jobsub_submit', '--version'],
+                                   stdout=subprocess.PIPE,
+                                   stderr=subprocess.PIPE)
+        jobout, joberr = jobinfo.communicate()
+        rc = jobinfo.poll()
+        if rc == 0:
+            print jobout
+            if jobout.find('jobsub_lite') >= 0:
+                using_jobsub_lite = True
+
+    # Done.
+
+    return using_jobsub_lite
 
 
 # Check whether a similar process is already running.
