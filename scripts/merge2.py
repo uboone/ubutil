@@ -126,6 +126,7 @@
 #    I. Run number (integer).
 #    J. Application family (text).
 #    K. Application name (text).
+#    L. Fcl name (text).
 #
 # III. Table sam_projects.
 #
@@ -299,7 +300,8 @@ CREATE TABLE IF NOT EXISTS merge_groups (
   version text NOT NULL,
   run integer,
   app_family NOT NULL,
-  app_name NOT NULL
+  app_name NOT NULL,
+  fcl_name NOT NULL
 );'''
         c.execute(q)
 
@@ -457,22 +459,35 @@ CREATE TABLE IF NOT EXISTS unmerged_files (
 
         c = self.conn.cursor()
         q = '''SELECT file_type, file_format, data_tier, data_stream,
-               project, stage, version, run, app_family, app_name
+               project, stage, version, run, app_family, app_name, fcl_name
                FROM merge_groups WHERE id=?'''
         c.execute(q, (group_id,))
         row = c.fetchone()
         self.conn.commit()
         data_stream = row[3]
+        fcl_name = row[10]
         if data_stream == 'none':
-            dim = '''file_type %s and file_format %s and data_tier %s
-                     and ub_project.name %s and ub_project.stage %s and ub_project.version %s
-                     and run_number %d and family %s and application %s
-                     and merge.merge 1 and merge.merged 0''' % (row[:3] + row[4:])
+            if fcl_name == 'unknown':
+                dim = '''file_type %s and file_format %s and data_tier %s
+                         and ub_project.name %s and ub_project.stage %s and ub_project.version %s
+                         and run_number %d and family %s and application %s
+                         and merge.merge 1 and merge.merged 0''' % (row[:3] + row[4:10])
+            else:
+                dim = '''file_type %s and file_format %s and data_tier %s
+                         and ub_project.name %s and ub_project.stage %s and ub_project.version %s
+                         and run_number %d and family %s and application %s and fcl.name \'%s\'
+                         and merge.merge 1 and merge.merged 0''' % (row[:3] + row[4:])
         else:
-            dim = '''file_type %s and file_format %s and data_tier %s and data_stream %s
-                     and ub_project.name %s and ub_project.stage %s and ub_project.version %s
-                     and run_number %d and family %s and application %s
-                     and merge.merge 1 and merge.merged 0''' % row
+            if fcl_name == 'unknown':
+                dim = '''file_type %s and file_format %s and data_tier %s and data_stream %s
+                         and ub_project.name %s and ub_project.stage %s and ub_project.version %s
+                         and run_number %d and family %s and application %s
+                         and merge.merge 1 and merge.merged 0''' % row[:10]
+            else:
+                dim = '''file_type %s and file_format %s and data_tier %s and data_stream %s
+                         and ub_project.name %s and ub_project.stage %s and ub_project.version %s
+                         and run_number %d and family %s and application %s and fcl.name \'%s\'
+                         and merge.merge 1 and merge.merged 0''' % row
         return dim
 
 
@@ -898,8 +913,10 @@ CREATE TABLE IF NOT EXISTS unmerged_files (
                 return 0
             if not 'name' in md['application']:
                 return 0
+        if not 'fcl.name' in md:
+            return 0
 
-        # Create group 10-tuple.
+        # Create group 11-tuple.
 
         file_type = md['file_type']
         file_format = md['file_format']
@@ -917,8 +934,9 @@ CREATE TABLE IF NOT EXISTS unmerged_files (
             run = runs[0][0]
         app_family = md['application']['family']
         app_name = md['application']['name']
+        fcl_name = md['fcl.name']
         gtuple = (file_type, file_format, data_tier, data_stream,
-                  ubproject, ubstage, ubversion, run, app_family, app_name)
+                  ubproject, ubstage, ubversion, run, app_family, app_name, fcl_name)
 
         # Filter undefined merge groups.
 
@@ -938,7 +956,8 @@ CREATE TABLE IF NOT EXISTS unmerged_files (
                and version=?
                and run=?
                and app_family=?
-               and app_name=?'''
+               and app_name=?
+               and fcl_name=?'''
         c.execute(q, gtuple)
         rows = c.fetchall()
         if len(rows) == 0:
@@ -954,10 +973,11 @@ CREATE TABLE IF NOT EXISTS unmerged_files (
             print "  run = %d" % gtuple[7]
             print "  app_family = %s" % gtuple[8]
             print "  app_name = %s" % gtuple[9]
+            print "  fcl_name = %s" % gtuple[10]
 
             q = '''INSERT INTO merge_groups
-                   (file_type, file_format, data_tier, data_stream, project, stage, version, run, app_family, app_name)
-                   VALUES(?,?,?,?,?,?,?,?,?,?);'''
+                   (file_type, file_format, data_tier, data_stream, project, stage, version, run, app_family, app_name, fcl_name)
+                   VALUES(?,?,?,?,?,?,?,?,?,?,?);'''
             c.execute(q, gtuple)
             group_id = c.lastrowid
 
@@ -1800,6 +1820,8 @@ CREATE TABLE IF NOT EXISTS unmerged_files (
         command.extend(['--sam_group', project_utilities.get_experiment()])
         command.extend(['--sam_defname', defname])
         command.extend(['--sam_project', prjname])
+        command.extend(['--dirsize', '100'])
+        command.extend(['--dirlevels', '2'])
         if num_jobs == 1:
             command.append('--sam_start')
 
@@ -1921,14 +1943,23 @@ CREATE TABLE IF NOT EXISTS unmerged_files (
 
                     # First validate locations of any unmerged files associated with this process.
 
-                    q = 'SELECT name FROM unmerged_files WHERE sam_process_id=?'
+                    q = 'SELECT name, id FROM unmerged_files WHERE sam_process_id=?'
                     c.execute(q, (merge_id,))
                     rows = c.fetchall()
                     if len(rows) > 0:
                         print 'Checking locations of remaining unmerged files.'
                         for row in rows:
                             f = row[0]
+                            id = row[1]
                             self.check_location(f, True)
+
+                            # Forget about this file.
+                            # This will force a recalculation of the merge group when (if)
+                            # this file is rediscovered via a sam query.
+
+                            print 'Forgetting about %s' % f
+                            q = 'DELETE FROM unmerged_files WHERE id=?'
+                            c.execute(q, (id,))
 
                     print 'Deleting process.'
 
