@@ -996,124 +996,183 @@ CREATE TABLE IF NOT EXISTS unmerged_files (
 
     def update_sam_projects(self):
 
-        # Loop over merge groups with unassigned files.
+        # Figure out the maximum number of new sam projects we can create.
+        # If this is zero or negative, we are done.
 
         c = self.conn.cursor()
-        q = '''SELECT DISTINCT group_id FROM unmerged_files
-               WHERE sam_project_id=0 AND sam_process_id=0 ORDER BY group_id;'''
+        q = 'SELECT COUNT(*) FROM sam_projects WHERE status<2;'
+        c.execute(q)
+        mrow = c.fetchone()
+        max_new_projects = self.max_projects - mrow[0]
+
+        print 'Number of projects = %d' % mrow[0]
+        print 'Maximum number of new projects = %d' % max_new_projects
+
+        if max_new_projects <= 0:
+            print 'No new projects are allowed.'
+            return
+
+        # Get the current time for age calculation.
+
+        now = datetime.datetime.utcnow()
+        print 'Current time = %s' % now
+
+
+        # Query unassigned files with view to identifying merge groups that can
+        # be upgraded to sam projects.
+
+        q = '''SELECT id, name, group_id, size, create_date FROM unmerged_files
+               WHERE sam_project_id=0 AND sam_process_id=0 ORDER BY create_date;'''
         c.execute(q)
         rows = c.fetchall()
-        self.conn.commit()
+        print 'Checking %d unassigned unmerged files' % len(rows)
+
+        # Loop over files.
+
+        new_project_groups = set()
+        group_size = {}
+
         for row in rows:
 
-            group_id = row[0]
-            print 'Checking merge group %d.' % group_id
+            id = row[0]
+            name = row[1]
+            group_id = row[2]
+            size = row[3]
+            create_date = row[4]
 
-            # Check the number of sam projects.
+            # Skip this file if this group id is already tagged.
 
-            q = 'SELECT COUNT(*) FROM sam_projects WHERE status<2;'
-            c.execute(q)
-            mrow = c.fetchone()
-            self.conn.commit()
-            nprj = mrow[0]
-            print '%d sam projects.' % nprj
-            if nprj >= self.max_projects:
+            if group_id in new_project_groups:
+                continue
 
-                print 'Quitting because number of projects is at the maximum.'
+            # Check whether we have exceeded the maximum number of new sam projects.
+
+            if len(new_project_groups) >= max_new_projects:
+                print '\nNo more new projects are allowed.'
                 break
+            else:
+                #print '\nRemaining new projects = %d' % (max_new_projects - len(new_project_groups))
+                pass
 
+            # Calculate file age.
 
-            # Query unassigned files in this merge group.
-            # Track the total size and oldest file in this merge group.
+            t = datetime.datetime.strptime(create_date, '%Y-%m-%dT%H:%M:%S+00:00')
+            dt = now - t
+            age = dt.total_seconds()
 
-            file_ids = []
+            #print '\nChecking file %s' % name
+            #print 'Group id = %s' % group_id
+            #print 'Age = %d seconds (%8.2f days)' % (age, float(age)/86400)
+            #print 'Size = %d' % size
+            if age > self.max_age:
+                print '\nCreate project for file %s because file is older than maximum age.' % name
+                print 'Group id = %s' % group_id
+                print 'Age = %d seconds (%8.2f days)' % (age, float(age)/86400)
+                print 'Size = %d' % size
+                new_project_groups.add(group_id)
+                continue
+
+            # Check total size of this group_id
+
+            if group_id in group_size:
+                group_size[group_id] += size
+            else:
+                group_size[group_id] = size
+            #print 'Group size = %d' % group_size[group_id]
+            if group_size[group_id] >= self.min_size:
+                print '\nCreate project for file %s because group size is greater than minimum size.' % name
+                print 'Group id = %s' % group_id
+                print 'Age = %d seconds (%8.2f days)' % (age, float(age)/86400)
+                print 'Size = %d' % size
+                print 'Group size = %d' % group_size[group_id]
+                new_project_groups.add(group_id)
+                continue
+
+        # Done with loop over files.
+
+        print '%d new projects will be created.' % len(new_project_groups)
+
+        # Loop over new project groups.
+
+        for group_id in new_project_groups:
+
+            print '\nCreating new project for group id %d.' % group_id
+
+            # Query files in this group.
+            # Calculate total size of this group.
+            # Construct sam dimension for this group.
+
+            q = 'SELECT name, size FROM unmerged_files WHERE group_id=?;'
+            c.execute(q, (group_id,))
+            rows = c.fetchall()
             file_names = []
             total_size = 0
-            nfiles = 0
-            oldest_create_date = ''
-            dim = ''
-
-            q = '''SELECT id, name, size, create_date FROM unmerged_files
-                   WHERE group_id=? and sam_project_id=? and sam_process_id=?
-                   ORDER BY create_date;'''
-            c.execute(q, (group_id, 0, 0))
-            self.conn.commit()
-            newrows = c.fetchall()
-            for newrow in newrows:
-                id = newrow[0]
-                name = newrow[1]
-                size = newrow[2]
-                create_date = newrow[3]
-
-                file_ids.append(id)
+            dim = ''         # Sam dimension.
+            for row in rows:
+                name = row[0]
+                size = row[1]
                 file_names.append(name)
                 total_size += size
-                nfiles += 1
-                if oldest_create_date == '':
-                    oldest_create_date = create_date
                 if dim == '':
                     dim = 'file_name %s' % name
                 else:
                     dim += ',%s' % name
+            nfiles = len(file_names)
+            print 'This group contains %d files.' % nfiles
 
-            # See if this merge group meets the criteria for starting a sam project,
-            # which is size greater than minimu size or oldest create data older
-            # than minimum age.
-            # Calculate age of oldest unmerged file.
+            # Make sure this group is not empty (this shouldn't ever happen).
 
-            create_project = False
-            print 'Checking merge group.'
-            print 'Total size = %d' % total_size
-            print 'Oldest create date = %s' % oldest_create_date
+            if nfiles == 0:
+                print 'Skipping empty group.'
+                continue
 
-            if total_size >= self.min_size:
+            # Perform duplciate file check for files in this group.
 
-                print 'Create sam project because total size is greater than minimum size.'
-                create_project = True
+            create_project = True
+            parents = set()
+            mds = self.get_multiple_metadata(file_names)
+            for md in mds:
+                f = md['file_name']
+                if md.has_key('parents'):
+                    for parentdict in md['parents']:
+                        if parentdict.has_key('file_name'):
+                            parent = parentdict['file_name']
+                            if not parent.startswith('CRT'):
+                                if parent not in parents:
+                                    parents.add(parent)
+                                else:
 
-            if not create_project:
-                t = datetime.datetime.strptime(oldest_create_date, '%Y-%m-%dT%H:%M:%S+00:00')
-                now = datetime.datetime.utcnow()
-                dt = now - t
-                if dt.total_seconds() > self.max_age:
-                    print 'Create sam project because oldest file is older than maximum age.'
-                    create_project = True
+                                    # If we find a file with a duplicate parent, delete
+                                    # that file.
+
+                                    print 'Unmerged file %s has duplicate parent.' % f
+                                    self.delete_disk_locations(f)
+                                    q = 'DELETE FROM unmerged_files WHERE name=?;'
+                                    c.execute(q, (f,))
+                                    self.conn.commit()
+                                    create_project = False
+
+                                    # Find all files with this same parent.
+
+                                    print '\nAll files with this parent:'
+                                    for md2 in mds:
+                                        if md2.has_key('parents'):
+                                            for parentdict2 in md2['parents']:
+                                                if parentdict2.has_key('file_name'):
+                                                    parent2 = parentdict2['file_name']
+                                                    if parent2 == parent:
+                                                        print md2['file_name']
+
+            # If we got a duplicate parent, abort this project creation.
+            # We should get this project on a subsequent invocation, with 
+            # the duplicate processed file having been deleted.
 
             if create_project:
+                print 'Duplicate parent check OK.'
+            else:
+                print 'Duplicate parent check failed.'
 
-                # Check for duplicate processed files in ths project.
-
-                parents = set()
-                mds = self.get_multiple_metadata(file_names)
-                for md in mds:
-                    f = md['file_name']
-                    if md.has_key('parents'):
-                        for parentdict in md['parents']:
-                            if parentdict.has_key('file_name'):
-                                parent = parentdict['file_name']
-                                if not parent.startswith('CRT'):
-                                    if parent not in parents:
-                                        parents.add(parent)
-                                    else:
-
-                                        # If we find a file with a duplicate parent, delete
-                                        # that file.
-
-                                        print 'Unmerged file %s has duplicate parent.' % f
-                                        self.delete_disk_locations(f)
-                                        q = 'DELETE FROM unmerged_files WHERE name=?;'
-                                        c.execute(q, (f,))
-                                        self.conn.commit()
-                                        create_project = False
-
-                # If we got a duplicate parent, abort this project creation.
-                # We should get this project on a subsequent invocation, with 
-                # the duplicate processed file having been deleted.
-
-                if create_project:
-                    print 'Duplicate parent check OK.'
-                else:
-                    print 'Duplicate parent check failed.'
+            # Create project in merge database.
 
             if create_project:
 
@@ -1293,6 +1352,31 @@ CREATE TABLE IF NOT EXISTS unmerged_files (
                             dim = '''ischildof:( file_name %s )
                                  with availability anylocation''' % ','.join(consumed_files)
                             files = self.samweb.listFiles(dim)
+
+                            # If no files were produced by this project, forget about the
+                            # consumed unmerged files.  These files will remain on disk and
+                            # they will subsequently be rediscovered.
+
+                            if len(files) == 0:
+
+                                # Loop over consumed files.
+
+                                for f in consumed_files:
+
+                                    # First do a location check on this file.
+
+                                    self.check_location(f, True)
+
+                                    # Forget about this file.
+                                    # This will force a recalculation of the merge group when (if)
+                                    # this file is rediscovered via a sam query.
+
+                                    print 'Forgetting about %s' % f
+                                    q = 'DELETE FROM unmerged_files WHERE name=?'
+                                    c.execute(q, (f,))
+
+                            # Loop over produced files.
+
                             for f in files:
 
                                 # Need to verify process_id.
@@ -1779,8 +1863,11 @@ CREATE TABLE IF NOT EXISTS unmerged_files (
         # Copy tarball containing fcl file and helpers.
 
         if check_jobsub_lite():
-            command.append('--use-pnfs-dropbox')
-        command.extend(['-f', 'dropbox://%s' % tmptar])
+            #command.append('--use-pnfs-dropbox')
+            #command.append('--skip-check=rcds')
+            pass
+        #command.extend(['-f', 'dropbox://%s' % tmptar])
+        command.extend(['--tar-file-name', 'dropbox://%s' % tmptar])
 
         # Batch script.
 

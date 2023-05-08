@@ -479,6 +479,9 @@ echo "No longer fetching files from work directory."
 echo "that's now done with using jobsub -f commands"
 mkdir work
 cp ${CONDOR_DIR_INPUT}/* ./work/
+if [ x$INPUT_TAR_DIR_LOCAL != x ]; then
+  cp ${INPUT_TAR_DIR_LOCAL}/* ./work/
+fi
 cd work
 find . -name \*.tar -exec tar xf {} \;
 find . -name \*.py -exec chmod +x {} \;
