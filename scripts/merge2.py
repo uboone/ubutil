@@ -1802,7 +1802,8 @@ CREATE TABLE IF NOT EXISTS unmerged_files (
 
         # Make a tarball out of all of the files in tmpworkdir in stage.workdir
 
-        tmptar = '%s/work.tar' % tmpworkdir
+        tmptar = '%s/work%s.tar' % (tmpworkdir, uuid.uuid4())
+        print 'Work tarball = %s' % tmptar
         jobinfo = subprocess.Popen(['tar','-cf', tmptar, '-C', tmpworkdir,
                                     '--mtime=2018-01-01',
                                     '--exclude=work.tar', '.'],
@@ -1983,7 +1984,10 @@ CREATE TABLE IF NOT EXISTS unmerged_files (
             # Batch job submission failed.
 
             print 'Batch job submission failed.'
+            print 'Submit command: %s' % command
+            print '\nJobsub output:'
             print jobout
+            print '\nJobsub errpr output:'
             print joberr
 
             # Stop sam project.
