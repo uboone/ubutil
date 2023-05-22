@@ -404,8 +404,8 @@ CREATE TABLE IF NOT EXISTS unmerged_files (
 
         # Force check.
 
-        if self.dircache.has_key(dir):
-            del self.dircache[dir]
+        #if self.dircache.has_key(dir):
+        #    del self.dircache[dir]
 
         if not self.dircache.has_key(dir):
             self.dircache[dir] = set()
@@ -416,6 +416,35 @@ CREATE TABLE IF NOT EXISTS unmerged_files (
         if base in self.dircache[dir]:
             result = True
         return result
+
+
+    # Remove file from disk and from directory cache.
+
+    def remove(self, fp):
+
+        # Test whether file exists.
+        # If test is positive, this will also ensure that file is in directory cache.
+
+        if self.exists(fp):
+
+            npath = os.path.normpath(fp)
+            dir = os.path.dirname(npath)
+            base = os.path.basename(npath)
+            if dir == '':
+                dir = '.'
+
+            # Remove file from disk.
+
+            try:
+                larbatch_posix.remove(npath)
+            except:
+                pass
+
+            # Remove file from directory cache.
+
+            self.dircache[dir].remove(base)
+
+        return
 
 
     # Get multiple metadata function.
@@ -597,8 +626,7 @@ CREATE TABLE IF NOT EXISTS unmerged_files (
                     dir = os.path.join(loc['mount_point'], loc['subdir'])
                     fp = os.path.join(dir, f)
                     print 'Deleting file from disk.'
-                    if self.exists(fp):
-                        larbatch_posix.remove(fp)
+                    self.remove(fp)
                     print 'Removing disk location from sam.'
                     self.samweb.removeFileLocation(f, loc['full_path'])
 
@@ -634,8 +662,7 @@ CREATE TABLE IF NOT EXISTS unmerged_files (
                         else:
                             print 'Removing bad disk location from sam.'
                             self.samweb.removeFileLocation(f, loc['full_path'])
-                            if self.exists(fp):
-                                larbatch_posix.remove(fp)
+                            self.remove(fp)
                     else:
                         print 'Removing bad location from sam.'
                         self.samweb.removeFileLocation(f, loc['full_path'])
@@ -673,8 +700,7 @@ CREATE TABLE IF NOT EXISTS unmerged_files (
                 dir = os.path.join(loc['mount_point'], loc['subdir'])
                 fp = os.path.join(dir, f)
                 print 'Deleting file from disk.'
-                if self.exists(fp):
-                    larbatch_posix.remove(fp)
+                self.remove(fp)
                 print 'Removing disk location from sam.'
                 self.samweb.removeFileLocation(f, loc['full_path'])
 
@@ -738,8 +764,7 @@ CREATE TABLE IF NOT EXISTS unmerged_files (
                         dir = os.path.join(loc['mount_point'], loc['subdir'])
                         fp = os.path.join(dir, f)
                         print 'Deleting file from disk.'
-                        if self.exists(fp):
-                            larbatch_posix.remove(fp)
+                        self.remove(fp)
                         print 'Removing disk location from sam.'
                         self.samweb.removeFileLocation(f, loc['full_path'])
 
