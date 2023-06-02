@@ -165,6 +165,7 @@ import sqlite3
 # Global variables.
 
 using_jobsub_lite = None
+worktarname = None
 
 
 def help():
@@ -282,7 +283,7 @@ class MergeEngine:
 
     def open_database(self, database):
 
-        conn = sqlite3.connect(database, 60.)
+        conn = sqlite3.connect(database, 600.)
 
         # Create tables.
 
@@ -1826,8 +1827,12 @@ CREATE TABLE IF NOT EXISTS unmerged_files (
                 print 'Helper python module %s not found.' % helper_module
 
         # Make a tarball out of all of the files in tmpworkdir in stage.workdir
+        # Use a tarball name that is unique per invocation of this script.
 
-        tmptar = '%s/work%s.tar' % (tmpworkdir, uuid.uuid4())
+        global worktarname
+        if worktarname == None:
+            worktarname = uuid.uuid4()
+        tmptar = '%s/work%s.tar' % (tmpworkdir, worktarname)
         print 'Work tarball = %s' % tmptar
         jobinfo = subprocess.Popen(['tar','-cf', tmptar, '-C', tmpworkdir,
                                     '--mtime=2018-01-01',
@@ -1890,7 +1895,7 @@ CREATE TABLE IF NOT EXISTS unmerged_files (
 
         if check_jobsub_lite():
             #command.append('--use-pnfs-dropbox')
-            #command.append('--skip-check=rcds')
+            command.append('--skip-check=rcds')
             pass
         #command.extend(['-f', 'dropbox://%s' % tmptar])
         command.extend(['--tar-file-name', 'dropbox://%s' % tmptar])
@@ -1988,6 +1993,11 @@ CREATE TABLE IF NOT EXISTS unmerged_files (
             # Batch job submission succeeded.
 
             print 'Batch job submission succeeded.'
+            #print 'Submit command: %s' % command
+            #print '\nJobsub output:'
+            #print jobout
+            #print '\nJobsub errpr output:'
+            #print joberr
             print 'Job id = %s' % jobid
             print 'Cluster id = %s' % clusid
 
