@@ -557,16 +557,16 @@ CREATE TABLE IF NOT EXISTS unmerged_files (
         print 'Updating unmerged_files table in database.'
 
         nadd = 0
+
+        # Add files in groups of 500.
+
         while len(unmerged_files) > 0:
-            example_file = unmerged_files.pop()
-            add_files = self.add_unmerged_file(example_file)
-            unmerged_files -= add_files
-            print '\n%d unmerged files remaining.' % len(unmerged_files)
-            print '%d groups added.' % nadd
-            if len(add_files) > 0:
-                nadd += 1
-                if nadd >= self.max_groups:
-                    break
+            add_list = []
+            while len(unmerged_files) > 0 and len(add_list) < 500:
+                add_list.append(unmerged_files.pop())
+            add_files = self.add_unmerged_files(add_list)
+            print '\n%d Files added.' % len(add_files)
+            print '%d unmerged files remaining.' % len(unmerged_files)
 
             # Check number of unaffiliated unmerged files.
 
@@ -806,6 +806,14 @@ CREATE TABLE IF NOT EXISTS unmerged_files (
                     c.execute(q, (f, group_id, sam_project_id, sam_process_id, size,
                                   create_date))
                     self.conn.commit()
+
+                else:
+
+                    # Unmergable.
+
+                    print 'Deleting unmergable file %s' % f
+                    self.delete_disk_locations(f)
+
 
             else:
 
