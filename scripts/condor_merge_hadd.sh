@@ -51,6 +51,8 @@
 # --group <arg>           - Group or experiment (required).
 # --outdir <arg>          - Output directory (required).
 # --logdir <arg>          - Log directory (required).
+# --dirsize <n>           - Maximum directory size.
+# --dirlevels <n>         - Number of extra directory levels.
 # --init-script <arg>     - User initialization script to execute.
 # --init-source <arg>     - User initialization script to source (bash).
 # --end-script <arg>      - User end-of-job script to execute.
@@ -104,6 +106,8 @@ LOCALTAR=""
 GRP=""
 OUTDIR=""
 LOGDIR=""
+DIRSIZE=0
+DIRLEVELS=0
 SCRATCH=""
 INITSCRIPT=""
 INITSOURCE=""
@@ -256,6 +260,22 @@ while [ $# -gt 0 ]; do
     --logdir )
       if [ $# -gt 1 ]; then
         LOGDIR=$2
+        shift
+      fi
+      ;;
+
+    # Maximum directory size.
+    --dirsize )
+      if [ $# -gt 1 ]; then
+        DIRSIZE=$2
+        shift
+      fi
+      ;;
+
+    # Number of extra directory levels.
+    --dirlevels )
+      if [ $# -gt 1 ]; then
+        DIRLEVELS=$2
         shift
       fi
       ;;
@@ -447,6 +467,9 @@ echo "No longer fetching files from work directory."
 echo "that's now done with using jobsub -f commands"
 mkdir work
 cp ${CONDOR_DIR_INPUT}/* ./work/
+if [ x$INPUT_TAR_DIR_LOCAL != x ]; then
+  cp ${INPUT_TAR_DIR_LOCAL}/* ./work/
+fi
 cd work
 find . -name \*.tar -exec tar xf {} \;
 find . -name \*.py -exec chmod +x {} \;
@@ -473,7 +496,14 @@ echo "Process: $PROCESS"
 
 # Construct name of output subdirectory.
 
-OUTPUT_SUBDIR=${CLUSTER}_${PROCESS}
+parentdir=''
+ndir=$CLUSTER
+while [ $DIRLEVELS -gt 0 -a $DIRSIZE -gt 0 ]; do
+  parentdir=$(( $ndir % $DIRSIZE ))/$parentdir
+  ndir=$(( $ndir / $DIRSIZE ))
+  DIRLEVELS=$(( $DIRLEVELS - 1 ))
+done
+OUTPUT_SUBDIR=${parentdir}${CLUSTER}_${PROCESS}
 echo "Output subdirectory: $OUTPUT_SUBDIR"
 
 # Make sure init script exists and is executable (if specified).
@@ -890,18 +920,18 @@ if [ $VALIDATE_IN_JOB -eq 1 ]; then
 
   # Update parents.
 
-  parent_files=($(cat log/consumed_files.list))
-  aunt_files=($(cat log/grandparents.list))
-  export JOBS_PARENTS=`echo ${parent_files[*]}`
-  export JOBS_AUNTS=`echo ${aunt_files[*]}`
+  #parent_files=($(cat log/consumed_files.list))
+  #aunt_files=($(cat log/grandparents.list))
+  #export JOBS_PARENTS=`echo ${parent_files[*]}`
+  #export JOBS_AUNTS=`echo ${aunt_files[*]}`
 
   # Do validation function for the whole job.
 
   if [ $valstat -eq 0 ]; then
     curdir=`pwd`
     cd $curdir/log
-    echo "./validate_in_job.py --dir $curdir/out --logfiledir $curdir/log --outdir $OUTDIR/$OUTPUT_SUBDIR --declare $DECLARE_IN_JOB --copy $COPY_TO_FTS --maintain_parentage 1 --data_file_type root"
-    ./validate_in_job.py --dir $curdir/out --logfiledir $curdir/log --outdir $OUTDIR/$OUTPUT_SUBDIR --declare $DECLARE_IN_JOB --copy $COPY_TO_FTS --maintain_parentage 1 --data_file_type root
+    echo "./validate_in_job.py --dir $curdir/out --logfiledir $curdir/log --outdir $OUTDIR/$OUTPUT_SUBDIR --declare $DECLARE_IN_JOB --copy $COPY_TO_FTS --maintain_parentage 1 --data_file_type root --parents consumed_files.list --aunts grandparents.list"
+    ./validate_in_job.py --dir $curdir/out --logfiledir $curdir/log --outdir $OUTDIR/$OUTPUT_SUBDIR --declare $DECLARE_IN_JOB --copy $COPY_TO_FTS --maintain_parentage 1 --data_file_type root --parents consumed_files.list --aunts grandparents.list
     valstat=$?
     cd $curdir
   fi
@@ -919,6 +949,15 @@ export IFDH_CP_MAXRETRIES=5
 
 echo "Make directory ${LOGDIR}/${OUTPUT_SUBDIR}."
 date
+subdir=$OUTPUT_SUBDIR
+dir=$LOGDIR
+while echo $subdir | grep -q /; do
+  dir=${dir}/${subdir%%/*}
+  subdir=${subdir#*/}
+  echo "ifdh mkdir $IFDH_OPT $dir"
+  ifdh mkdir $IFDH_OPT $dir
+done
+echo "ifdh mkdir $IFDH_OPT ${LOGDIR}/$OUTPUT_SUBDIR"
 ifdh mkdir $IFDH_OPT ${LOGDIR}/$OUTPUT_SUBDIR
 echo "Done making directory ${LOGDIR}/${OUTPUT_SUBDIR}."
 date
@@ -926,6 +965,15 @@ date
 if [ ${OUTDIR} != ${LOGDIR} ]; then
   echo "Make directory ${OUTDIR}/${OUTPUT_SUBDIR}."
   date
+  subdir=$OUTPUT_SUBDIR
+  dir=$OUTDIR
+  while echo $subdir | grep -q /; do
+    dir=${dir}/${subdir%%/*}
+    subdir=${subdir#*/}
+    echo "ifdh mkdir $IFDH_OPT $dir"
+    ifdh mkdir $IFDH_OPT $dir
+  done
+  echo "ifdh mkdir $IFDH_OPT ${OUTDIR}/$OUTPUT_SUBDIR"
   ifdh mkdir $IFDH_OPT ${OUTDIR}/$OUTPUT_SUBDIR
   echo "Done making directory ${OUTDIR}/${OUTPUT_SUBDIR}."
   date
