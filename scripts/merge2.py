@@ -2239,16 +2239,16 @@ CREATE TABLE IF NOT EXISTS unmerged_files (
 
         print '\nCleaning merge groups.'
 
-        # Loop over merge groups.
+        # Loop over empty merge groups.
 
         c = self.conn.cursor()
-        q = 'SELECT id FROM merge_groups ORDER BY id;'
+        q = 'SELECT id FROM merge_groups WHERE id NOT IN (SELECT DISTINCT group_id FROM unmerged_files) ORDER BY id;'
         c.execute(q)
         rows = c.fetchall()
         for row in rows:
             group_id = row[0]
 
-            # Check whether any unmerged files belong to this merge group.
+            # Double check that no files belong to this merge group.
 
             q = 'SELECT COUNT(*) FROM unmerged_files WHERE group_id=?;'
             c.execute(q, (group_id,))
@@ -2259,10 +2259,10 @@ CREATE TABLE IF NOT EXISTS unmerged_files (
 
                 q = 'DELETE FROM merge_groups WHERE id=?'
                 c.execute(q, (group_id,))
+                self.conn.commit()
 
         # Done.
 
-        self.conn.commit()
         return
 
 
