@@ -1324,9 +1324,10 @@ CREATE TABLE IF NOT EXISTS unmerged_files (
 
                     print 'Deleting project %s' % sam_project
 
-                    # First validate locations of any unmerged files associated with this process.
+                    # Maybe validate locations of any unmerged files associated with this process.
+                    # Only do this if there is no corresponding sam process.
 
-                    q = 'SELECT name FROM unmerged_files WHERE sam_project_id=?'
+                    q = 'SELECT name FROM unmerged_files WHERE sam_project_id=? AND sam_process_id=0'
                     c.execute(q, (sam_project_id,))
                     rows = c.fetchall()
                     if len(rows) > 0:
@@ -2337,10 +2338,6 @@ def check_running(argv):
 
 def main(argv):
 
-    if check_running(argv):
-        print 'Quitting because similar process is already running.'
-        sys.exit(0)
-
     # Parse arguments.
 
     xmlfile = ''
@@ -2429,6 +2426,12 @@ def main(argv):
         else:
             print 'Unknown option %s' % args[0]
             return 1
+
+    # Check whether another process is already running.
+
+    if check_running(argv):
+        print 'Quitting because similar process is already running.'
+        sys.exit(0)
 
     # Check if we want to generate log files.
 
