@@ -156,7 +156,7 @@
 #
 ######################################################################
 
-import sys, os, datetime, uuid, traceback, tempfile, subprocess
+import sys, os, time, datetime, uuid, traceback, tempfile, subprocess
 import threading, Queue
 import StringIO
 import project, project_utilities, larbatch_posix
@@ -185,6 +185,25 @@ def help():
                 print line[2:],
             else:
                 print
+
+
+# SubmitStruct is a struct-like class containing information about batch job submissions.
+# Each instance of this class represents a started jobsub_submit subprocess.
+
+class SubmitStruct:
+
+    # Constructor.
+
+    def __init__(self, start_time, jobinfo, tmpdirs, sam_project_id, prjname, prj_started, command):
+
+        self.start_time = start_time           # Process start time (time.time()).
+        self.jobinfo = jobinfo                 # subprocess.Popen object.
+        self.tmpdirs = tmpdirs               # Temporary directories.
+        self.sam_project_id = sam_project_id   # Sqlite sam project id.
+        self.prjname = prjname                 # Sam project name.
+        self.prj_started = prj_started         # Number of jobs in batch cluster.
+        self.command = command                 # Batch submit command.
+
 
 class MergeEngine:
 
@@ -266,6 +285,12 @@ class MergeEngine:
 
         self.metadata_queue = []
         self.metadata_queue_max = 10   # Maximum size of metadata queue.
+
+        # Submit process queue.
+
+        self.submit_queue = set()         # Contains SubmitStruct objects.
+        self.submit_queue_max = 7         # Maximum size of submit process queue.
+        self.submit_queue_timeout = 600   # Seconds.
 
         # Done.
 
@@ -1188,7 +1213,7 @@ CREATE TABLE IF NOT EXISTS unmerged_files (
 
                                     # Find all files with this same parent.
 
-                                    print '\nAll files with this parent:'
+                                    print 'All files with this parent:'
                                     for md2 in mds:
                                         if md2.has_key('parents'):
                                             for parentdict2 in md2['parents']:
@@ -1611,6 +1636,164 @@ CREATE TABLE IF NOT EXISTS unmerged_files (
 
                     self.submit(sam_project_id)
 
+            # Done looping over sam projects.
+            # Maybe flush submit queue.
+
+            if status == 0:
+                self.flush_submit_queue(0)
+
+        # Done looping over statuses.
+
+        return
+
+
+    # Function to perform post-submit processing.  Does following actions.
+    #
+    # 1.  Checks exit status (success/fail).
+    # 2.  Delete temporary files.
+    # 3.  Extract job id and cluster id from jobsub_submit output.
+    # 4.  Update database.
+    #
+    # The argument is an object of type SubmitStruct
+
+    def postsubmit(self, sub):
+
+        print '\nDoing post-submission tasks for sam project %s' % sub.prjname
+
+        # Check exit status and output from jobsub_submit.
+
+        batchok = False
+        jobout, joberr = sub.jobinfo.communicate(input)
+        rc = sub.jobinfo.poll()
+        if rc == 0:
+
+            # Extract jobsub id from captured output.
+
+            jobid = ''
+            clusid = ''
+            for line in jobout.split('\n'):
+                if "JobsubJobId" in line:
+                    jobid = line.strip().split()[-1]
+                elif "Use job id" in line:
+                    jobid = line.strip().split()[3]
+            if jobid != '':
+                words = jobid.split('@')
+                if len(words) == 2:
+                    clus = words[0].split('.')[0]
+                    server = words[1]
+                    clusid = '%s@%s' % (clus, server)
+                    batchok = True
+
+        if batchok:
+
+            # Batch job submission succeeded.
+
+            print 'Batch job submission succeeded.'
+            #print 'Submit command: %s' % command
+            #print '\nJobsub output:'
+            #print jobout
+            #print '\nJobsub errpr output:'
+            #print joberr
+            print 'Job id = %s' % jobid
+            print 'Cluster id = %s' % clusid
+
+            # Update sam_projects table with information about this job submission.
+
+            submit_time = datetime.datetime.strftime(datetime.datetime.now(), 
+                                                     '%Y-%m-%d %H:%M:%S')
+            c = self.conn.cursor()
+            q = '''UPDATE sam_projects
+                   SET name=?,cluster_id=?,submit_time=?,status=?
+                   WHERE id=?;'''
+            c.execute(q, (sub.prjname, clusid, submit_time, 1, sub.sam_project_id))
+
+            # Done updating database in this function.
+
+            self.conn.commit()
+
+        else:
+
+            # Batch job submission failed.
+
+            print 'Batch job submission failed.'
+            print 'Submit command: %s' % sub.command
+            print '\nJobsub output:'
+            print jobout
+            print '\nJobsub errpr output:'
+            print joberr
+
+            # Stop sam project.
+
+            if sub.prj_started:
+                print 'Stopping sam project %s' % prjname
+                try:
+                    self.samweb.stopProject(prjname)
+                except:
+                    pass
+
+        # Delete temporary files.
+
+        for tmpdir in sub.tmpdirs:
+            if larbatch_posix.isdir(tmpdir):
+                larbatch_posix.rmtree(tmpdir)
+
+        # Done.
+
+        return
+
+
+    # Function to do a full or partial flush of submit queue.
+    # Upon return this function guarantees that the submit queue will
+    # have at most the number of processes specified as the argument.
+    # To do a full flush, call with argument zero.
+
+    def flush_submit_queue(self, maxproc):
+
+        # Quit if the submit queue is already below the maximum.
+
+        if len(self.submit_queue) <= maxproc:
+            return
+
+        if maxproc == 0:
+            print '\nDoing a full flush of submit queue.'
+        else:
+            print '\nDoing a partial flush of submit queue to a maximum of %d processes.' % maxproc
+
+        while len(self.submit_queue) > maxproc:
+
+            print 'There are currently %d processes in submit queue.' % len(self.submit_queue)
+
+            # Loop over processes and remove any that are finished or have exceeded the timeout.
+
+            now = time.time()
+            for sub in self.submit_queue:
+
+                # Kill process if it has exceeded the timeout.
+
+                if now - sub.start_time >= self.submit_queue_timeout:
+                    print '\nKilling submit process for sam project %s' % sub.prjname
+                    sub.jobinfo.terminate()
+                    sub.jobinfo.wait()
+
+                # Check whether this process has finished.
+
+                if sub.jobinfo.poll() != None:
+                    print '\nSubmit process for project %s finished.' % sub.prjname
+                    self.postsubmit(sub)
+                    self.submit_queue.remove(sub)
+                    break
+
+            # Rest a bit if queue is still full.
+
+            if len(self.submit_queue) > maxproc:
+                time.sleep(2)
+
+        # Done.
+
+        print '\nDone flushing submit queue.'
+        print 'Submit queue has %d entries.' % len(self.submit_queue)
+        return
+
 
     # Function to start sam project and submit batch jobs.
 
@@ -1952,96 +2135,28 @@ CREATE TABLE IF NOT EXISTS unmerged_files (
         if num_jobs == 1:
             command.append('--sam_start')
 
-        # Invoke the job submission command and capture the output.
+        # Make sure there is room in the submit queue.
+
+        self.flush_submit_queue(self.submit_queue_max - 1)
+
+        # Invoke the job submission command and add to submit queue.
 
         print 'Invoke jobsub_submit'
-        submit_timeout = 3600000
-        q = Queue.Queue()
         jobinfo = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        thread = threading.Thread(target=project_utilities.wait_for_subprocess, args=[jobinfo, q])
-        thread.start()
-        thread.join(timeout=submit_timeout)
-        if thread.is_alive():
-            jobinfo.terminate()
-            thread.join()
-        rc = q.get()
-        jobout = q.get()
-        joberr = q.get()
+        sub = SubmitStruct(time.time(),              # Start time (now).
+                           jobinfo,                  # Popen object.
+                           [tmpdir, tmpworkdir],     # Temporary files.
+                           sam_project_id,           # Database sam project id.
+                           prjname,                  # Sam project name.
+                           num_jobs>1,               # Sam project started?
+                           command)                  # Command (jobsub_submit, etc.).
+        self.submit_queue.add(sub)
+        print 'Submit queue now has %d entries.' % len(self.submit_queue)
 
-        # Clean up.
+        # Done.
 
-        if larbatch_posix.isdir(tmpdir):
-            larbatch_posix.rmtree(tmpdir)
-        if larbatch_posix.isdir(tmpworkdir):
-            larbatch_posix.rmtree(tmpworkdir)
+        return
 
-        # Test whether job submission succeeded.
-
-        batchok = False
-        if rc == 0:
-
-            # Extract jobsub id from captured output.
-
-            jobid = ''
-            clusid = ''
-            for line in jobout.split('\n'):
-                if "JobsubJobId" in line:
-                    jobid = line.strip().split()[-1]
-                elif "Use job id" in line:
-                    jobid = line.strip().split()[3]
-            if jobid != '':
-                words = jobid.split('@')
-                if len(words) == 2:
-                    clus = words[0].split('.')[0]
-                    server = words[1]
-                    clusid = '%s@%s' % (clus, server)
-                    batchok = True
-
-        if batchok:
-
-            # Batch job submission succeeded.
-
-            print 'Batch job submission succeeded.'
-            #print 'Submit command: %s' % command
-            #print '\nJobsub output:'
-            #print jobout
-            #print '\nJobsub errpr output:'
-            #print joberr
-            print 'Job id = %s' % jobid
-            print 'Cluster id = %s' % clusid
-
-            # Update sam_projects table with information about this job submission.
-
-            submit_time = datetime.datetime.strftime(datetime.datetime.now(), 
-                                                     '%Y-%m-%d %H:%M:%S')
-            q = '''UPDATE sam_projects
-                   SET name=?,cluster_id=?,submit_time=?,status=?
-                   WHERE id=?;'''
-            c.execute(q, (prjname, clusid, submit_time, 1, sam_project_id))
-
-            # Done updating database in this function.
-
-            self.conn.commit()
-
-        else:
-
-            # Batch job submission failed.
-
-            print 'Batch job submission failed.'
-            print 'Submit command: %s' % command
-            print '\nJobsub output:'
-            print jobout
-            print '\nJobsub errpr output:'
-            print joberr
-
-            # Stop sam project.
-
-            if num_jobs > 1:
-                print 'Stopping sam project %s' % prjname
-                try:
-                    self.samweb.stopProject(prjname)
-                except:
-                    pass
 
     # Update statuses of sam processes / merged files.
 
@@ -2288,7 +2403,7 @@ def check_jobsub_lite():
         jobout, joberr = jobinfo.communicate()
         rc = jobinfo.poll()
         if rc == 0:
-            print jobout
+            print jobout,
             if jobout.find('jobsub_lite') >= 0:
                 using_jobsub_lite = True
 
