@@ -296,6 +296,16 @@ class MergeEngine:
         self.submit_queue_max = 7         # Maximum size of submit process queue.
         self.submit_queue_timeout = 600   # Seconds.
 
+        # Delete project queue.
+
+        self.delete_project_queue = []
+        self.delete_project_queue_max = 100   # Maximum size of delete project queue.
+
+        # Delete process queue.
+
+        self.delete_process_queue = []
+        self.delete_process_queue_max = 100   # Maximum size of delete process queue.
+
         # Done.
 
         return
@@ -1311,6 +1321,40 @@ CREATE TABLE IF NOT EXISTS unmerged_files (
         return result
 
 
+    # Flush delete project queue, leaving queue empty.
+
+    def flush_delete_project_queue(self):
+
+        if len(self.delete_project_queue) > 0:
+
+            # Delete all sam project ids in delete queue.
+
+            print('Flushing delete project queue.')
+            print('Delete project queue has %d members.' % len(self.delete_project_queue))
+
+            c = self.conn.cursor()
+            placeholders = ('?,'*len(self.delete_project_queue))[:-1]
+            q = 'UPDATE unmerged_files SET sam_project_id=? WHERE sam_project_id IN (%s);' % placeholders
+            c.execute(q, [0] + self.delete_project_queue)
+
+            q = 'UPDATE sam_processes SET sam_project_id=? WHERE sam_project_id IN (%s);' % placeholders
+            c.execute(q, [0] + self.delete_project_queue)
+
+            q = 'DELETE FROM sam_projects WHERE id IN (%s)' % placeholders
+            c.execute(q, self.delete_project_queue)
+
+            self.conn.commit()
+
+            # Clear delete queue.
+
+            self.delete_project_queue = []
+            print('Done flushing delete project queue.')
+
+        # Done
+
+        return
+
+
     # Update statuses of sam projects.
     # This function may start projects and submit batch jobs.
 
@@ -1359,16 +1403,16 @@ CREATE TABLE IF NOT EXISTS unmerged_files (
                             f = row[0]
                             self.check_location(f, True)
 
-                    q = 'UPDATE unmerged_files SET sam_project_id=? WHERE sam_project_id=?;'
-                    c.execute(q, (0, sam_project_id))
+                    # Add project to delete queue.
 
-                    q = 'UPDATE sam_processes SET sam_project_id=? WHERE sam_project_id=?;'
-                    c.execute(q, (0, sam_project_id))
+                    print('Adding project to delete queue.')
+                    print('Delete project queue now has %d members.' % len(self.delete_project_queue))
+                    self.delete_project_queue.append(sam_project_id)
 
-                    q = 'DELETE FROM sam_projects WHERE id=?'
-                    c.execute(q, (sam_project_id,))
+                    # Maybe flush delete queue.
 
-                    self.conn.commit()
+                    if len(self.delete_project_queue) >= self.delete_project_queue_max:
+                        self.flush_delete_project_queue()
 
                 if status == 2:
 
@@ -1640,6 +1684,10 @@ CREATE TABLE IF NOT EXISTS unmerged_files (
             if status == 0:
                 self.flush_submit_queue(0)
 
+            # Flush delete project queue.
+
+            self.flush_delete_project_queue()
+
         # Done looping over statuses.
 
         return
@@ -1723,9 +1771,9 @@ CREATE TABLE IF NOT EXISTS unmerged_files (
             # Stop sam project.
 
             if sub.prj_started:
-                print('Stopping sam project %s' % prjname)
+                print('Stopping sam project %s' % sub.prjname)
                 try:
-                    self.samweb.stopProject(prjname)
+                    self.samweb.stopProject(sub.prjname)
                 except:
                     pass
 
@@ -2156,6 +2204,37 @@ CREATE TABLE IF NOT EXISTS unmerged_files (
         return
 
 
+    # Flush delete process queue, leaving queue empty.
+
+    def flush_delete_process_queue(self):
+
+        if len(self.delete_process_queue) > 0:
+
+            # Delete all sam process ids in delete queue.
+
+            print('Flushing delete process queue.')
+            print('Delete process queue has %d members.' % len(self.delete_process_queue))
+
+            c = self.conn.cursor()
+            placeholders = ('?,'*len(self.delete_process_queue))[:-1]
+            q = 'UPDATE unmerged_files SET sam_process_id=? WHERE sam_process_id IN (%s);' % placeholders
+            c.execute(q, [0] + self.delete_process_queue)
+
+            q = 'DELETE FROM sam_processes WHERE id IN (%s)' % placeholders
+            c.execute(q, self.delete_process_queue)
+
+            self.conn.commit()
+
+            # Clear delete queue.
+
+            self.delete_process_queue = []
+            print('Done flushing delete process queue.')
+
+        # Done
+
+        return
+
+
     # Update statuses of sam processes / merged files.
 
     def update_sam_process_status(self):
@@ -2209,15 +2288,16 @@ CREATE TABLE IF NOT EXISTS unmerged_files (
                             q = 'DELETE FROM unmerged_files WHERE id=?'
                             c.execute(q, (id,))
 
-                    print('Deleting process.')
+                    # Add process to delete queue.
 
-                    q = 'UPDATE unmerged_files SET sam_process_id=? WHERE sam_process_id=?;'
-                    c.execute(q, (0, merge_id))
+                    print('Adding process to delete queue.')
+                    print('Delete process queue now has %d members.' % len(self.delete_process_queue))
+                    self.delete_process_queue.append(merge_id)
 
-                    q = 'DELETE FROM sam_processes WHERE id=?'
-                    c.execute(q, (merge_id,))
+                    # Maybe flush delete queue.
 
-                    self.conn.commit()
+                    if len(self.delete_process_queue) >= self.delete_process_queue_max:
+                        self.flush_delete_process_queue()
 
                 if status == 2:
 
@@ -2346,6 +2426,17 @@ CREATE TABLE IF NOT EXISTS unmerged_files (
                     # Not declared (shouldn't happen).
 
                     pass
+
+            # Done looping over sam processes.
+
+            # Flush delete process queue.
+
+            self.flush_delete_process_queue()
+
+        # Done looping over statuses.
+
+        return
+
 
     # Function to remove unused merged groups from database.
 
