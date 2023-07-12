@@ -1,25 +1,15 @@
 # ======================================================================
-#  larsoft main build file
+#  ubutil main build file
 #
 #  cd .../path/to/build/directory
-#  source .../path/to/larsoft/ups/setup_for_development <-d|-p>
-#  cmake [-DCMAKE_INSTALL_PREFIX=/install/path]
-#        -DCMAKE_BUILD_TYPE=$CETPKG_TYPE
-#        $CETPKG_SOURCE
-#  make
-#  make test
-#  make install
-#  make package (builds distribution tarfile)
+#  source .../path/to/lardataobj/ups/setup_for_development <-d|-p>
+#  buildtool [-I /install/path] -bt[i] -jN
 # ======================================================================
 
-cmake_minimum_required(VERSION 3.19 FATAL_ERROR)
+cmake_minimum_required(VERSION 3.20 FATAL_ERROR)
 
+find_package(cetmodules REQUIRED)
 project(ubutil VERSION 09.76.00 LANGUAGES CXX)
-
-# cetbuildtools contains our cmake modules
-find_package(cetbuildtools REQUIRED)
-
-list(APPEND CMAKE_MODULE_PATH $ENV{ART_DIR}/Modules)
 
 include(CetCMakeEnv)
 cet_cmake_env()
@@ -30,16 +20,10 @@ cet_set_compiler_flags(DIAGS CAUTIOUS
   EXTRA_FLAGS -pedantic
 )
 
-cet_report_compiler_flags()
-
-# these are minimum required versions, not the actual product versions
-find_ups_product( art )
-find_ups_product( fhiclcpp )
-find_ups_product( cetlib )
-find_ups_product( cetlib_except )
+cet_report_compiler_flags(REPORT_THRESHOLD VERBOSE)
 
 # macros for dictionary and simple_plugin
-include(ArtMake)
+include(CetMakeLibrary)
 include(BuildPlugins)
 
 # ADD SOURCE CODE SUBDIRECTORIES HERE
@@ -47,11 +31,8 @@ include(BuildPlugins)
 # subdirectory for test code
 add_subdirectory(test)
 
-# ups - table and config files
-add_subdirectory(ups)
-
 # XML project files.
-add_subdirectory(xml)
+#add_subdirectory(xml)
 
 # Scripts and utilities.
 add_subdirectory(scripts)
@@ -75,5 +56,5 @@ add_subdirectory(root_batch)
 add_subdirectory(root_analyze)
 
 # packaging utility
-include(UseCPack)
 
+cet_cmake_config()
