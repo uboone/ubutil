@@ -306,6 +306,11 @@ class MergeEngine:
         self.delete_process_queue = []
         self.delete_process_queue_max = 100   # Maximum size of delete process queue.
 
+        # Delete merge group queue.
+
+        self.delete_merge_group_queue = []
+        self.delete_merge_group_queue_max = 100   # Maximum size of delete merge group queue.
+
         # Done.
 
         return
@@ -2438,6 +2443,34 @@ CREATE TABLE IF NOT EXISTS unmerged_files (
         return
 
 
+    # Flush delete merge group queue, leaving queue empty.
+
+    def flush_delete_merge_group_queue(self):
+
+        if len(self.delete_merge_group_queue) > 0:
+
+            # Delete all merge group ids in delete queue.
+
+            print('Flushing delete merge group queue.')
+            print('Delete merge group queue has %d members.' % len(self.delete_merge_group_queue))
+
+            c = self.conn.cursor()
+            placeholders = ('?,'*len(self.delete_merge_group_queue))[:-1]
+            q = 'DELETE FROM merge_groups WHERE id IN (%s)' % placeholders
+            c.execute(q, self.delete_merge_group_queue)
+
+            self.conn.commit()
+
+            # Clear delete queue.
+
+            self.delete_merge_group_queue = []
+            print('Done flushing delete merge group queue.')
+
+        # Done
+
+        return
+
+
     # Function to remove unused merged groups from database.
 
     def clean_merge_groups(self):
@@ -2460,11 +2493,21 @@ CREATE TABLE IF NOT EXISTS unmerged_files (
             row = c.fetchone()
             n = row[0]
             if n == 0:
-                print('Deleting group %d' % group_id)
 
-                q = 'DELETE FROM merge_groups WHERE id=?'
-                c.execute(q, (group_id,))
-                self.conn.commit()
+                # Add merge group to delete queue.
+
+                print('Adding merge group %d to delete queue' % group_id)
+                print('Delete merge group now has %d members.' % len(self.delete_merge_group_queue))
+                self.delete_merge_group_queue.append(group_id)
+
+                # Maybe flush delete queue.
+
+                if len(self.delete_merge_group_queue) >= self.delete_merge_group_queue_max:
+                    self.flush_delete_merge_group_queue()
+
+        # Final flush of merge group delete queue.
+
+        self.flush_delete_merge_group_queue()
 
         # Done.
 
