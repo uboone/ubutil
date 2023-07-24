@@ -22,6 +22,8 @@ cet_set_compiler_flags(DIAGS CAUTIOUS
 
 cet_report_compiler_flags(REPORT_THRESHOLD VERBOSE)
 
+find_package(art REQUIRED EXPORT )
+
 # macros for dictionary and simple_plugin
 include(CetMakeLibrary)
 include(BuildPlugins)
