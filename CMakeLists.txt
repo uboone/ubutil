@@ -25,7 +25,7 @@ cet_report_compiler_flags(REPORT_THRESHOLD VERBOSE)
 find_package(art REQUIRED EXPORT )
 
 # macros for dictionary and simple_plugin
-include(CetMakeLibrary)
+include(ArtMake)
 include(BuildPlugins)
 
 # ADD SOURCE CODE SUBDIRECTORIES HERE
