@@ -9,6 +9,13 @@ FERMIOSG_UBOONE_DIR="/cvmfs/uboone.opensciencegrid.org/products/"
 
 UBOONE_BLUEARC_DATA="/uboone/data/"
 
+# Make sure locale is reasonable.
+
+if [ x$LC_ALL = x ]; then
+  echo "Setting LC_ALL=C"
+  export LC_ALL=C
+fi
+
 # Sourcing this setup will add larsoft to $PRODUCTS
 
 for dir in $FERMIOSG_LARSOFT_DIR

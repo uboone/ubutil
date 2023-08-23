@@ -157,7 +157,7 @@
 ######################################################################
 
 from __future__ import print_function
-import sys, os, datetime, uuid, traceback, tempfile, subprocess
+import sys, os, time, datetime, uuid, traceback, tempfile, subprocess
 import threading
 try:
     import queue as Queue
@@ -189,6 +189,25 @@ def help():
                 print(line[2:].rstrip())
             else:
                 print()
+
+
+# SubmitStruct is a struct-like class containing information about batch job submissions.
+# Each instance of this class represents a started jobsub_submit subprocess.
+
+class SubmitStruct:
+
+    # Constructor.
+
+    def __init__(self, start_time, jobinfo, tmpdirs, sam_project_id, prjname, prj_started, command):
+
+        self.start_time = start_time           # Process start time (time.time()).
+        self.jobinfo = jobinfo                 # subprocess.Popen object.
+        self.tmpdirs = tmpdirs                 # Temporary directories.
+        self.sam_project_id = sam_project_id   # Sqlite sam project id.
+        self.prjname = prjname                 # Sam project name.
+        self.prj_started = prj_started         # Number of jobs in batch cluster.
+        self.command = command                 # Batch submit command.
+
 
 class MergeEngine:
 
@@ -270,6 +289,27 @@ class MergeEngine:
 
         self.metadata_queue = []
         self.metadata_queue_max = 10   # Maximum size of metadata queue.
+
+        # Submit process queue.
+
+        self.submit_queue = set()         # Contains SubmitStruct objects.
+        self.submit_queue_max = 7         # Maximum size of submit process queue.
+        self.submit_queue_timeout = 600   # Seconds.
+
+        # Delete project queue.
+
+        self.delete_project_queue = []
+        self.delete_project_queue_max = 100   # Maximum size of delete project queue.
+
+        # Delete process queue.
+
+        self.delete_process_queue = []
+        self.delete_process_queue_max = 100   # Maximum size of delete process queue.
+
+        # Delete merge group queue.
+
+        self.delete_merge_group_queue = []
+        self.delete_merge_group_queue_max = 100   # Maximum size of delete merge group queue.
 
         # Done.
 
@@ -1186,7 +1226,7 @@ CREATE TABLE IF NOT EXISTS unmerged_files (
 
                                     # Find all files with this same parent.
 
-                                    print('\nAll files with this parent:')
+                                    print('All files with this parent:')
                                     for md2 in mds:
                                         if 'parents' in md2:
                                             for parentdict2 in md2['parents']:
@@ -1286,6 +1326,40 @@ CREATE TABLE IF NOT EXISTS unmerged_files (
         return result
 
 
+    # Flush delete project queue, leaving queue empty.
+
+    def flush_delete_project_queue(self):
+
+        if len(self.delete_project_queue) > 0:
+
+            # Delete all sam project ids in delete queue.
+
+            print('Flushing delete project queue.')
+            print('Delete project queue has %d members.' % len(self.delete_project_queue))
+
+            c = self.conn.cursor()
+            placeholders = ('?,'*len(self.delete_project_queue))[:-1]
+            q = 'UPDATE unmerged_files SET sam_project_id=? WHERE sam_project_id IN (%s);' % placeholders
+            c.execute(q, [0] + self.delete_project_queue)
+
+            q = 'UPDATE sam_processes SET sam_project_id=? WHERE sam_project_id IN (%s);' % placeholders
+            c.execute(q, [0] + self.delete_project_queue)
+
+            q = 'DELETE FROM sam_projects WHERE id IN (%s)' % placeholders
+            c.execute(q, self.delete_project_queue)
+
+            self.conn.commit()
+
+            # Clear delete queue.
+
+            self.delete_project_queue = []
+            print('Done flushing delete project queue.')
+
+        # Done
+
+        return
+
+
     # Update statuses of sam projects.
     # This function may start projects and submit batch jobs.
 
@@ -1322,9 +1396,10 @@ CREATE TABLE IF NOT EXISTS unmerged_files (
 
                     print('Deleting project %s' % sam_project)
 
-                    # First validate locations of any unmerged files associated with this process.
+                    # Maybe validate locations of any unmerged files associated with this process.
+                    # Only do this if there is no corresponding sam process.
 
-                    q = 'SELECT name FROM unmerged_files WHERE sam_project_id=?'
+                    q = 'SELECT name FROM unmerged_files WHERE sam_project_id=? AND sam_process_id=0'
                     c.execute(q, (sam_project_id,))
                     rows = c.fetchall()
                     if len(rows) > 0:
@@ -1333,16 +1408,16 @@ CREATE TABLE IF NOT EXISTS unmerged_files (
                             f = row[0]
                             self.check_location(f, True)
 
-                    q = 'UPDATE unmerged_files SET sam_project_id=? WHERE sam_project_id=?;'
-                    c.execute(q, (0, sam_project_id))
+                    # Add project to delete queue.
 
-                    q = 'UPDATE sam_processes SET sam_project_id=? WHERE sam_project_id=?;'
-                    c.execute(q, (0, sam_project_id))
+                    print('Adding project to delete queue.')
+                    print('Delete project queue now has %d members.' % len(self.delete_project_queue))
+                    self.delete_project_queue.append(sam_project_id)
 
-                    q = 'DELETE FROM sam_projects WHERE id=?'
-                    c.execute(q, (sam_project_id,))
+                    # Maybe flush delete queue.
 
-                    self.conn.commit()
+                    if len(self.delete_project_queue) >= self.delete_project_queue_max:
+                        self.flush_delete_project_queue()
 
                 if status == 2:
 
@@ -1607,6 +1682,168 @@ CREATE TABLE IF NOT EXISTS unmerged_files (
                     # batch submission is successful.
 
                     self.submit(sam_project_id)
+
+            # Done looping over sam projects.
+            # Maybe flush submit queue.
+
+            if status == 0:
+                self.flush_submit_queue(0)
+
+            # Flush delete project queue.
+
+            self.flush_delete_project_queue()
+
+        # Done looping over statuses.
+
+        return
+
+
+    # Function to perform post-submit processing.  Does following actions.
+    #
+    # 1.  Checks exit status (success/fail).
+    # 2.  Delete temporary files.
+    # 3.  Extract job id and cluster id from jobsub_submit output.
+    # 4.  Update database.
+    #
+    # The argument is an object of type SubmitStruct
+
+    def postsubmit(self, sub):
+
+        print('\nDoing post-submission tasks for sam project %s' % sub.prjname)
+
+        # Check exit status and output from jobsub_submit.
+
+        batchok = False
+        jobout, joberr = sub.jobinfo.communicate(input)
+        rc = sub.jobinfo.poll()
+        if rc == 0:
+
+            # Extract jobsub id from captured output.
+
+            jobid = ''
+            clusid = ''
+            for line in jobout.split('\n'):
+                if "JobsubJobId" in line:
+                    jobid = line.strip().split()[-1]
+                elif "Use job id" in line:
+                    jobid = line.strip().split()[3]
+            if jobid != '':
+                words = jobid.split('@')
+                if len(words) == 2:
+                    clus = words[0].split('.')[0]
+                    server = words[1]
+                    clusid = '%s@%s' % (clus, server)
+                    batchok = True
+
+        if batchok:
+
+            # Batch job submission succeeded.
+
+            print('Batch job submission succeeded.')
+            #print('Submit command: %s' % command)
+            #print('\nJobsub output:')
+            #print(jobout)
+            #print('\nJobsub errpr output:')
+            #print(joberr)
+            print('Job id = %s' % jobid)
+            print('Cluster id = %s' % clusid)
+
+            # Update sam_projects table with information about this job submission.
+
+            submit_time = datetime.datetime.strftime(datetime.datetime.now(), 
+                                                     '%Y-%m-%d %H:%M:%S')
+            c = self.conn.cursor()
+            q = '''UPDATE sam_projects
+                   SET name=?,cluster_id=?,submit_time=?,status=?
+                   WHERE id=?;'''
+            c.execute(q, (sub.prjname, clusid, submit_time, 1, sub.sam_project_id))
+
+            # Done updating database in this function.
+
+            self.conn.commit()
+
+        else:
+
+            # Batch job submission failed.
+
+            print('Batch job submission failed.')
+            print('Submit command: %s' % sub.command)
+            print('\nJobsub output:')
+            print(jobout)
+            print('\nJobsub errpr output:')
+            print(joberr)
+
+            # Stop sam project.
+
+            if sub.prj_started:
+                print('Stopping sam project %s' % sub.prjname)
+                try:
+                    self.samweb.stopProject(sub.prjname)
+                except:
+                    pass
+
+        # Delete temporary files.
+
+        for tmpdir in sub.tmpdirs:
+            if larbatch_posix.isdir(tmpdir):
+                larbatch_posix.rmtree(tmpdir)
+
+        # Done.
+
+        return
+
+
+    # Function to do a full or partial flush of submit queue.
+    # Upon return this function guarantees that the submit queue will
+    # have at most the number of processes specified as the argument.
+    # To do a full flush, call with argument zero.
+
+    def flush_submit_queue(self, maxproc):
+
+        # Quit if the submit queue is already below the maximum.
+
+        if len(self.submit_queue) <= maxproc:
+            return
+
+        if maxproc == 0:
+            print('\nDoing a full flush of submit queue.')
+        else:
+            print('\nDoing a partial flush of submit queue to a maximum of %d processes.' % maxproc)
+
+        while len(self.submit_queue) > maxproc:
+
+            print('There are currently %d processes in submit queue.' % len(self.submit_queue))
+
+            # Loop over processes and remove any that are finished or have exceeded the timeout.
+
+            now = time.time()
+            for sub in self.submit_queue:
+
+                # Kill process if it has exceeded the timeout.
+
+                if now - sub.start_time >= self.submit_queue_timeout:
+                    print('\nKilling submit process for sam project %s' % sub.prjname)
+                    sub.jobinfo.terminate()
+                    sub.jobinfo.wait()
+
+                # Check whether this process has finished.
+
+                if sub.jobinfo.poll() != None:
+                    print('\nSubmit process for project %s finished.' % sub.prjname)
+                    self.postsubmit(sub)
+                    self.submit_queue.remove(sub)
+                    break
+
+            # Rest a bit if queue is still full.
+
+            if len(self.submit_queue) > maxproc:
+                time.sleep(2)
+
+        # Done.
+
+        print('\nDone flushing submit queue.')
+        print('Submit queue has %d entries.' % len(self.submit_queue))
+        return
 
 
     # Function to start sam project and submit batch jobs.
@@ -1949,96 +2186,59 @@ CREATE TABLE IF NOT EXISTS unmerged_files (
         if num_jobs == 1:
             command.append('--sam_start')
 
-        # Invoke the job submission command and capture the output.
+        # Make sure there is room in the submit queue.
+
+        self.flush_submit_queue(self.submit_queue_max - 1)
+
+        # Invoke the job submission command and add to submit queue.
 
         print('Invoke jobsub_submit')
-        submit_timeout = 3600000
-        q = Queue.Queue()
         jobinfo = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        thread = threading.Thread(target=project_utilities.wait_for_subprocess, args=[jobinfo, q])
-        thread.start()
-        thread.join(timeout=submit_timeout)
-        if thread.is_alive():
-            jobinfo.terminate()
-            thread.join()
-        rc = q.get()
-        jobout = q.get()
-        joberr = q.get()
+        sub = SubmitStruct(time.time(),              # Start time (now).
+                           jobinfo,                  # Popen object.
+                           [tmpdir, tmpworkdir],     # Temporary files.
+                           sam_project_id,           # Database sam project id.
+                           prjname,                  # Sam project name.
+                           num_jobs>1,               # Sam project started?
+                           command)                  # Command (jobsub_submit, etc.).
+        self.submit_queue.add(sub)
+        print('Submit queue now has %d entries.' % len(self.submit_queue))
 
-        # Clean up.
+        # Done.
 
-        if larbatch_posix.isdir(tmpdir):
-            larbatch_posix.rmtree(tmpdir)
-        if larbatch_posix.isdir(tmpworkdir):
-            larbatch_posix.rmtree(tmpworkdir)
+        return
 
-        # Test whether job submission succeeded.
 
-        batchok = False
-        if rc == 0:
+    # Flush delete process queue, leaving queue empty.
 
-            # Extract jobsub id from captured output.
+    def flush_delete_process_queue(self):
 
-            jobid = ''
-            clusid = ''
-            for line in jobout.split('\n'):
-                if "JobsubJobId" in line:
-                    jobid = line.strip().split()[-1]
-                elif "Use job id" in line:
-                    jobid = line.strip().split()[3]
-            if jobid != '':
-                words = jobid.split('@')
-                if len(words) == 2:
-                    clus = words[0].split('.')[0]
-                    server = words[1]
-                    clusid = '%s@%s' % (clus, server)
-                    batchok = True
+        if len(self.delete_process_queue) > 0:
 
-        if batchok:
+            # Delete all sam process ids in delete queue.
 
-            # Batch job submission succeeded.
+            print('Flushing delete process queue.')
+            print('Delete process queue has %d members.' % len(self.delete_process_queue))
 
-            print('Batch job submission succeeded.')
-            #print('Submit command: %s' % command)
-            #print('\nJobsub output:')
-            #print(jobout)
-            #print('\nJobsub errpr output:')
-            #print(joberr)
-            print('Job id = %s' % jobid)
-            print('Cluster id = %s' % clusid)
+            c = self.conn.cursor()
+            placeholders = ('?,'*len(self.delete_process_queue))[:-1]
+            q = 'UPDATE unmerged_files SET sam_process_id=? WHERE sam_process_id IN (%s);' % placeholders
+            c.execute(q, [0] + self.delete_process_queue)
 
-            # Update sam_projects table with information about this job submission.
-
-            submit_time = datetime.datetime.strftime(datetime.datetime.now(), 
-                                                     '%Y-%m-%d %H:%M:%S')
-            q = '''UPDATE sam_projects
-                   SET name=?,cluster_id=?,submit_time=?,status=?
-                   WHERE id=?;'''
-            c.execute(q, (prjname, clusid, submit_time, 1, sam_project_id))
-
-            # Done updating database in this function.
+            q = 'DELETE FROM sam_processes WHERE id IN (%s)' % placeholders
+            c.execute(q, self.delete_process_queue)
 
             self.conn.commit()
 
-        else:
+            # Clear delete queue.
 
-            # Batch job submission failed.
+            self.delete_process_queue = []
+            print('Done flushing delete process queue.')
 
-            print('Batch job submission failed.')
-            print('Submit command: %s' % command)
-            print('\nJobsub output:')
-            print(jobout)
-            print('\nJobsub errpr output:')
-            print(joberr)
+        # Done
 
-            # Stop sam project.
+        return
 
-            if num_jobs > 1:
-                print('Stopping sam project %s' % prjname)
-                try:
-                    self.samweb.stopProject(prjname)
-                except:
-                    pass
 
     # Update statuses of sam processes / merged files.
 
@@ -2093,15 +2293,16 @@ CREATE TABLE IF NOT EXISTS unmerged_files (
                             q = 'DELETE FROM unmerged_files WHERE id=?'
                             c.execute(q, (id,))
 
-                    print('Deleting process.')
+                    # Add process to delete queue.
 
-                    q = 'UPDATE unmerged_files SET sam_process_id=? WHERE sam_process_id=?;'
-                    c.execute(q, (0, merge_id))
+                    print('Adding process to delete queue.')
+                    print('Delete process queue now has %d members.' % len(self.delete_process_queue))
+                    self.delete_process_queue.append(merge_id)
 
-                    q = 'DELETE FROM sam_processes WHERE id=?'
-                    c.execute(q, (merge_id,))
+                    # Maybe flush delete queue.
 
-                    self.conn.commit()
+                    if len(self.delete_process_queue) >= self.delete_process_queue_max:
+                        self.flush_delete_process_queue()
 
                 if status == 2:
 
@@ -2231,36 +2432,85 @@ CREATE TABLE IF NOT EXISTS unmerged_files (
 
                     pass
 
+            # Done looping over sam processes.
+
+            # Flush delete process queue.
+
+            self.flush_delete_process_queue()
+
+        # Done looping over statuses.
+
+        return
+
+
+    # Flush delete merge group queue, leaving queue empty.
+
+    def flush_delete_merge_group_queue(self):
+
+        if len(self.delete_merge_group_queue) > 0:
+
+            # Delete all merge group ids in delete queue.
+
+            print('Flushing delete merge group queue.')
+            print('Delete merge group queue has %d members.' % len(self.delete_merge_group_queue))
+
+            c = self.conn.cursor()
+            placeholders = ('?,'*len(self.delete_merge_group_queue))[:-1]
+            q = 'DELETE FROM merge_groups WHERE id IN (%s)' % placeholders
+            c.execute(q, self.delete_merge_group_queue)
+
+            self.conn.commit()
+
+            # Clear delete queue.
+
+            self.delete_merge_group_queue = []
+            print('Done flushing delete merge group queue.')
+
+        # Done
+
+        return
+
+
     # Function to remove unused merged groups from database.
 
     def clean_merge_groups(self):
 
         print('\nCleaning merge groups.')
 
-        # Loop over merge groups.
+        # Loop over empty merge groups.
 
         c = self.conn.cursor()
-        q = 'SELECT id FROM merge_groups ORDER BY id;'
+        q = 'SELECT id FROM merge_groups WHERE id NOT IN (SELECT DISTINCT group_id FROM unmerged_files) ORDER BY id;'
         c.execute(q)
         rows = c.fetchall()
         for row in rows:
             group_id = row[0]
 
-            # Check whether any unmerged files belong to this merge group.
+            # Double check that no files belong to this merge group.
 
             q = 'SELECT COUNT(*) FROM unmerged_files WHERE group_id=?;'
             c.execute(q, (group_id,))
             row = c.fetchone()
             n = row[0]
             if n == 0:
-                print('Deleting group %d' % group_id)
 
-                q = 'DELETE FROM merge_groups WHERE id=?'
-                c.execute(q, (group_id,))
+                # Add merge group to delete queue.
+
+                print('Adding merge group %d to delete queue' % group_id)
+                print('Delete merge group now has %d members.' % len(self.delete_merge_group_queue))
+                self.delete_merge_group_queue.append(group_id)
+
+                # Maybe flush delete queue.
+
+                if len(self.delete_merge_group_queue) >= self.delete_merge_group_queue_max:
+                    self.flush_delete_merge_group_queue()
+
+        # Final flush of merge group delete queue.
+
+        self.flush_delete_merge_group_queue()
 
         # Done.
 
-        self.conn.commit()
         return
 
 
@@ -2285,7 +2535,7 @@ def check_jobsub_lite():
         jobout, joberr = jobinfo.communicate()
         rc = jobinfo.poll()
         if rc == 0:
-            print(jobout)
+            print(jobout.rstrip())
             if jobout.find('jobsub_lite') >= 0:
                 using_jobsub_lite = True
 
@@ -2334,10 +2584,6 @@ def check_running(argv):
 # Main procedure.
 
 def main(argv):
-
-    if check_running(argv):
-        print('Quitting because similar process is already running.')
-        sys.exit(0)
 
     # Parse arguments.
 
@@ -2427,6 +2673,12 @@ def main(argv):
         else:
             print('Unknown option %s' % args[0])
             return 1
+
+    # Check whether another process is already running.
+
+    if check_running(argv):
+        print('Quitting because similar process is already running.')
+        sys.exit(0)
 
     # Check if we want to generate log files.
 
