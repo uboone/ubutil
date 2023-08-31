@@ -1186,9 +1186,9 @@ CREATE TABLE IF NOT EXISTS unmerged_files (
                 file_names.append(name)
                 total_size += size
                 if dim == '':
-                    dim = 'file_name %s' % name
+                    dim = 'file_name \'%s\'' % name
                 else:
-                    dim += ',%s' % name
+                    dim += ',\'%s\'' % name
             nfiles = len(file_names)
             print('This group contains %d files.' % nfiles)
 
@@ -1456,8 +1456,14 @@ CREATE TABLE IF NOT EXISTS unmerged_files (
                             # Determine file names produced by this process.
                             # Look at children of consumed files.
 
-                            dim = '''ischildof:( file_name %s )
-                                 with availability anylocation''' % ','.join(consumed_files)
+                            dim = ''
+                            for consumed_file in consumed_files:
+                                if dim == '':
+                                    dim = 'ischildof:( file_name \'%s\'' % consumed_file
+                                else:
+                                    dim += ',\'%s\'' % consumed_file
+                            dim += ' ) with availability anylocation'
+
                             files = self.samweb.listFiles(dim)
 
                             # If no files were produced by this project, forget about the
