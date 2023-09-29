@@ -1241,6 +1241,17 @@ CREATE TABLE IF NOT EXISTS unmerged_files (
                                                     if parent2 == parent:
                                                         print(md2['file_name'])
 
+                else:
+
+                    # This unmerged file doesn't have any parents.
+
+                    print('Unmerged file %s is an orphan.' % f)
+                    self.delete_disk_locations(f)
+                    q = 'DELETE FROM unmerged_files WHERE name=?;'
+                    c.execute(q, (f,))
+                    self.conn.commit()
+                    create_project = False
+
             # If we got a duplicate parent, abort this project creation.
             # We should get this project on a subsequent invocation, with 
             # the duplicate processed file having been deleted.
