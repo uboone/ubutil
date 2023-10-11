@@ -16,7 +16,11 @@
 #
 # 1.  Some metadata are ignored, including file_name, file_size, checksum.
 #
-# 2.  The following metadata are aggregated:
+# 2.  Blinding metadata are ignored, which is to say that all merged files
+#     are born not blind (they may be subsequently blinded by blinding cron
+#     jobs).
+#
+# 3.  The following metadata are aggregated:
 #
 #     a) first_event
 #     b) last_event
@@ -24,10 +28,10 @@
 #     d) mc.pot
 #     e) runs
 #
-# 2.  By default, parents are generated to match the list of files.
+# 4.  By default, parents are generated to match the list of files.
 #     Parent metadata of input files are ignored.
 #
-# 3.  Start time and end time are set to the current time (local time).
+# 5.  Start time and end time are set to the current time (local time).
 #
 #---------------------------------------------------------------------------
 
@@ -109,6 +113,12 @@ def merge_metadata(filelist, cpid):
                 continue
 
             if key == 'end_time':
+                continue
+
+            if key == 'ub_blinding.blind':
+                continue
+
+            if key == 'ub_blinding.processed':
                 continue
 
             if key == 'merge.merge' or key == 'merge.merged':

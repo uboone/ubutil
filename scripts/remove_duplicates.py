@@ -325,7 +325,7 @@ if ignore_crt:
 # Query all files in this dataset definition.
 
 if virtual:
-    dim = 'isparentof:( defname: %s and merge.merge 0 with availability physical ) with availability virtual' % defname
+    dim = 'isparentof:( defname: %s minus merge.merge 1 with availability physical ) with availability virtual' % defname
     files = samweb.listFiles(dimensions=dim)
 else:
     dim = 'defname: %s minus (merge.merge 1 and merge.merged 0)' % defname

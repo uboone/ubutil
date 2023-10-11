@@ -1000,10 +1000,16 @@ CREATE TABLE IF NOT EXISTS unmerged_files (
         ubproject = md['ub_project.name']
         ubstage = md['ub_project.stage']
         ubversion = md['ub_project.version']
-        runs = md['runs']
+        runs = set()
+        for rst in md['runs']:   # rst = (run, subrun, run_type)
+            runs.add(rst[0])
         run = 0
-        if len(runs) > 0:
-            run = runs[0][0]
+        if len(runs) == 1:
+            run = runs.pop()
+            print('Run = %d' % run)
+        else:
+            print('Setting run number to zero because file contains more than one run.')
+            print('Runs = %s' % list(runs))
         app_family = md['application']['family']
         app_name = md['application']['name']
         fcl_name = md['fcl.name']
@@ -1235,6 +1241,17 @@ CREATE TABLE IF NOT EXISTS unmerged_files (
                                                     if parent2 == parent:
                                                         print(md2['file_name'])
 
+                else:
+
+                    # This unmerged file doesn't have any parents.
+
+                    print('Unmerged file %s is an orphan.' % f)
+                    self.delete_disk_locations(f)
+                    q = 'DELETE FROM unmerged_files WHERE name=?;'
+                    c.execute(q, (f,))
+                    self.conn.commit()
+                    create_project = False
+
             # If we got a duplicate parent, abort this project creation.
             # We should get this project on a subsequent invocation, with 
             # the duplicate processed file having been deleted.
@@ -1451,6 +1468,8 @@ CREATE TABLE IF NOT EXISTS unmerged_files (
                             consumed_files.append(f)
                         print('Number of consumed files = %d' % len(consumed_files))
 
+                        if len(consumed_files) == 0:
+                            print('SAM project %s did not consume any files.' % sam_project)
                         if len(consumed_files) > 0:
 
                             # Determine file names produced by this process.
@@ -1471,6 +1490,8 @@ CREATE TABLE IF NOT EXISTS unmerged_files (
                             # they will subsequently be rediscovered.
 
                             if len(files) == 0:
+
+                                print('SAM project %s consumed %d files, but did not produce any files.' % (sam_project, len(consumed_files)))
 
                                 # Loop over consumed files.
 
