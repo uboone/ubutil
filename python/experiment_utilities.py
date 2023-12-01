@@ -192,6 +192,82 @@ def dimensions(project, stage, ana=False):
 
     return dim
 
+# Function to perform validation check before submitting batch jobs.
+# Return True if good, False if bad.
+
+def validate_stage(project, stage):
+
+    result = True
+
+    # Check recursive dataset, if any, definition here.
+    # These checks are intended to detect common mistakes.
+
+    if stage.recur and stage.inputdef != '' and stage.basedef != '' and \
+       (stage.recurtype == 'child' or stage.recurtype == 'anachild'):
+        print('Checking recursive definition %s' % stage.inputdef)
+
+        # Extract description
+
+        exp = 'uboone'
+        if os.environ.has_key('SAM_EXPERIMENT'):
+            exp = os.environ['SAM_EXPERIMENT']
+        samweb = samweb_cli.SAMWebClient(experiment=exp)
+        desc = samweb.descDefinition(defname=stage.inputdef)
+        n = desc.find('Dimensions:')
+        if n > 0:
+            words = desc[n+12:].split()
+
+            # Extract the first "minus isparentof:" clause, if any
+
+            first = -1
+            last = -1
+            for i in range(len(words)):
+                if words[i] == 'minus' and words[i+1].startswith('isparentof:'):
+                    first = i+2
+                if words[i] == ')' and last < 0:
+                    last = i
+
+            if first >= 0 and last > first:
+
+                # Extract project (name, stage, version).
+
+                clause = words[first:last]
+                pname = ''
+                pstage = ''
+                pversion = ''
+                for i in range(len(clause)-1):
+                    if clause[i] == 'ub_project.name':
+                        pname = clause[i+1]
+                    if clause[i] == 'ub_project.stage':
+                        pstage = clause[i+1]
+                    if clause[i] == 'ub_project.version':
+                        pversion = clause[i+1]
+
+                # Check whether project (name, stage, version) are compatible.
+
+                if pname != '' and project.name != '' and pname != project.name:
+                    print('Project name is incompatible with recursive dataset.')
+                    print('This project name = %s' % project.name)
+                    print('Recursive dataset project name = %s' % pname)
+                    result = False
+
+                if pstage != '' and stage.name != '' and \
+                   pstage != stage.name and pstage != '%s%%' % stage.name:
+                    print('Stage name is incompatible with recursive dataset.')
+                    print('This stage name = %s' % stage.name)
+                    print('Recursive dataset stage name = %s' % pstage)
+                    result = False
+
+                if pversion != '' and project.version != '' and pversion != project.version:
+                    print('Project version is incompatible with recursive dataset.')
+                    print('This project version = %s' % project.version)
+                    print('Recursive dataset project version = %s' % pversion)
+                    result = False
+
+    # Done.
+
+    return result
+
 
 class MetaDataKey:
 
