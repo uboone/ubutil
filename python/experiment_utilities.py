@@ -199,6 +199,21 @@ def dimensions(project, stage, ana=False):
 
     return dim
 
+
+# Function to strip enclosing single- or double-quote characters from a string.
+
+def unquote(s):
+    result = s
+    if len(s) >= 2 and \
+       ((s.startswith('\'') and s.endswith('\'')) or \
+        (s.startswith('"') and s.endswith('"'))):
+        result = s[1:-1]
+
+    # Done.
+
+    return result
+
+
 # Function to perform validation check before submitting batch jobs.
 # Return True if good, False if bad.
 
@@ -244,11 +259,11 @@ def validate_stage(project, stage):
                 pversion = ''
                 for i in range(len(clause)-1):
                     if clause[i] == 'ub_project.name':
-                        pname = clause[i+1]
+                        pname = unquote(clause[i+1])
                     if clause[i] == 'ub_project.stage':
-                        pstage = clause[i+1]
+                        pstage = unquote(clause[i+1])
                     if clause[i] == 'ub_project.version':
-                        pversion = clause[i+1]
+                        pversion = unquote(clause[i+1])
 
                 # Check whether project (name, stage, version) are compatible.
 
