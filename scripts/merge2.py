@@ -1227,7 +1227,7 @@ CREATE TABLE IF NOT EXISTS unmerged_files (
                                     self.delete_disk_locations(f)
                                     q = 'DELETE FROM unmerged_files WHERE name=?;'
                                     c.execute(q, (f,))
-                                    self.conn.commit()
+                                    #self.conn.commit()
                                     create_project = False
 
                                     # Find all files with this same parent.
@@ -1249,7 +1249,7 @@ CREATE TABLE IF NOT EXISTS unmerged_files (
                     self.delete_disk_locations(f)
                     q = 'DELETE FROM unmerged_files WHERE name=?;'
                     c.execute(q, (f,))
-                    self.conn.commit()
+                    #self.conn.commit()
                     create_project = False
 
             # If we got a duplicate parent, abort this project creation.
@@ -1260,6 +1260,7 @@ CREATE TABLE IF NOT EXISTS unmerged_files (
                 print('Duplicate parent check OK.')
             else:
                 print('Duplicate parent check failed.')
+                self.conn.commit()
 
             # Create project in merge database.
 
