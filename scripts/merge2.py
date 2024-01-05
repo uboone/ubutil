@@ -311,6 +311,11 @@ class MergeEngine:
         self.delete_merge_group_queue = []
         self.delete_merge_group_queue_max = 100   # Maximum size of delete merge group queue.
 
+        # Delete unmerged files queue.
+
+        self.delete_unmerged_queue = []
+        self.delete_unmerged_queue_max = 100   # Maximum size of delete unmerged file queue.
+
         # Done.
 
         return
@@ -395,6 +400,43 @@ CREATE TABLE IF NOT EXISTS unmerged_files (
 
         conn.commit()
         return conn
+
+
+    # Flush delete unmerged file queue, leaving queue empty.
+
+    def flush_delete_unmerged_queue(self):
+
+        if len(self.delete_unmerged_queue) > 0:
+
+            # Delete all unmerged file names in delete queue.
+
+            print('Flushing delete unmerged file queue.')
+            print('Delete unmerged file queue has %d members.' % len(self.delete_unmerged_queue))
+
+            c = self.conn.cursor()
+            placeholders = ('?,'*len(self.delete_unmerged_queue))[:-1]
+            q = 'DELETE FROM unmerged_files WHERE name IN (%s)' % placeholders
+            c.execute(q, self.delete_unmerged_queue)
+
+            self.conn.commit()
+
+            # Clear delete queue.
+
+            self.delete_unmerged_queue = []
+            print('Done flushing delete unmerged file queue.')
+
+        # Done
+
+        return
+
+
+    # Deferred delete unmerged file from unmerged_files table.
+
+    def delete_unmerged_file(self, f):
+        self.delete_unmerged_queue.append(f)
+        if len(self.delete_unmerged_queue) >= self.delete_unmerged_queue_max:
+            self.flush_delete_unmerged_queue()
+        return
 
 
     # Flush metadata queue.
@@ -1225,9 +1267,7 @@ CREATE TABLE IF NOT EXISTS unmerged_files (
 
                                     print('Unmerged file %s has duplicate parent.' % f)
                                     self.delete_disk_locations(f)
-                                    q = 'DELETE FROM unmerged_files WHERE name=?;'
-                                    c.execute(q, (f,))
-                                    #self.conn.commit()
+                                    self.delete_unmerged_file(f)
                                     create_project = False
 
                                     # Find all files with this same parent.
@@ -1247,9 +1287,7 @@ CREATE TABLE IF NOT EXISTS unmerged_files (
 
                     print('Unmerged file %s is an orphan.' % f)
                     self.delete_disk_locations(f)
-                    q = 'DELETE FROM unmerged_files WHERE name=?;'
-                    c.execute(q, (f,))
-                    #self.conn.commit()
+                    self.delete_unmerged_file(f)
                     create_project = False
 
             # If we got a duplicate parent, abort this project creation.
@@ -1260,7 +1298,7 @@ CREATE TABLE IF NOT EXISTS unmerged_files (
                 print('Duplicate parent check OK.')
             else:
                 print('Duplicate parent check failed.')
-                self.conn.commit()
+                #self.flush_delete_unmerged_queue()
 
             # Create project in merge database.
 
@@ -1303,6 +1341,11 @@ CREATE TABLE IF NOT EXISTS unmerged_files (
                 q = 'UPDATE unmerged_files SET sam_project_id=? WHERE group_id=?;'
                 c.execute(q, (sam_project_id, group_id))
                 self.conn.commit()
+
+        # Done
+
+        self.flush_delete_unmerged_queue()
+        return
 
 
     # Function to determine whether to end a project.
@@ -1378,6 +1421,15 @@ CREATE TABLE IF NOT EXISTS unmerged_files (
         return
 
 
+    # Deferred delete project id.
+
+    def delete_project(self, sam_project_id):
+        self.delete_project_queue.append(sam_project_id)
+        if len(self.delete_project_queue) >= self.delete_project_queue_max:
+            self.flush_delete_project_queue()
+        return
+
+
     # Update statuses of sam projects.
     # This function may start projects and submit batch jobs.
 
@@ -1430,12 +1482,7 @@ CREATE TABLE IF NOT EXISTS unmerged_files (
 
                     print('Adding project to delete queue.')
                     print('Delete project queue now has %d members.' % len(self.delete_project_queue))
-                    self.delete_project_queue.append(sam_project_id)
-
-                    # Maybe flush delete queue.
-
-                    if len(self.delete_project_queue) >= self.delete_project_queue_max:
-                        self.flush_delete_project_queue()
+                    self.delete_project(sam_project_id)
 
                 if status == 2:
 
@@ -1507,8 +1554,8 @@ CREATE TABLE IF NOT EXISTS unmerged_files (
                                     # this file is rediscovered via a sam query.
 
                                     print('Forgetting about %s' % f)
-                                    q = 'DELETE FROM unmerged_files WHERE name=?'
-                                    c.execute(q, (f,))
+                                    self.delete_unmerged_file(f)
+                                self.flush_delete_unmerged_queue()
 
                             # Loop over produced files.
 
@@ -2268,6 +2315,15 @@ CREATE TABLE IF NOT EXISTS unmerged_files (
         return
 
 
+    # Deferred delete process id.
+
+    def delete_process(self, sam_process_id):
+        self.delete_process_queue.append(sam_process_id)
+        if len(self.delete_process_queue) >= self.delete_process_queue_max:
+            self.flush_delete_process_queue()
+        return
+
+
     # Update statuses of sam processes / merged files.
 
     def update_sam_process_status(self):
@@ -2318,19 +2374,14 @@ CREATE TABLE IF NOT EXISTS unmerged_files (
                             # this file is rediscovered via a sam query.
 
                             print('Forgetting about %s' % f)
-                            q = 'DELETE FROM unmerged_files WHERE id=?'
-                            c.execute(q, (id,))
+                            self.delete_unmerged_file(f)
+                        #self.flush_delete_unmerged_queue()
 
                     # Add process to delete queue.
 
                     print('Adding process to delete queue.')
                     print('Delete process queue now has %d members.' % len(self.delete_process_queue))
-                    self.delete_process_queue.append(merge_id)
-
-                    # Maybe flush delete queue.
-
-                    if len(self.delete_process_queue) >= self.delete_process_queue_max:
-                        self.flush_delete_process_queue()
+                    self.delete_process(merge_id)
 
                 if status == 2:
 
@@ -2367,37 +2418,15 @@ CREATE TABLE IF NOT EXISTS unmerged_files (
 
                         self.delete_disk_locations(f)
 
-                        # Print message about deleting file from database.
+                        # Delete unmerged file from database..
 
                         print('Deleting file from merge database: %s' % f)
+                        self.delete_unmerged_file(f)
 
                     # Done looping over unmerged files.
 
-                    self.flush_metadata()
-
-                    # Construct a query to do the database deletions in a single query.
-                    # Make sure that the query doesn't get too big for sqlite.
-
-                    print('Deleting unmerged files from database.')
-                    uq = []
-                    for f in unmerged_files:
-                        uq.append(f)
-
-                        # Maybe flush queue.
-
-                        if len(uq) >= 500:
-                            placeholders = ('?,' * len(uq))[:-1]
-                            q = 'DELETE FROM unmerged_files WHERE name IN (%s);' % placeholders
-                            c.execute(q, uq)
-                            uq = []
-
-                    # Final queue flush.
-
-                    if len(uq) > 0:
-                        placeholders = ('?,' * len(uq))[:-1]
-                        q = 'DELETE FROM unmerged_files WHERE name IN (%s);' % placeholders
-                        c.execute(q, uq)
-                    self.conn.commit()
+                    #self.flush_metadata()
+                    #self.flush_delete_unmerged_queue()
 
                     # End of loop over unmerged files.
                     # Cleaning done.
@@ -2452,7 +2481,7 @@ CREATE TABLE IF NOT EXISTS unmerged_files (
                             mdmod = {'content_status': 'bad'}
                             print('Setting file bad status in sam.')
                             self.modifyFileMetadata(merged_file, mdmod)
-                            self.flush_metadata()
+                            #self.flush_metadata()
 
                 if status == 0:
 
@@ -2462,9 +2491,11 @@ CREATE TABLE IF NOT EXISTS unmerged_files (
 
             # Done looping over sam processes.
 
-            # Flush delete process queue.
+            # Flush queues.
 
+            self.flush_delete_unmerged_queue()
             self.flush_delete_process_queue()
+            self.flush_metadata()
 
         # Done looping over statuses.
 
@@ -2499,6 +2530,15 @@ CREATE TABLE IF NOT EXISTS unmerged_files (
         return
 
 
+    # Deferred delete merge group.
+
+    def delete_merge_group(self, group_id):
+        self.delete_merge_group_queue.append(group_id)
+        if len(self.delete_merge_group_queue) >= self.delete_merge_group_queue_max:
+            self.flush_delete_merge_group_queue()
+        return
+
+
     # Function to remove unused merged groups from database.
 
     def clean_merge_groups(self):
@@ -2526,12 +2566,7 @@ CREATE TABLE IF NOT EXISTS unmerged_files (
 
                 print('Adding merge group %d to delete queue' % group_id)
                 print('Delete merge group now has %d members.' % len(self.delete_merge_group_queue))
-                self.delete_merge_group_queue.append(group_id)
-
-                # Maybe flush delete queue.
-
-                if len(self.delete_merge_group_queue) >= self.delete_merge_group_queue_max:
-                    self.flush_delete_merge_group_queue()
+                self.delete_merge_group(group_id)
 
         # Final flush of merge group delete queue.
 
