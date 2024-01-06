@@ -885,7 +885,7 @@ CREATE TABLE IF NOT EXISTS unmerged_files (
                            VALUES(?,?,?,?,?,?);'''
                     c.execute(q, (f, group_id, sam_project_id, sam_process_id, size,
                                   create_date))
-                    self.conn.commit()
+                    #self.conn.commit()
 
                 else:
 
@@ -903,6 +903,7 @@ CREATE TABLE IF NOT EXISTS unmerged_files (
 
         # Done.
 
+        self.conn.commit()
         self.add_queue = []
         self.flush_metadata()
         return
