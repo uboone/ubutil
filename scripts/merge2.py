@@ -903,7 +903,7 @@ CREATE TABLE IF NOT EXISTS unmerged_files (
 
         # Done.
 
-        self.conn.commit()
+        #self.conn.commit()
         self.add_queue = []
         self.flush_metadata()
         return
@@ -1108,7 +1108,7 @@ CREATE TABLE IF NOT EXISTS unmerged_files (
 
         # Done
 
-        self.conn.commit()
+        #self.conn.commit()
         return group_id
 
 
