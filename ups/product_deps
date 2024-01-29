@@ -250,7 +250,7 @@ incdir	-
 ####################################
 product		version		qual	flags		<table_format=2>
 art		v3_12_00	-
-larbatch	v01_59_03	-
+larbatch	v01_59_04	-
 python		v3_9_13		-
 cetmodules	v3_21_01	-	only_for_build
 end_product_list
