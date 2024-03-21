@@ -66,8 +66,9 @@ except:
 
 
 if devel:
-    host = 'ifdb04.fnal.gov'
+    host = 'ifdb07.fnal.gov'
     db = 'microboone_dev'
+    port = 5437
     calibs = calibs_dev
 
 conn = psycopg2.connect(host=host, port=port, dbname=db, user=user, password=pw)
@@ -227,7 +228,7 @@ for calib in calibs:
 
     # Now populate sparsified data table.
 
-
+    data_rows = set()
     columns = schema['%s_data' % calib]
     processed_iovs = set()
 
@@ -257,7 +258,7 @@ for calib in calibs:
 
             # Have we already processed this iov?
 
-            if iov_id in processed_iovs:
+            if iov_id in processed_iovs and False:
                 print('Already processed iov %d' % iov_id)
             else:
                 print('Processing iov %d' % iov_id)
@@ -303,9 +304,20 @@ for calib in calibs:
                 diff_channels = this_iov_channels - previous_iov_channels
                 print('%d changed channels.' % len(diff_channels))
 
+                # Remove already inserted rows.
+
+                old_channels = set()
+                for row in data_rows:
+                    if row[0] == iov_id:
+                        old_channels.add(row[1:])
+                print('%d old channels.' % len(old_channels))
+                diff_channels -= old_channels
+                print('%d new channels.' % len(diff_channels))
+
                 # Insert changed channels into data table.
 
                 for diff_element in diff_channels:
+                    row = [iov_id, diff_element[0]]
                     q = 'INSERT INTO %s_data (__iov_id,channel' % calib
                     qval = 'VALUES(%d,%d' % (iov_id,diff_element[0])
                     n = 0
@@ -314,9 +326,12 @@ for calib in calibs:
                         value = diff_element[n]
                         q += ',%s' % column
                         qval += ',%s' % value
+                        row.append(value)
                     qval += ')'
                     q += ') %s;' % qval
                     sqlite_cur.execute(q)
+                    data_rows.add(tuple(row))
+                    print('%d data rows.' % len(data_rows))
 
             # Done with iov.
 

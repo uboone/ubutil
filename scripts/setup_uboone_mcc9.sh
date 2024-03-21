@@ -7,7 +7,7 @@ FERMIOSG_LARSOFT_DIR="/cvmfs/larsoft.opensciencegrid.org/products/"
 
 FERMIOSG_UBOONE_DIR="/cvmfs/uboone.opensciencegrid.org/products/"
 
-UBOONE_BLUEARC_DATA="/uboone/data/"
+UBOONE_BLUEARC_DATA="/exp/uboone/data/"
 
 # Make sure locale is reasonable.
 
@@ -101,6 +101,6 @@ export SAM_EXPERIMENT=uboone
 
 # For Art workbook
 
-export ART_WORKBOOK_OUTPUT_BASE=/uboone/data/users
-export ART_WORKBOOK_WORKING_BASE=/uboone/app/users
-export ART_WORKBOOK_QUAL="s2:e5:nu"
+#export ART_WORKBOOK_OUTPUT_BASE=/exp/uboone/data/users
+#export ART_WORKBOOK_WORKING_BASE=/exp/uboone/app/users
+#export ART_WORKBOOK_QUAL="s2:e5:nu"
