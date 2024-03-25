@@ -903,7 +903,7 @@ CREATE TABLE IF NOT EXISTS unmerged_files (
 
         # Done.
 
-        self.conn.commit()
+        #self.conn.commit()
         self.add_queue = []
         self.flush_metadata()
         return
@@ -1108,7 +1108,7 @@ CREATE TABLE IF NOT EXISTS unmerged_files (
 
         # Done
 
-        self.conn.commit()
+        #self.conn.commit()
         return group_id
 
 
@@ -1819,7 +1819,7 @@ CREATE TABLE IF NOT EXISTS unmerged_files (
             #print('Submit command: %s' % command)
             #print('\nJobsub output:')
             #print(jobout)
-            #print('\nJobsub errpr output:')
+            #print('\nJobsub error output:')
             #print(joberr)
             print('Job id = %s' % jobid)
             print('Cluster id = %s' % clusid)
@@ -1846,7 +1846,7 @@ CREATE TABLE IF NOT EXISTS unmerged_files (
             print('Submit command: %s' % sub.command)
             print('\nJobsub output:')
             print(jobout)
-            print('\nJobsub errpr output:')
+            print('\nJobsub error output:')
             print(joberr)
 
             # Stop sam project.
@@ -2201,7 +2201,11 @@ CREATE TABLE IF NOT EXISTS unmerged_files (
         if self.stobj.memory != 0:
             command.append('--memory=%d' % self.stobj.memory)
         if self.probj.os != '':
-            command.append('--OS=%s' % self.probj.os)
+
+            # Get container image.
+
+            img = '/cvmfs/singularity.opensciencegrid.org/fermilab/fnal-wn-%s:latest' % self.probj.os.lower()
+            command.append('--singularity-image=%s' % img)
         if self.stobj.jobsub != '':
             for word in self.stobj.jobsub.split():
                 command.append(word)
