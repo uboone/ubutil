@@ -1,13 +1,10 @@
 # Source this file to set the basic configuration needed by LArSoft 
 # and for the uBooNE-specific software that interfaces to LArSoft.
 
-FERMIOSG_COMMON_DIR="/cvmfs/fermilab.opensciencegrid.org/products/common/db"
-
-FERMIOSG_LARSOFT_DIR="/cvmfs/larsoft.opensciencegrid.org/products/"
-
-FERMIOSG_UBOONE_DIR="/cvmfs/uboone.opensciencegrid.org/products/"
-
-UBOONE_BLUEARC_DATA="/exp/uboone/data/"
+FERMIOSG_COMMON_DIR="/cvmfs/fermilab.opensciencegrid.org"
+FERMIOSG_LARSOFT_DIR="/cvmfs/larsoft.opensciencegrid.org"
+FERMIOSG_UBOONE_DIR="/cvmfs/uboone.opensciencegrid.org"
+UBOONE_BLUEARC_DATA="/exp/uboone/data"
 
 # Make sure locale is reasonable.
 
@@ -16,47 +13,79 @@ if [ x$LC_ALL = x ]; then
   export LC_ALL=C
 fi
 
-# Sourcing this setup will add larsoft to $PRODUCTS
+# Make sure jobsub_lite environment is initialized.
+# This normally happens by sourcing the system /etc/bashrc
 
-for dir in $FERMIOSG_LARSOFT_DIR
-do
-  if [[ -f $dir/../setup_larsoft.sh ]]; then
-    echo "Setting up larsoft UPS area... ${dir}"
-    source $dir/../setup_larsoft.sh
-    break
-  elif [[ -f $dir/setup ]]; then
-    echo "Setting up larsoft UPS area... ${dir}"
-    source $dir/setup
-    break
+if [ -d /opt/jobsub_lite ]; then
+  if ! echo $PATH | grep -q jobsub_lite; then
+    source /etc/bashrc
   fi
-done
+fi
 
-# Set up ups for uBooNE
+# Do SL7 and AL9 specific initializations
 
-for dir in $FERMIOSG_UBOONE_DIR
-do
-  if [[ -f $dir/setup ]]; then
-    echo "Setting up uboone UPS area... ${dir}"
-    source $dir/setup
-    break
-  fi
-done
+eval `grep PRETTY_NAME /etc/os-release`   # Define $PRETTY_NAME
+echo $PRETTY_NAME
+if echo $PRETTY_NAME | grep -q "Scientific Linux"; then
 
-# Add fermilab common products to $PRODUCTS.
+  # Do SL7-specific initializations (ups).
 
-for dir in $FERMIOSG_COMMON_DIR
-do
-  if [[ -d $dir ]]; then
-    echo "Setting up fermilab common UPS area... $dir"
-    export PRODUCTS=`dropit -p $PRODUCTS $dir`:$dir
-    break
-  fi
-done
+  for dir in $FERMIOSG_LARSOFT_DIR/products
+  do
+    if [[ -f $dir/../setup_larsoft.sh ]]; then
+      echo "Setting up larsoft UPS area... ${dir}"
+      source $dir/../setup_larsoft.sh
+      break
+    elif [[ -f $dir/setup ]]; then
+      echo "Setting up larsoft UPS area... ${dir}"
+      source $dir/setup
+      break
+    fi
+  done
+
+  # Set up ups for uBooNE
+
+  for dir in $FERMIOSG_UBOONE_DIR/products
+  do
+    if [[ -f $dir/setup ]]; then
+      echo "Setting up uboone UPS area... ${dir}"
+      source $dir/setup
+      break
+    fi
+  done
+
+  # Add fermilab common products to $PRODUCTS.
+
+  for dir in $FERMIOSG_COMMON_DIR/products/common/db
+  do
+    if [[ -d $dir ]]; then
+      echo "Setting up fermilab common UPS area... $dir"
+      export PRODUCTS=`dropit -p $PRODUCTS $dir`:$dir
+      break
+    fi
+  done
+
+  # Set up the basic ups tools.
+
+  setup git
+  setup gitflow
+  setup mrb
+  setup ubtools
+
+  # End if SL7-specific section.
+
+else
+
+  # Do AL9-specific initializations (spack).
+
+  true
+
+fi
 
 # Add current working directory (".") to FW_SEARCH_PATH
 #
 if [[ -n "${FW_SEARCH_PATH}" ]]; then
-  FW_SEARCH_PATH=`dropit -e -p $FW_SEARCH_PATH .`
+  FW_SEARCH_PATH=`echo $FW_SEARCH_PATH | tr : '\n' | grep -v '\.' | head -c -1 | tr '\n' :`
   export FW_SEARCH_PATH=.:${FW_SEARCH_PATH}
 else
   export FW_SEARCH_PATH=.
@@ -67,29 +96,13 @@ fi
 if [[ -d "${UBOONE_BLUEARC_DATA}" ]]; then
 
     if [[ -n "${FW_SEARCH_PATH}" ]]; then
-      FW_SEARCH_PATH=`dropit -e -p $FW_SEARCH_PATH ${UBOONE_BLUEARC_DATA}`
+      FW_SEARCH_PATH=`echo $FW_SEARCH_PATH | tr : '\n' | grep -v $UBOONE_BLUEARC_DATA | head -c -1 | tr '\n' :`
       export FW_SEARCH_PATH=${UBOONE_BLUEARC_DATA}:${FW_SEARCH_PATH}
     else
       export FW_SEARCH_PATH=${UBOONE_BLUEARC_DATA}
     fi
 
 fi
-
-# Set up the basic tools that will be needed
-#
-if [ `uname` != Darwin ]; then
-
-  # Work around git table file bugs.
-
-  export PATH=`dropit git`
-  if [ x$LD_LIBRARY_PATH != x ]; then
-    export LD_LIBRARY_PATH=`dropit -p $LD_LIBRARY_PATH git`
-  fi
-  setup git
-fi
-setup gitflow
-setup mrb
-setup ubtools
 
 # Define the value of MRB_PROJECT. This can be used
 # to drive other set-ups. 
