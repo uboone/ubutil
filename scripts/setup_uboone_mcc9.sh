@@ -72,10 +72,12 @@ if echo $PRETTY_NAME | grep -q "Scientific Linux"; then
 
 else
 
-  # Do AL9-specific initializations (spack).
+  # Do AL9-specific initializations.
+  # Initialize spack.
+  # Temporarily initialize the larsoft spack instance as the head instance.
+  # This will get updated to the uboonecode spack instance when a uboonecode instance exists.
 
-  true
-
+  source /cvmfs/larsoft.opensciencegrid.org/spack-packages/setup-env.sh
 fi
 
 # Add current working directory (".") to FW_SEARCH_PATH
