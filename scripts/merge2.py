@@ -293,7 +293,7 @@ class MergeEngine:
         # Submit process queue.
 
         self.submit_queue = set()         # Contains SubmitStruct objects.
-        self.submit_queue_max = 7         # Maximum size of submit process queue.
+        self.submit_queue_max = 20        # Maximum size of submit process queue.
         self.submit_queue_timeout = 600   # Seconds.
 
         # Delete project queue.
@@ -1645,7 +1645,7 @@ CREATE TABLE IF NOT EXISTS unmerged_files (
                             dtsec = dt.total_seconds()
 
                             #if dtsec > 10800:
-                            if self.nobatch or dtsec > 3600:
+                            if self.nobatch or dtsec > 1800:
 
                                 print('Project ended: %s' % sam_project)
                                 prj_ended = True
@@ -2218,7 +2218,7 @@ CREATE TABLE IF NOT EXISTS unmerged_files (
 
         if check_jobsub_lite():
             #command.append('--use-pnfs-dropbox')
-            command.append('--skip-check=rcds')
+            #command.append('--skip-check=rcds')
             pass
         #command.extend(['-f', 'dropbox://%s' % tmptar])
         command.extend(['--tar-file-name', 'dropbox://%s' % tmptar])
