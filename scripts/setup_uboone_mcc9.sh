@@ -102,6 +102,15 @@ if [[ -d "${UBOONE_BLUEARC_DATA}" ]]; then
 
 fi
 
+# Add cvmfs bin directory to execute path.
+#
+if [[ -d "${FERMIOSG_UBOONE_DIR}/bin" ]]; then
+
+    PATH=`echo $PATH | tr : '\n' | grep -v ${FERMIOSG_UBOONE_DIR}/bin | head -c -1 | tr '\n' :`
+    export PATH=${PATH}:${FERMIOSG_UBOONE_DIR}/bin
+
+fi
+
 # Define the value of MRB_PROJECT. This can be used
 # to drive other set-ups. 
 # We need to set this to 'larsoft' for now.
