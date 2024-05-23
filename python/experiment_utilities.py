@@ -82,10 +82,10 @@ def get_dropbox(filename):
     #path = '/uboone/data/uboonepro/dropbox/%s/%s/%s' % (file_type, group, data_tier)
     if os.environ.has_key('FTS_DROPBOX'):
         dropbox_root = os.environ['FTS_DROPBOX']
-    elif merge and size < 1000000000 and (file_format == 'artroot' or file_format == 'root'):
-        dropbox_root = '/pnfs/uboone/scratch/uboonepro/dropbox/merge'
     else:
         dropbox_root = '/pnfs/uboone/scratch/uboonepro/dropbox'
+    if merge and size < 1000000000 and (file_format == 'artroot' or file_format == 'root'):
+        dropbox_root = '%s/merge' % dropbox_root
     path = '%s/%s/%s/%s' % (dropbox_root, file_type, group, data_tier)
 
     # Make sure path exists.
