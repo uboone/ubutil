@@ -157,7 +157,7 @@
 ######################################################################
 
 from __future__ import print_function
-import sys, os, time, datetime, uuid, traceback, tempfile, subprocess
+import sys, os, time, datetime, uuid, traceback, tempfile, subprocess, random
 import threading
 try:
     import queue as Queue
@@ -2270,6 +2270,23 @@ CREATE TABLE IF NOT EXISTS unmerged_files (
 
         self.flush_submit_queue(self.submit_queue_max - 1)
 
+        # Dump poms environment.
+
+        #print('POMS environment:')
+        #for v in os.environ:
+        #    if v.find('POMS') >= 0:
+        #        print('%s = %s' % (v, os.environ[v]))
+
+        # Maybe remove POMS from environment.
+
+        pomsenv = {}
+        if random.random() * self.submit_queue_max >= 1.:
+            for v in os.environ:
+                if v.find('POMS') >= 0:
+                    pomsenv[v] = os.environ[v]
+            for v in pomsenv:
+                del os.environ[v]
+
         # Invoke the job submission command and add to submit queue.
 
         print('Invoke jobsub_submit')
@@ -2283,6 +2300,11 @@ CREATE TABLE IF NOT EXISTS unmerged_files (
                            command)                  # Command (jobsub_submit, etc.).
         self.submit_queue.add(sub)
         print('Submit queue now has %d entries.' % len(self.submit_queue))
+
+        # Restore POMS environment
+
+        for v in pomsenv:
+            os.environ[v] = pomsenv[v]
 
         # Done.
 
