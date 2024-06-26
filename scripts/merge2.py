@@ -2634,6 +2634,27 @@ def check_jobsub_lite():
     return using_jobsub_lite
 
 
+# Get parent process id of the specified process id.
+# This function works by reading information from the /proc filesystem.
+# Return 0 in case of any kind of difficulty.
+
+def get_ppid(pid):
+
+    result = 0
+
+    statfname = '/proc/%d/status' % pid
+    statf = open(statfname)
+    for line in statf.readlines():
+        if line.startswith('PPid:'):
+            words = line.split()
+            if len(words) >= 2 and words[1].isdigit():
+                result = int(words[1])
+
+    # Done.
+
+    return result
+
+
 # Check whether a similar process is already running.
 # Return true if yes.
 
@@ -2641,10 +2662,18 @@ def check_running(argv):
 
     result = 0
 
+    # Find all ancestor processes, which we will ignore.
+
+    ignore_pids = set()
+    pid = os.getpid()
+    while pid > 1:
+        ignore_pids.add(pid)
+        pid = get_ppid(pid)
+
     # Look over pids in /proc.
 
     for pid in os.listdir('/proc'):
-        if pid.isdigit() and int(pid) != os.getpid():
+        if pid.isdigit() and int(pid) not in ignore_pids:
             procfile = os.path.join('/proc', pid)
             try:
                 pstat = os.stat(procfile)
@@ -2674,6 +2703,11 @@ def check_running(argv):
 # Main procedure.
 
 def main(argv):
+
+    # Sleep a random number of seconds.
+
+    sleep_sec = int(30*random.random())
+    time.sleep(sleep_sec)
 
     # Parse arguments.
 
@@ -2788,6 +2822,7 @@ def main(argv):
 
             now = datetime.datetime.now()
             merge_name = 'merge_%s' % datetime.datetime.strftime(now, '%Y%m%d_%H%M')
+            merge_name = merge_name + '_%s' % uuid.uuid4()
             outpath = '%s/%s.out' % (logdir, merge_name)
             errpath = '%s/%s.err' % (logdir, merge_name)
 
