@@ -81,7 +81,8 @@ else
   # Temporarily initialize the larsoft spack instance as the head instance.
   # This will get updated to the uboonecode spack instance when a uboonecode instance exists.
 
-  source /cvmfs/larsoft.opensciencegrid.org/spack-packages/setup-env.sh
+  #source /cvmfs/larsoft.opensciencegrid.org/spack-packages/setup-env.sh
+  true
 fi
 
 # Add current working directory (".") to FW_SEARCH_PATH
