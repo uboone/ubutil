@@ -82,6 +82,7 @@ else
   # Initialize ups-for-AL9 for use with certain null-flavored ups products.
 
   source /cvmfs/fermilab.opensciencegrid.org/products/common/etc/setup
+  source /cvmfs/uboone.opensciencegrid.org/products/setup
   source /cvmfs/larsoft.opensciencegrid.org/products/setup
 
 fi
