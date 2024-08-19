@@ -37,6 +37,7 @@
 
 # Import stuff.
 
+from __future__ import print_function
 import sys, json, project_utilities, datetime
 
 # Function to calculate merged metadata from a file list.
@@ -70,7 +71,7 @@ def merge_metadata(filelist, cpid):
     files = open(filelist)
     for line in files.readlines():
         filename = line.strip()
-        #print 'Merging %s' % filename
+        #print('Merging %s' % filename)
 
         parents.append({'file_name': filename})
 
@@ -162,14 +163,14 @@ def merge_metadata(filelist, cpid):
 
                 # If this key is not present in merged metadata, just add it.
 
-                #print 'Adding key %s.' % key
+                #print('Adding key %s.' % key)
                 merged_md[key] = md[key]
 
             elif merged_md[key] == md[key]:
 
                 # Already present matching nonaggregated metadata, do nothing.
 
-                #print 'Matching key %s.' % key
+                #print('Matching key %s.' % key)
                 pass
 
             else:
@@ -210,19 +211,19 @@ if __name__ == "__main__":
     # Parse arguments.
 
     if len(sys.argv) < 2:
-        print 'No file list specified.'
+        print('No file list specified.')
         sys.exit(1)
     filelist = sys.argv[1]
     cpid = None
     if len(sys.argv) > 2:
         cpid = int(sys.argv[2])
     if len(sys.argv) > 3:
-        print 'Too many arguments.'
+        print('Too many arguments.')
         sys.exit(1)
     md = merge_metadata(filelist, cpid)
 
     # Print metadata as json string.
 
-    print json.dumps(md, indent=2, sort_keys=True)
+    print(json.dumps(md, indent=2, sort_keys=True))
 
     sys.exit(0)	

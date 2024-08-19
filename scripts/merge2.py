@@ -164,6 +164,8 @@ try:
 except ImportError:
     import Queue
 import project, project_utilities, larbatch_posix
+from larbatch_utilities import convert_str
+from larbatch_utilities import convert_bytes
 import sqlite3
 
 # Global variables.
@@ -1791,6 +1793,8 @@ CREATE TABLE IF NOT EXISTS unmerged_files (
 
         batchok = False
         jobout, joberr = sub.jobinfo.communicate(input)
+        jobout = convert_str(jobout)
+        joberr = convert_str(joberr)
         rc = sub.jobinfo.poll()
         if rc == 0:
 
@@ -2051,6 +2055,7 @@ CREATE TABLE IF NOT EXISTS unmerged_files (
         if file_type != 'root':
             workfcl = os.path.join(tmpworkdir, os.path.basename(self.fclpath))
             if os.path.abspath(self.fclpath) != os.path.abspath(workfcl):
+                print('Copying fcl from %s to %s' % (self.fclpath, workfcl))
                 larbatch_posix.copy(self.fclpath, workfcl)
 
         # Copy and rename batch script to work directory.
@@ -2107,6 +2112,8 @@ CREATE TABLE IF NOT EXISTS unmerged_files (
                                        stdout=subprocess.PIPE,
                                        stderr=subprocess.PIPE)
             jobout, joberr = jobinfo.communicate()
+            jobout = convert_str(jobout)
+            joberr = convert_str(joberr)
             rc = jobinfo.poll()
             helper_path = jobout.splitlines()[0].strip()
             if rc == 0:
@@ -2133,8 +2140,10 @@ CREATE TABLE IF NOT EXISTS unmerged_files (
                                        stdin=subprocess.PIPE,
                                        stdout=subprocess.PIPE,
                                        stderr=subprocess.PIPE)
-            jobinfo.stdin.write('import %s\nprint %s.__file__\n' % (helper_module, helper_module))
+            jobinfo.stdin.write(convert_bytes('import %s\nprint(%s.__file__)\n' % (helper_module, helper_module)))
             jobout, joberr = jobinfo.communicate()
+            jobout = convert_str(jobout)
+            joberr = convert_str(joberr)
             rc = jobinfo.poll()
             helper_path = jobout.splitlines()[-1].strip()
             if rc == 0:
@@ -2159,6 +2168,8 @@ CREATE TABLE IF NOT EXISTS unmerged_files (
                                    stdout=subprocess.PIPE,
                                    stderr=subprocess.PIPE)
         jobout, joberr = jobinfo.communicate()
+        jobout = convert_str(jobout)
+        joberr = convert_str(joberr)
         rc = jobinfo.poll()
         if rc != 0:
             raise RuntimeError('Failed to create work tarball in %s' % tmpworkdir)
@@ -2277,12 +2288,12 @@ CREATE TABLE IF NOT EXISTS unmerged_files (
         #    if v.find('POMS') >= 0:
         #        print('%s = %s' % (v, os.environ[v]))
 
-        # Maybe remove POMS from environment.
+        # Maybe remove POMS and JOBSUB_EXTRA from environment.
 
         pomsenv = {}
         if random.random() * self.submit_queue_max >= 1.:
             for v in os.environ:
-                if v.find('POMS') >= 0:
+                if v.find('POMS') >= 0 or v.find('JOBSUB_EXTRA') >= 0:
                     pomsenv[v] = os.environ[v]
             for v in pomsenv:
                 del os.environ[v]
@@ -2623,6 +2634,8 @@ def check_jobsub_lite():
                                    stdout=subprocess.PIPE,
                                    stderr=subprocess.PIPE)
         jobout, joberr = jobinfo.communicate()
+        jobout = convert_str(jobout)
+        joberr = convert_str(joberr)
         rc = jobinfo.poll()
         if rc == 0:
             print(jobout.rstrip())
