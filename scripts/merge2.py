@@ -1318,13 +1318,13 @@ CREATE TABLE IF NOT EXISTS unmerged_files (
 
                 # Calculate number of batch jobs and maximum files per job
 
-                num_jobs = (total_size - 1) / self.max_size + 1
+                num_jobs = int((total_size - 1) / self.max_size) + 1
                 if num_jobs > nfiles:
                     num_jobs = nfiles
-                max_files_per_job = (nfiles - 1) / num_jobs + 1
+                max_files_per_job = int((nfiles - 1) / num_jobs) + 1
                 if max_files_per_job > self.max_count and self.max_count > 0:
                     max_files_per_job = self.max_count
-                    num_jobs = (nfiles - 1) / max_files_per_job + 1
+                    num_jobs = int((nfiles - 1) / max_files_per_job) + 1
                 print('Number of files = %d' % nfiles)
                 print('Number of batch jobs = %d' % num_jobs)
                 print('Maximum files per job = %d' % max_files_per_job)
@@ -2843,6 +2843,20 @@ def main(argv):
 
             sys.stdout = open(outpath, 'w')
             sys.stderr = open(errpath, 'w')
+
+            # Dump the environment in a file in the logdir.
+
+            f = open(os.path.join(logdir, 'env_%s.txt' % merge_name), 'w')
+            for v in os.environ:
+                f.write('%s=%s\n' % (v, os.environ[v]))
+            f.close()
+
+            # Dump bearer token information.
+
+            f = open(os.path.join(logdir, 'decodetoken_%s.txt' % merge_name), 'w')
+            out = subprocess.check_output(['htdecodetoken', '-H'])
+            f.write(convert_str(out))
+            f.close()
 
         else:
 
