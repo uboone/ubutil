@@ -253,6 +253,12 @@ class MergeEngine:
             elif type(self.stobj.fclname) == type(b'') or type(self.stobj.fclname) == type(u''):
                 self.fclpath = os.path.abspath(self.stobj.fclname)
 
+            # Randomize the fcl name by appending a uuid.
+
+            dir = os.path.dirname(self.fclpath)
+            base = os.path.splitext(os.path.basename(self.fclpath))
+            self.fclpath = '%s/%s_%s%s' % (dir, base[0], uuid.uuid4(), base[1])
+
             # Store the absolute path back in stage object.
 
             self.stobj.fclname = [self.fclpath]
@@ -2057,6 +2063,7 @@ CREATE TABLE IF NOT EXISTS unmerged_files (
             if os.path.abspath(self.fclpath) != os.path.abspath(workfcl):
                 print('Copying fcl from %s to %s' % (self.fclpath, workfcl))
                 larbatch_posix.copy(self.fclpath, workfcl)
+                os.remove(self.fclpath)
 
         # Copy and rename batch script to work directory.
 
