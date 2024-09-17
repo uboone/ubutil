@@ -77,7 +77,14 @@ else
   # Temporarily initialize the larsoft spack instance as the head instance.
   # This will get updated to the uboonecode spack instance when a uboonecode instance exists.
 
-  source /cvmfs/larsoft.opensciencegrid.org/spack-packages/setup-env.sh
+  #source /cvmfs/larsoft.opensciencegrid.org/spack-packages/setup-env.sh
+
+  # Initialize ups-for-AL9 for use with certain null-flavored ups products.
+
+  source /cvmfs/fermilab.opensciencegrid.org/products/common/etc/setup
+  source /cvmfs/uboone.opensciencegrid.org/products/setup
+  source /cvmfs/larsoft.opensciencegrid.org/products/setup
+
 fi
 
 # Add current working directory (".") to FW_SEARCH_PATH

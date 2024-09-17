@@ -164,6 +164,8 @@ try:
 except ImportError:
     import Queue
 import project, project_utilities, larbatch_posix
+from larbatch_utilities import convert_str
+from larbatch_utilities import convert_bytes
 import sqlite3
 
 # Global variables.
@@ -250,6 +252,12 @@ class MergeEngine:
                 self.fclpath = os.path.abspath(self.stobj.fclname[0])
             elif type(self.stobj.fclname) == type(b'') or type(self.stobj.fclname) == type(u''):
                 self.fclpath = os.path.abspath(self.stobj.fclname)
+
+            # Randomize the fcl name by appending a uuid.
+
+            dir = os.path.dirname(self.fclpath)
+            base = os.path.splitext(os.path.basename(self.fclpath))
+            self.fclpath = '%s/%s_%s%s' % (dir, base[0], uuid.uuid4(), base[1])
 
             # Store the absolute path back in stage object.
 
@@ -1316,13 +1324,13 @@ CREATE TABLE IF NOT EXISTS unmerged_files (
 
                 # Calculate number of batch jobs and maximum files per job
 
-                num_jobs = (total_size - 1) / self.max_size + 1
+                num_jobs = int((total_size - 1) / self.max_size) + 1
                 if num_jobs > nfiles:
                     num_jobs = nfiles
-                max_files_per_job = (nfiles - 1) / num_jobs + 1
+                max_files_per_job = int((nfiles - 1) / num_jobs) + 1
                 if max_files_per_job > self.max_count and self.max_count > 0:
                     max_files_per_job = self.max_count
-                    num_jobs = (nfiles - 1) / max_files_per_job + 1
+                    num_jobs = int((nfiles - 1) / max_files_per_job) + 1
                 print('Number of files = %d' % nfiles)
                 print('Number of batch jobs = %d' % num_jobs)
                 print('Maximum files per job = %d' % max_files_per_job)
@@ -1791,6 +1799,8 @@ CREATE TABLE IF NOT EXISTS unmerged_files (
 
         batchok = False
         jobout, joberr = sub.jobinfo.communicate(input)
+        jobout = convert_str(jobout)
+        joberr = convert_str(joberr)
         rc = sub.jobinfo.poll()
         if rc == 0:
 
@@ -2051,7 +2061,9 @@ CREATE TABLE IF NOT EXISTS unmerged_files (
         if file_type != 'root':
             workfcl = os.path.join(tmpworkdir, os.path.basename(self.fclpath))
             if os.path.abspath(self.fclpath) != os.path.abspath(workfcl):
+                print('Copying fcl from %s to %s' % (self.fclpath, workfcl))
                 larbatch_posix.copy(self.fclpath, workfcl)
+                os.remove(self.fclpath)
 
         # Copy and rename batch script to work directory.
 
@@ -2107,6 +2119,8 @@ CREATE TABLE IF NOT EXISTS unmerged_files (
                                        stdout=subprocess.PIPE,
                                        stderr=subprocess.PIPE)
             jobout, joberr = jobinfo.communicate()
+            jobout = convert_str(jobout)
+            joberr = convert_str(joberr)
             rc = jobinfo.poll()
             helper_path = jobout.splitlines()[0].strip()
             if rc == 0:
@@ -2133,8 +2147,10 @@ CREATE TABLE IF NOT EXISTS unmerged_files (
                                        stdin=subprocess.PIPE,
                                        stdout=subprocess.PIPE,
                                        stderr=subprocess.PIPE)
-            jobinfo.stdin.write('import %s\nprint %s.__file__\n' % (helper_module, helper_module))
+            jobinfo.stdin.write(convert_bytes('import %s\nprint(%s.__file__)\n' % (helper_module, helper_module)))
             jobout, joberr = jobinfo.communicate()
+            jobout = convert_str(jobout)
+            joberr = convert_str(joberr)
             rc = jobinfo.poll()
             helper_path = jobout.splitlines()[-1].strip()
             if rc == 0:
@@ -2159,6 +2175,8 @@ CREATE TABLE IF NOT EXISTS unmerged_files (
                                    stdout=subprocess.PIPE,
                                    stderr=subprocess.PIPE)
         jobout, joberr = jobinfo.communicate()
+        jobout = convert_str(jobout)
+        joberr = convert_str(joberr)
         rc = jobinfo.poll()
         if rc != 0:
             raise RuntimeError('Failed to create work tarball in %s' % tmpworkdir)
@@ -2277,12 +2295,12 @@ CREATE TABLE IF NOT EXISTS unmerged_files (
         #    if v.find('POMS') >= 0:
         #        print('%s = %s' % (v, os.environ[v]))
 
-        # Maybe remove POMS from environment.
+        # Maybe remove POMS and JOBSUB_EXTRA from environment.
 
         pomsenv = {}
         if random.random() * self.submit_queue_max >= 1.:
             for v in os.environ:
-                if v.find('POMS') >= 0:
+                if v.find('POMS') >= 0 or v.find('JOBSUB_EXTRA') >= 0:
                     pomsenv[v] = os.environ[v]
             for v in pomsenv:
                 del os.environ[v]
@@ -2623,6 +2641,8 @@ def check_jobsub_lite():
                                    stdout=subprocess.PIPE,
                                    stderr=subprocess.PIPE)
         jobout, joberr = jobinfo.communicate()
+        jobout = convert_str(jobout)
+        joberr = convert_str(joberr)
         rc = jobinfo.poll()
         if rc == 0:
             print(jobout.rstrip())
@@ -2634,6 +2654,27 @@ def check_jobsub_lite():
     return using_jobsub_lite
 
 
+# Get parent process id of the specified process id.
+# This function works by reading information from the /proc filesystem.
+# Return 0 in case of any kind of difficulty.
+
+def get_ppid(pid):
+
+    result = 0
+
+    statfname = '/proc/%d/status' % pid
+    statf = open(statfname)
+    for line in statf.readlines():
+        if line.startswith('PPid:'):
+            words = line.split()
+            if len(words) >= 2 and words[1].isdigit():
+                result = int(words[1])
+
+    # Done.
+
+    return result
+
+
 # Check whether a similar process is already running.
 # Return true if yes.
 
@@ -2641,10 +2682,18 @@ def check_running(argv):
 
     result = 0
 
+    # Find all ancestor processes, which we will ignore.
+
+    ignore_pids = set()
+    pid = os.getpid()
+    while pid > 1:
+        ignore_pids.add(pid)
+        pid = get_ppid(pid)
+
     # Look over pids in /proc.
 
     for pid in os.listdir('/proc'):
-        if pid.isdigit() and int(pid) != os.getpid():
+        if pid.isdigit() and int(pid) not in ignore_pids:
             procfile = os.path.join('/proc', pid)
             try:
                 pstat = os.stat(procfile)
@@ -2674,6 +2723,11 @@ def check_running(argv):
 # Main procedure.
 
 def main(argv):
+
+    # Sleep a random number of seconds.
+
+    sleep_sec = int(30*random.random())
+    time.sleep(sleep_sec)
 
     # Parse arguments.
 
@@ -2788,6 +2842,7 @@ def main(argv):
 
             now = datetime.datetime.now()
             merge_name = 'merge_%s' % datetime.datetime.strftime(now, '%Y%m%d_%H%M')
+            merge_name = merge_name + '_%s' % uuid.uuid4()
             outpath = '%s/%s.out' % (logdir, merge_name)
             errpath = '%s/%s.err' % (logdir, merge_name)
 
@@ -2795,6 +2850,20 @@ def main(argv):
 
             sys.stdout = open(outpath, 'w')
             sys.stderr = open(errpath, 'w')
+
+            # Dump the environment in a file in the logdir.
+
+            f = open(os.path.join(logdir, 'env_%s.txt' % merge_name), 'w')
+            for v in os.environ:
+                f.write('%s=%s\n' % (v, os.environ[v]))
+            f.close()
+
+            # Dump bearer token information.
+
+            f = open(os.path.join(logdir, 'decodetoken_%s.txt' % merge_name), 'w')
+            out = subprocess.check_output(['htdecodetoken', '-H'])
+            f.write(convert_str(out))
+            f.close()
 
         else:
 
