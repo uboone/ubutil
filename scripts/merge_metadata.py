@@ -71,7 +71,7 @@ def merge_metadata(filelist, cpid):
     files = open(filelist)
     for line in files.readlines():
         filename = line.strip()
-        #print 'Merging %s' % filename
+        #print('Merging %s' % filename)
 
         parents.append({'file_name': filename})
 
@@ -163,14 +163,14 @@ def merge_metadata(filelist, cpid):
 
                 # If this key is not present in merged metadata, just add it.
 
-                #print 'Adding key %s.' % key
+                #print('Adding key %s.' % key)
                 merged_md[key] = md[key]
 
             elif merged_md[key] == md[key]:
 
                 # Already present matching nonaggregated metadata, do nothing.
 
-                #print 'Matching key %s.' % key
+                #print('Matching key %s.' % key)
                 pass
 
             else:
