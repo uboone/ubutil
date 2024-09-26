@@ -85,6 +85,10 @@ export JOBSUB_GROUP=uboone
 export EXPERIMENT=uboone     # Used by ifdhc
 export SAM_EXPERIMENT=uboone
 
+# Define samweb server environment variable.
+
+export IFDH_BASE_URI="https://samuboone.fnal.gov:8483/sam/uboone/api"
+
 # For Art workbook
 
 export ART_WORKBOOK_OUTPUT_BASE=/uboone/data/users
