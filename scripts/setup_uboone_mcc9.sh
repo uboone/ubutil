@@ -63,9 +63,8 @@ if echo $PRETTY_NAME | grep -q "Scientific Linux"; then
 
   # Set up the basic ups tools.
 
-  setup git
-  setup gitflow
   setup mrb v4_04_06
+  setup gh
   setup ubtools
 
   # End if SL7-specific section.
