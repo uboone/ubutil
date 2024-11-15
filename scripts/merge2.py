@@ -2848,8 +2848,8 @@ def main(argv):
 
             # Override sys.stdout and sys.stderr
 
-            sys.stdout = open(outpath, 'w')
-            sys.stderr = open(errpath, 'w')
+            sys.stdout = open(outpath, 'w', buffering=1)    # Line buffered
+            sys.stderr = open(errpath, 'w', buffering=1)    # Line buffered
 
             # Dump the environment in a file in the logdir.
 
