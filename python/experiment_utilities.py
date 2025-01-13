@@ -224,7 +224,7 @@ def validate_stage(project, stage):
         # Extract description
 
         exp = 'uboone'
-        if os.environ.has_key('SAM_EXPERIMENT'):
+        if 'SAM_EXPERIMENT' in os.environ:
             exp = os.environ['SAM_EXPERIMENT']
         samweb = samweb_cli.SAMWebClient(experiment=exp)
         desc = samweb.descDefinition(defname=stage.inputdef)

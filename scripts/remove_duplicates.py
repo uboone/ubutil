@@ -219,7 +219,7 @@ def check_metadata(md):
     # Ignore mergable files.
 
     orphan = True
-    if md.has_key('parents'):
+    if 'parents' in md:
         for parent in md['parents']:
             parent_name = parent['file_name']
 
