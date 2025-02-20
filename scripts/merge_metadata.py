@@ -159,7 +159,7 @@ def merge_metadata(filelist, cpid):
             
             # Handle nonaggregated metadata keys.
 
-            if not merged_md.has_key(key):
+            if not key in merged_md:
 
                 # If this key is not present in merged metadata, just add it.
 
@@ -184,7 +184,7 @@ def merge_metadata(filelist, cpid):
 
                 # Don't know what to do with this nonmatching key.
 
-                raise RuntimeError, 'Duplicate nonmatching key %s.' % key
+                raise RuntimeError('Duplicate nonmatching key %s.' % key)
 
 
     # Add aggregated metadata

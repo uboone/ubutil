@@ -303,6 +303,9 @@ class MergeEngine:
         self.submit_queue = set()         # Contains SubmitStruct objects.
         self.submit_queue_max = 20        # Maximum size of submit process queue.
         self.submit_queue_timeout = 600   # Seconds.
+        self.submit_max_rate = 0.5        # Maximum submit rate (submits / second).
+        self.submit_start_time = 0.       # Time of first submission.
+        self.submit_num_submit = 0        # Number of submissions.
 
         # Delete project queue.
 
@@ -1797,6 +1800,8 @@ CREATE TABLE IF NOT EXISTS unmerged_files (
 
         # Check exit status and output from jobsub_submit.
 
+        jobid = ''
+        clusid = ''
         batchok = False
         jobout, joberr = sub.jobinfo.communicate(input)
         jobout = convert_str(jobout)
@@ -1806,8 +1811,6 @@ CREATE TABLE IF NOT EXISTS unmerged_files (
 
             # Extract jobsub id from captured output.
 
-            jobid = ''
-            clusid = ''
             for line in jobout.split('\n'):
                 if "JobsubJobId" in line:
                     jobid = line.strip().split()[-1]
@@ -1826,7 +1829,7 @@ CREATE TABLE IF NOT EXISTS unmerged_files (
             # Batch job submission succeeded.
 
             print('Batch job submission succeeded.')
-            #print('Submit command: %s' % command)
+            #print('Submit command: %s' % sub.command)
             #print('\nJobsub output:')
             #print(jobout)
             #print('\nJobsub error output:')
@@ -1936,6 +1939,46 @@ CREATE TABLE IF NOT EXISTS unmerged_files (
 
     def submit(self, sam_project_id):
 
+        # Throttle submit rate.
+        # If this is the first submission, set the submit start time.
+
+        if self.submit_num_submit == 0:
+            self.submit_start_time = time.time()
+
+        # Get the time since the first submit.
+
+        delta_t = time.time() - self.submit_start_time
+
+        # Increment the submit count.
+
+        self.submit_num_submit += 1
+
+        # Calculate the delay time to keep the submit rate under the maximum.
+
+        submit_rate  = 0.
+        if delta_t > 0.:
+            submit_rate = (self.submit_num_submit - 1) / delta_t
+        delta_tmin = self.submit_num_submit / self.submit_max_rate
+        wait_t = delta_tmin - delta_t
+
+        # Print summary
+
+        print('Submit rate summary.')
+        print('Submission number = %d' % self.submit_num_submit)
+        print('Time since first submit = %10.2f' % delta_t)
+        print('Average submit rate = %10.2f' % submit_rate)
+        print('Wait time = %10.2f' % wait_t)
+
+        # Do actual waiting.
+
+        if wait_t > 0.:
+            time.sleep(wait_t)
+
+        # Periodically reset.
+
+        if delta_t > 300.:
+            self.submit_num_submit = 0
+            
         # Query information about this sam project.
 
         c = self.conn.cursor()
