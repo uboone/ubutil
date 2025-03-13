@@ -50,24 +50,21 @@ nremove = 0
 all_parents = {}
 
 # Print help.
-
 def help():
-
     filename = sys.argv[0]
-    file = open(filename, 'r')
+    with open(filename, 'r') as file:
+        doprint = False
 
-    doprint=0
-    
-    for line in file.readlines():
-        if line[2:22] == 'remove_duplicates.py':
-            doprint = 1
-        elif line[0:6] == '######' and doprint:
-            doprint = 0
-        if doprint:
-            if len(line) > 2:
-                print line[2:],
-            else:
-                print
+        for line in file.readlines():
+            if line[2:22] == 'remove_duplicates.py':
+                doprint = True
+            elif line[0:6] == '######' and doprint:
+                doprint = False
+            if doprint:
+                if len(line) > 2:
+                    print(line[2:].split('\n')[0])
+                else:
+                    print('')
 
 
 # Recursively declare file and any descendants as bad.
@@ -76,7 +73,7 @@ def declare_bad(filename):
 
     global samweb
 
-    print 'Declare bad: %s' % filename
+    print("Declare bad: { }".formt(filename))
 
     # Find descendants of filename and declare them bad as well.
 
@@ -214,11 +211,12 @@ def check_metadata(md):
     nchild += 1
     f = md['file_name']
     if not quiet:
-        print 'Checking file %s' % f
+        print('Checking file {}'.format(f))
 
     # Ignore mergable files.
 
     orphan = True
+    #if md.has_key('parents'):
     if 'parents' in md:
         for parent in md['parents']:
             parent_name = parent['file_name']
@@ -228,17 +226,17 @@ def check_metadata(md):
             if not ignore_crt or not parent_name.startswith('CRT'):
                 orphan = False
                 if not quiet:
-                    print 'Found parent %s' % parent_name
+                    print('Found parent {}'.format(parent_name))
                 if parent_name in all_parents.keys():
                     f2 = all_parents[parent_name]
                     ok = check_runs(f, f2)
                     if not ok:
-                        print 'Duplicate parent %s.' % parent_name
-                        print '  Child: %s' % f
-                        print '  Previous child: %s' % f2
+                        print('Duplicate parent {}.'.format(parent_name))
+                        print('  Child: {}'.format(f))
+                        print('  Previous child: {}'.format(f2))
                         good_file, bad_file = decide(f, f2)
-                        print 'Good file: %s' % good_file
-                        print 'Bad file: %s' % bad_file
+                        print('Good file: {}'.format(good_file))
+                        print('Bad file: {}'.format(bad_file))
                         ndup += 1
                         if not dryrun:
                             declare_bad(bad_file)
@@ -253,12 +251,12 @@ def check_metadata(md):
                             break
                 else:
                     if not quiet:
-                        print 'OK.'
+                        print('OK.')
                     all_parents[parent_name] = f
                     nparent += 1
 
     if orphan:
-        print 'Orphan: %s' % f
+        print('Orphan: {}'.format(f))
         norphan += 1
         if not dryrun:
             declare_bad(f)
@@ -306,21 +304,21 @@ while len(args) > 0:
         defname = args[1]
         del args[0:2]
     else:
-        print 'Unknown option %s' % args[0]
+        print('Unknown option {}'.format(args[0]))
         sys.exit(1)
 
 if defname == '':
-    print 'No dataset definition supplied.'
+    print('No dataset definition supplied.')
     help()
     sys.exit(1)
 
-print 'Checking definition %s' % defname
+print('Checking definition {}'.format(defname))
 
 # Decide if we should ignore CRT parents.
 
 ignore_crt = not defname.startswith('crt')
 if ignore_crt:
-    print 'Ignoring duplicate CRT parents.'
+    print('Ignoring duplicate CRT parents.')
 
 # Query all files in this dataset definition.
 
@@ -344,10 +342,8 @@ if len(file_queue) > 0:
         
 
 # Print summary.
-
-print '%d files in dataset definition.' % nchild
-print '%d parent files.' % nparent
-print '%d duplicates.' % ndup
-print '%d orphans.' % norphan
-print '%d files removed.' % nremove
-        
+print('{} files in dataset definition.'.format(nchild))
+print('{} parent files.'.format(nparent))
+print('{} duplicates.'.format(ndup))
+print('{} orphans.'.format(norphan))
+print('{} files removed.'.format(nremove))       
