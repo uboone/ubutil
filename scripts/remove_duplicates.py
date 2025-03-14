@@ -73,7 +73,7 @@ def declare_bad(filename):
 
     global samweb
 
-    print("Declare bad: { }".formt(filename))
+    print('Declare bad: {}'.format(filename))
 
     # Find descendants of filename and declare them bad as well.
 
