@@ -18,7 +18,15 @@ fi
 
 if [ -d /opt/jobsub_lite ]; then
   if ! echo $PATH | grep -q jobsub_lite; then
+
+    # Don't let jobsub initialization override the value of $JOBSUB_AUTH_METHODS, if set.
+
+    save_auth=$JOBSUB_AUTH_METHODS
     source /etc/bashrc
+    if [ x$save_auth != x ]; then
+      export JOBSUB_AUTH_METHODS=$save_auth
+    fi
+    unset save_auth
   fi
 fi
 
