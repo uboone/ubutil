@@ -303,7 +303,7 @@ class MergeEngine:
         self.submit_queue = set()         # Contains SubmitStruct objects.
         self.submit_queue_max = 20        # Maximum size of submit process queue.
         self.submit_queue_timeout = 600   # Seconds.
-        self.submit_max_rate = 0.5        # Maximum submit rate (submits / second).
+        self.submit_max_rate = 10.        # Maximum submit rate (submits / second).
         self.submit_start_time = 0.       # Time of first submission.
         self.submit_num_submit = 0        # Number of submissions.
 
