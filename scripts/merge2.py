@@ -1039,7 +1039,7 @@ CREATE TABLE IF NOT EXISTS run_groups (
         for f in existing_files:
             print('Ignoring %s' % f)
             add_files.discard(f)
-        print('\b%d files in final add list.' % len(add_files))
+        print('%d files in final add list.' % len(add_files))
 
         # Loop over files in add list and do bulk adds.
 
