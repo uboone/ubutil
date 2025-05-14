@@ -299,12 +299,21 @@ def main(argv):
                 keys = dlroot.GetListOfKeys()
 
                 # Clone empty output trees.
+                # Also check that each tree has the same number of entries.
 
+                num_entries = -1
                 for key in keys:
                     tree_name = key.GetName()
                     if tree_name not in output_trees:
                         print('Cloning tree: %s' % tree_name)
                         input_tree = dlroot.Get(tree_name)
+                        nentries = input_tree.GetEntriesFast()
+                        print('Tree %s has %d entries.' % (tree_name, nentries))
+                        if num_entries < 0:
+                            num_entries = nentries
+                        if num_entries != nentries:
+                            print('Number of entries mismatch.')
+                            sys.exit(1)
                         output_trees[tree_name] = input_tree.CloneTree(0)  # Clone empty tree.
                         out.cd()
                         output_trees[tree_name].Write()
