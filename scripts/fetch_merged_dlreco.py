@@ -254,19 +254,10 @@ def main(argv):
         dim += ' and ub_project.stage %s' % pstage
         dim += ' and ub_project.version %s' % pversion
         dls = samweb.listFiles(dim)
-
-        # Don't know what to do if there is not exactly one sibling dlreco file.
-
-        if len(dls) == 0:
-            print('Failed to find any dlreco file for parent file %s' % parent)
-            sys.exit(1)
-        if len(dls) > 1:
-            print('Found more than one sibling dlreco file for parent file %s' % parent)
-            sys.exit(1)
-        dl = dls[0]
-        print('Found matching dlreco file %s.' % dl)
-        if not dl in dlreco_files:
-            dlreco_files.add(dl)
+        for dl in dls:
+            print('Found matching dlreco file %s.' % dl)
+            if not dl in dlreco_files:
+                dlreco_files.add(dl)
 
     print('Found %d matching dlreco files.' % len(dlreco_files))
     print()
