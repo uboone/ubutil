@@ -31,6 +31,7 @@
 # --max_groups <n>    - Maximum number of new merge groups to add.   
 # --query_limit <n>   - Maximum number of files to query from sam.
 # --file_limit <n>    - Maximum number of unmerged files in database.
+# --group_runs <n>    - Allow merging accross runs within groups of <n> runs.
 # --phase1            - Phase 1 (scan unmerged files).
 # --phase2            - Phase 2 (submit & monitor projects).
 # --phase3            - Phase 3 (monitor and clean up merged files).
@@ -123,7 +124,7 @@
 #    F. Project name (text).
 #    G. Project stage (text).
 #    H. Project version (text).
-#    I. Run number (integer).
+#    I. Run number or run group (integer).
 #    J. Application family (text).
 #    K. Application name (text).
 #    L. Fcl name (text).
@@ -142,7 +143,7 @@
 #       2 - Ended.
 #       3 - Finished.
 #
-# II.  Table sam_processes.
+# IV.  Table sam_processes.
 #
 #    A. Sam process id (integer, primary key).
 #    B. Sam project id (integer, foreign key).
@@ -154,10 +155,70 @@
 #       3 - Finished.
 #       4 - Error.
 #
+# V.  Table run_groups.
+#
+#     A.  Run number (integer, primary key).
+#     B.  Run group id (integer).
+#     C.  Epoch (text).
+#     D.  Quality (text).
+#
+#
+#
+# About merging within and accross runs:
+#
+# Files are merged if they belong to the same merge group.  Files are assigned to the
+# same merge group if they have compatible metadata values.  Currently 11 metadata values
+# are checked for compatibility.  All 11 metadata values must agree exactly.  The 11 
+# values are the seven cardinal metadata, plus fcl name, application family, application
+# name, and run number (or run group).
+#
+# By default, files are not merged accross runs.  This is to allow selection of merged
+# files by run number at the sam level.  If command line option --group_runs is specified,
+# merging accros runs is allowed within run groups.
+#
+# Run groups are defined by table run_groups.  Run groups consist of collections of nearby
+# runs, all belonging to the same epoch, and all having the same data quality (good or bad).
+# New run groups are created as new run numbers are encountered.
+#
+# Epochs are continuous run ranges, which are hard-wired in this script.  For reference,
+# the 18 epochs are the 18 letter epochs listed on this web page:
+#
+# https://microboone-exp.fnal.gov/at_work/AnalysisTools/data/ub_datasets_optfilter.html
+#
+# Also refer to this web page:
+#
+# https://cdcvs.fnal.gov/redmine/projects/uboonecode/wiki/Prodhistory
+#
+# Run quality is defined as good or bad.  For reference, good and bad runs are defined
+# using the "hardcoded" sam dataset definitions on the following web page:
+#
+# https://cdcvs.fnal.gov/redmine/projects/uboone-physics-analysis/wiki/MCC9_Good_Runs_Lists
+#
+# Each run group is identified by a run group id, which is a smallish positive integer.
+# In the case of run groups, table merge_groups holds the negative of the run group id in
+# the run column to signal that this merge group corresponds to a run group rather than a
+# single run.
+#
+# Run group 0 is a special run group id that signals that a particular file was not able 
+# to be assigned to either a single run or a run group, possibly because the sam metadata 
+# of the file being merged contains multiple incompatible run numbers.
+#
+#
+#
+# Throttling sam queries.
+#
+# One of the potentially slowest processes done by this script is querying sam for new
+# unmerged files.  In order to speed up throughput and to reduce the load on the sam
+# database, this script has the ability to throttle sam queries (aka phase 1 processing).
+#
+# Each time the sam database is queried, this script creates or updates the access and
+# modification times ("touches") hidden file .merge2.query.<hostname>.  
+# 
+#
 ######################################################################
 
 from __future__ import print_function
-import sys, os, time, datetime, uuid, traceback, tempfile, subprocess, random
+import sys, os, time, datetime, uuid, traceback, tempfile, subprocess, random, socket
 import threading
 try:
     import queue as Queue
@@ -218,10 +279,11 @@ class MergeEngine:
     def __init__(self, xmlfile, projectname, stagename, defname,
                  database, max_size, min_size, max_count, max_age, 
                  max_projects, max_groups, query_limit, file_limit,
-                 nobatch):
+                 group_runs, nobatch):
 
         # Open database connection.
 
+        print('Opening database.')
         self.conn = self.open_database(database)
 
         # Create samweb object.
@@ -235,6 +297,20 @@ class MergeEngine:
         self.fclpath = None
         self.numjobs = 0
 
+        # Statistics.
+
+        self.total_unmerged_files_added = 0
+        self.total_unmerged_files_deleted = 0
+        self.total_sam_projects_added = 0
+        self.total_sam_projects_deleted = 0
+        self.total_sam_projects_started = 0
+        self.total_sam_projects_ended = 0
+        self.total_sam_projects_noprocs = 0
+        self.total_sam_projects_killed = 0
+        self.total_sam_processes = 0
+        self.total_sam_processes_succeeded = 0
+        self.total_sam_processes_failed = 0
+        
         if xmlfile != '':
             xmlpath = project.normxmlpath(xmlfile)
             if not os.path.exists(xmlpath):
@@ -282,12 +358,65 @@ class MergeEngine:
         self.max_groups = max_groups      # Maximum number of new merges groups per invocation.
         self.query_limit = query_limit    # Maximum number of files to query from sam.
         self.file_limit = file_limit      # Maximum number of unmerged files.
+        self.group_runs = group_runs      # Group runs multiplicity / flag.
         self.nobatch = nobatch     # Flag indicating that no batch jobs are pending.
 
         # Cache of directory contents.
 
         self.dircache = {}
 
+        # Run epochs.
+
+        self.epochs = {'A':  (3420, 3984),     # Run 1a open trigger 2 FEM.
+                       'B':  (3985, 4951),     # Run 1b open trigger 3 FEM.
+                       'C1': (4952, 6998),     # Run 1c normal software trigger.
+                       'C2': (6999, 8316),     # Run 1 shutdown.
+                       'D1': (8317, 8405),     # Run 2 open trigger.
+                       'D2': (8406, 11048),    # Run 2a before CRT.
+                       'E1': (11049, 11951),   # Run 2b after CRT.
+                       'E2': (11952, 13696),   # Run 2 shutdown.
+                       'F':  (13697, 14116),   # Run 3a before CRT clock fix.
+                       'G1': (14117, 17566),   # Run 3b after CRT clock fix.
+                       'G2': (17567, 18960),   # Run 3 shutdown.
+                       'H':  (18961, 19752),   # Run 4a
+                       'I':  (19753, 21285),   # Run 4b
+                       'J':  (21286, 22269),   # Run 4c
+                       'K':  (22270, 23259),   # Run 4d
+                       'L':  (23260, 23542),   # Run 4 shutdown 1
+                       'M':  (23543, 24319),   # Run 4 shutdown 2
+                       'N':  (24320, 25769),   # Run 5
+                       'O':  (25770, 1000000)} # Run 6
+
+        # Good runs.
+
+        self.good_runs = set()
+        self.good_run_datasets = ['goodruns_mcc9_run1_open_trigger_hardcoded',
+                                  'goodruns_mcc9_run1_hardcoded',
+                                  'goodruns_mcc9_run2_hardcoded',
+                                  'goodruns_mcc9_run3_hardcoded',
+                                  'goodruns_mcc9_run4_hardcoded',
+                                  'goodruns_mcc9_run5_hardcoded']
+
+        # Populate good run list.
+
+        print('Populating good run list.')
+        for ds in self.good_run_datasets:
+            print('Checking dataset %s' % ds)
+            start_num = len(self.good_runs)
+            result = self.samweb.descDefinitionDict(ds)
+            dim = result['dimensions']
+            go = False
+            for comma_words in dim.split(','):
+                for word in comma_words.split():
+                    if word == 'run_number':
+                        go = True
+                    elif go:
+                        run = int(word)
+                        if not run in self.good_runs:
+                            self.good_runs.add(run)
+            print('%d good runs' % (len(self.good_runs) - start_num))
+        print('Total good runs = %d' % len(self.good_runs))
+                    
         # Unmerged file add queue.
 
         self.add_queue = []
@@ -407,6 +536,15 @@ CREATE TABLE IF NOT EXISTS unmerged_files (
 );'''
         c.execute(q)
 
+        q = '''
+CREATE TABLE IF NOT EXISTS run_groups (
+  run integer NOT NULL PRIMARY KEY,
+  run_group_id integer NOT NULL,
+  epoch text,
+  quality text NOT NULL
+);'''
+        c.execute(q)
+
         # Done
 
         conn.commit()
@@ -430,6 +568,7 @@ CREATE TABLE IF NOT EXISTS unmerged_files (
             c.execute(q, self.delete_unmerged_queue)
 
             self.conn.commit()
+            self.total_unmerged_files_deleted += len(self.delete_unmerged_queue)
 
             # Clear delete queue.
 
@@ -574,50 +713,31 @@ CREATE TABLE IF NOT EXISTS unmerged_files (
         return result
 
 
-    # Function to return dimension corresponding to group id.
-
-    def get_group_dim(self, group_id):
-
-        c = self.conn.cursor()
-        q = '''SELECT file_type, file_format, data_tier, data_stream,
-               project, stage, version, run, app_family, app_name, fcl_name
-               FROM merge_groups WHERE id=?'''
-        c.execute(q, (group_id,))
-        row = c.fetchone()
-        self.conn.commit()
-        data_stream = row[3]
-        fcl_name = row[10]
-        if data_stream == 'none':
-            if fcl_name == 'unknown':
-                dim = '''file_type %s and file_format %s and data_tier %s
-                         and ub_project.name %s and ub_project.stage %s and ub_project.version %s
-                         and run_number %d and family %s and application %s
-                         and merge.merge 1 and merge.merged 0''' % (row[:3] + row[4:10])
-            else:
-                dim = '''file_type %s and file_format %s and data_tier %s
-                         and ub_project.name %s and ub_project.stage %s and ub_project.version %s
-                         and run_number %d and family %s and application %s and fcl.name \'%s\'
-                         and merge.merge 1 and merge.merged 0''' % (row[:3] + row[4:])
-        else:
-            if fcl_name == 'unknown':
-                dim = '''file_type %s and file_format %s and data_tier %s and data_stream %s
-                         and ub_project.name %s and ub_project.stage %s and ub_project.version %s
-                         and run_number %d and family %s and application %s
-                         and merge.merge 1 and merge.merged 0''' % row[:10]
-            else:
-                dim = '''file_type %s and file_format %s and data_tier %s and data_stream %s
-                         and ub_project.name %s and ub_project.stage %s and ub_project.version %s
-                         and run_number %d and family %s and application %s and fcl.name \'%s\'
-                         and merge.merge 1 and merge.merged 0''' % row
-        return dim
-
-
     # This function queries mergeable files from sam and updates the unmerged_tables table.
 
     def update_unmerged_files(self):
 
         if self.query_limit == 0 or self.max_groups == 0:
             return
+
+        # Stat time stamp file to determine how long since the last query.
+
+        ts_file = '.merge2.query.%s' % socket.gethostname()
+        if os.path.exists(ts_file):
+            sr = os.stat(ts_file)
+            age = time.time() - sr.st_mtime
+            print('Time since last sam query: %6.0f seconds.' % age)
+
+            # Limit sam queries to once every six hours.
+
+            if age < 21600.:
+                print('Skipping sam query.')
+                return
+
+        # Touch time stamp file.
+
+        with open(ts_file, 'a'):
+            os.utime(ts_file, None)
 
         print('Querying unmerged files from sam.')
         extra_clause = ''
@@ -700,7 +820,7 @@ CREATE TABLE IF NOT EXISTS unmerged_files (
         # First see if file is on tape.
 
         for loc in locs:
-            if loc['location_type'] == 'tape':
+            if loc['location_type'] == 'tape' or loc['location'].find('/tape/') >= 0:
                 on_tape = True
 
         if on_tape:
@@ -711,7 +831,7 @@ CREATE TABLE IF NOT EXISTS unmerged_files (
             # Delete and remove any disk locations from sam.
 
             for loc in locs:
-                if loc['location_type'] == 'disk':
+                if loc['location_type'] == 'disk' and loc['location'].find('/tape/') < 0:
 
                     # Delete unmerged file from disk.
 
@@ -745,7 +865,7 @@ CREATE TABLE IF NOT EXISTS unmerged_files (
 
                 print('Checking disk locations.')
                 for loc in locs:
-                    if loc['location_type'] == 'disk':
+                    if loc['location_type'] == 'disk' and loc['location'].find('/tape/') < 0:
                         dir = os.path.join(loc['mount_point'], loc['subdir'])
                         fp = os.path.join(dir, f)
                         if content_good and self.exists(fp):
@@ -769,6 +889,7 @@ CREATE TABLE IF NOT EXISTS unmerged_files (
             q = 'DELETE FROM unmerged_files WHERE name=?;'
             c.execute(q, (f,))
             self.conn.commit()
+            self.total_unmerged_files_deleted += 1
 
         # Done
 
@@ -785,7 +906,7 @@ CREATE TABLE IF NOT EXISTS unmerged_files (
 
         locs = self.samweb.locateFile(f)
         for loc in locs:
-            if loc['location_type'] == 'disk':
+            if loc['location_type'] == 'disk' and loc['location'].find('/tape/') < 0:
 
                 # Delete unmerged file from disk.
 
@@ -830,7 +951,7 @@ CREATE TABLE IF NOT EXISTS unmerged_files (
             on_tape = False
             on_disk = False
             for loc in locs:
-                if loc['location_type'] == 'tape':
+                if loc['location_type'] == 'tape' or loc['location'].find('/tape/') >= 0:
                     on_tape = True
 
             if on_tape:
@@ -849,7 +970,7 @@ CREATE TABLE IF NOT EXISTS unmerged_files (
                 # This shouldn't ever really happen.
 
                 for loc in locs:
-                    if loc['location_type'] == 'disk':
+                    if loc['location_type'] == 'disk' and loc['location'].find('/tape/') < 0:
 
                         # Delete unmerged file from disk.
 
@@ -867,7 +988,7 @@ CREATE TABLE IF NOT EXISTS unmerged_files (
 
                 print('Checking disk locations.')
                 for loc in locs:
-                    if loc['location_type'] == 'disk':
+                    if loc['location_type'] == 'disk' and loc['location'].find('/tape/') < 0:
                         dir = os.path.join(loc['mount_point'], loc['subdir'])
                         fp = os.path.join(dir, f)
                         if larbatch_posix.exists(fp):
@@ -896,6 +1017,7 @@ CREATE TABLE IF NOT EXISTS unmerged_files (
                            VALUES(?,?,?,?,?,?);'''
                     c.execute(q, (f, group_id, sam_project_id, sam_process_id, size,
                                   create_date))
+                    self.total_unmerged_files_added += 1
                     #self.conn.commit()
 
                 else:
@@ -965,7 +1087,7 @@ CREATE TABLE IF NOT EXISTS unmerged_files (
         for f in existing_files:
             print('Ignoring %s' % f)
             add_files.discard(f)
-        print('\b%d files in final add list.' % len(add_files))
+        print('%d files in final add list.' % len(add_files))
 
         # Loop over files in add list and do bulk adds.
 
@@ -982,29 +1104,121 @@ CREATE TABLE IF NOT EXISTS unmerged_files (
         return add_files
 
 
-    # Add example file and group partners to database.
-    # Group partners are returned.
+    # Get quality of specified run.
 
-    def add_unmerged_file(self, f):
+    def get_quality(self, run):
 
-        print('\nAdding example unmerged file %s' % f)
+        result = 'bad'
 
-        # Add this file and group partners.
+        if run in self.good_runs:
+            result = 'good'
 
-        add_files = set()
-        md = self.samweb.getMetadata(f)
-        group_id = self.merge_group(md)
-        if group_id > 0:
-            dim = self.get_group_dim(group_id)
-            group_files = self.samweb.listFiles(dim)
-            add_files = self.add_unmerged_files(group_files)
-        else:
-            self.delete_disk_locations(f)
-            add_files = set()
+        return result
+
+
+    # Get epoch of specified run.
+
+    def get_epoch(self, run):
+
+        result = ''
+
+        # Loop over epochs
+
+        for key in self.epochs:
+            limits = self.epochs[key]
+            if run >= limits[0] and run <= limits[1]:
+                result = key
+                break
 
         # Done.
 
-        return add_files
+        return result
+
+
+    # Find the run group corresponding to a single run.
+
+    def run_group_single(self, run):
+
+        result = 0
+        print('Querying run group for run %d' % run)
+
+        # Query run_groups table to see if this run already has a run group.
+
+        c = self.conn.cursor()
+        q = 'SELECT run_group_id FROM run_groups WHERE run=?'
+        c.execute(q, (run,))
+        rows = c.fetchall()
+        if len(rows) > 0:
+            result = rows[0][0]
+
+        else:
+
+            # Define a new run group.
+            # Get epoch and quality of current run.
+
+            epoch = self.get_epoch(run)
+            quality = self.get_quality(run)
+
+            # Calculate absolute lower and upper bounds for a new run group.
+
+            run_low = self.group_runs * (run // self.group_runs)
+            run_high = run_low + self.group_runs - 1
+
+            # Find runs with matching epoch and quality.
+
+            runs = set()
+            for r in range(run_low, run_high+1):
+                if self.get_epoch(r) == epoch and self.get_quality(r) == quality:
+                    runs.add(r)
+
+            # Filter out any existing runs.
+
+            q = 'SELECT run FROM run_groups WHERE run >= ? and run <= ?;'
+            c.execute(q, (run_low, run_high))
+            rows = c.fetchall()
+            for row in rows:
+                r = row[0]
+                if r in runs:
+                    runs.remove(r)
+
+            # Get a new run group id.
+
+            q = 'SELECT MAX(run_group_id) FROM run_groups;'
+            c.execute(q)
+            row = c.fetchone()
+            if row[0] == None:
+                run_group_id = 1
+            else:
+                run_group_id = row[0] + 1
+
+            # Assign runs to this run group id.
+
+            for r in runs:
+                q = 'INSERT INTO run_groups (run, run_group_id, epoch, quality) VALUES(?,?,?,?);'
+                c.execute(q, (r, run_group_id, epoch, quality))
+            self.conn.commit()
+
+            result = run_group_id
+
+        return result
+
+
+    # Find the run group corresponding to a set of runs.
+
+    def run_group(self, runs):
+
+        # If all runs have the same run group, return that run group.
+        # Otherwise, return 0
+
+        result = 0
+        rgs = set()
+        for run in runs:
+            rg = self.run_group_single(run)
+            if not rg in rgs:
+                rgs.add(rg)
+        if len(rgs) == 1:
+            result = rgs.pop()
+        return result
 
 
     # Function to return the merge group id corresponding to a sam metadata dictionary.
@@ -1058,12 +1272,16 @@ CREATE TABLE IF NOT EXISTS unmerged_files (
         for rst in md['runs']:   # rst = (run, subrun, run_type)
             runs.add(rst[0])
         run = 0
-        if len(runs) == 1:
-            run = runs.pop()
-            print('Run = %d' % run)
+        if self.group_runs > 0:
+            run = -self.run_group(runs)
+            print('Run group = %d' % -run)
         else:
-            print('Setting run number to zero because file contains more than one run.')
-            print('Runs = %s' % list(runs))
+            if len(runs) == 1:
+                run = runs.pop()
+                print('Run = %d' % run)
+            else:
+                print('Setting run number to zero because file contains more than one run.')
+                print('Runs = %s' % list(runs))
         app_family = md['application']['family']
         app_name = md['application']['name']
         fcl_name = md['fcl.name']
@@ -1353,6 +1571,7 @@ CREATE TABLE IF NOT EXISTS unmerged_files (
                 q = 'UPDATE unmerged_files SET sam_project_id=? WHERE group_id=?;'
                 c.execute(q, (sam_project_id, group_id))
                 self.conn.commit()
+                self.total_sam_projects_added += 1
 
         # Done
 
@@ -1422,6 +1641,7 @@ CREATE TABLE IF NOT EXISTS unmerged_files (
             c.execute(q, self.delete_project_queue)
 
             self.conn.commit()
+            self.total_sam_projects_deleted += len(placeholders)
 
             # Clear delete queue.
 
@@ -1512,8 +1732,10 @@ CREATE TABLE IF NOT EXISTS unmerged_files (
                     if 'processes' in prjsum:
                         procs = prjsum['processes']
 
+                    self.total_sam_processes += len(procs)
                     if len(procs) == 0:
                         print('No processes.')
+                        self.total_sam_projects_noprocs += 1
 
                     for proc in procs:
                         pid = proc['process_id']
@@ -1530,6 +1752,7 @@ CREATE TABLE IF NOT EXISTS unmerged_files (
 
                         if len(consumed_files) == 0:
                             print('SAM project %s did not consume any files.' % sam_project)
+                            self.total_sam_processes_failed += 1
                         if len(consumed_files) > 0:
 
                             # Determine file names produced by this process.
@@ -1552,6 +1775,7 @@ CREATE TABLE IF NOT EXISTS unmerged_files (
                             if len(files) == 0:
 
                                 print('SAM project %s consumed %d files, but did not produce any files.' % (sam_project, len(consumed_files)))
+                                self.total_sam_processes_failed += 1
 
                                 # Loop over consumed files.
 
@@ -1568,6 +1792,9 @@ CREATE TABLE IF NOT EXISTS unmerged_files (
                                     print('Forgetting about %s' % f)
                                     self.delete_unmerged_file(f)
                                 self.flush_delete_unmerged_queue()
+
+                            else:
+                                self.total_sam_processes_succeeded += 1
 
                             # Loop over produced files.
 
@@ -1673,6 +1900,7 @@ CREATE TABLE IF NOT EXISTS unmerged_files (
                         q = 'UPDATE sam_projects SET status=? WHERE id=?;'
                         c.execute(q, (2, sam_project_id))
                         self.conn.commit()
+                        self.total_sam_projects_ended += 1
 
                     elif prj_started and 'project_status' in prjstat and \
                          (prjstat['project_status'] == 'reserved' or \
@@ -1685,6 +1913,7 @@ CREATE TABLE IF NOT EXISTS unmerged_files (
                         q = 'UPDATE sam_projects SET status=? WHERE id=?;'
                         c.execute(q, (2, sam_project_id))
                         self.conn.commit()
+                        self.total_sam_projects_killed += 1
 
                     elif prj_started:
 
@@ -1708,6 +1937,7 @@ CREATE TABLE IF NOT EXISTS unmerged_files (
                             q = 'UPDATE sam_projects SET status=? WHERE id=?;'
                             c.execute(q, (2, sam_project_id))
                             self.conn.commit()
+                            self.total_sam_projects_killed += 1
 
 
                     else:
@@ -1759,6 +1989,7 @@ CREATE TABLE IF NOT EXISTS unmerged_files (
                             q = 'UPDATE sam_projects SET status=? WHERE id=?;'
                             c.execute(q, (2, sam_project_id))
                             self.conn.commit()
+                            self.total_sam_projects_killed += 1
 
 
                 elif status == 0:
@@ -1850,6 +2081,7 @@ CREATE TABLE IF NOT EXISTS unmerged_files (
             # Done updating database in this function.
 
             self.conn.commit()
+            self.total_sam_projects_started += 1
 
         else:
 
@@ -2000,6 +2232,7 @@ CREATE TABLE IF NOT EXISTS unmerged_files (
             q = 'DELETE FROM sam_projects WHERE id=?'
             c.execute(q, (sam_project_id,))
             self.conn.commit()
+            self.total_sam_projects_deleted += 1
             return
         unmerged_file = row[0]
         self.conn.commit()
@@ -2665,6 +2898,41 @@ CREATE TABLE IF NOT EXISTS unmerged_files (
         return
 
 
+    # Function to remove unused run groups from database.
+
+    def clean_run_groups(self):
+
+        print('\nCleaning run groups.')
+
+        # Loop over empty merge groups.
+
+        c = self.conn.cursor()
+        q = 'SELECT DISTINCT run_group_id FROM run_groups WHERE -run_group_id NOT IN (SELECT DISTINCT run FROM merge_groups);'
+        c.execute(q)
+        rows = c.fetchall()
+        for row in rows:
+            run_group_id = row[0]
+
+            # Double check that no merge groups belong to this run group id.
+
+            q = '''SELECT COUNT(*) FROM merge_groups, run_groups
+                   WHERE run_groups.run_group_id=?
+                   AND merge_groups.run = -run_groups.run_group_id;'''
+            c.execute(q, (run_group_id,))
+            row = c.fetchone()
+            n = row[0]
+            if n == 0:
+                print('Deleting run group id %d' % run_group_id)
+                q = 'DELETE FROM run_groups WHERE run_group_id=?;'
+                c.execute(q, (run_group_id,))
+
+        self.conn.commit()
+
+        # Done.
+
+        return
+
+
 # Check whether we are using jobsub_lite.
 # Return true if yes.
 # Result is cached.
@@ -2788,6 +3056,7 @@ def main(argv):
     max_groups = 100
     query_limit = 1000
     file_limit = 10000
+    group_runs = 0
     do_phase1 = False
     do_phase2 = False
     do_phase3 = False
@@ -2844,6 +3113,9 @@ def main(argv):
             del args[0:2]
         elif args[0] == '--file_limit' and len(args) > 1:
             file_limit = int(args[1])
+            del args[0:2]
+        elif args[0] == '--group_runs' and len(args) > 1:
+            group_runs = int(args[1])
             del args[0:2]
         elif args[0] == '--phase1':
             do_phase1 = True
@@ -2922,12 +3194,14 @@ def main(argv):
         do_phase2 = True
         do_phase3 = True
 
+    # Create and populate run groups (do this once for the lifetime of the merge database).
+
     # Create merge engine.
 
     engine = MergeEngine(xmlfile, projectname, stagename, defname,
                          database, max_size, min_size, max_count, max_age,
                          max_projects, max_groups, query_limit, file_limit,
-                         nobatch)
+                         group_runs, nobatch)
     if do_phase1:
         engine.update_unmerged_files()
     if do_phase2:
@@ -2936,9 +3210,22 @@ def main(argv):
     if do_phase3:
         engine.update_sam_process_status()
         engine.clean_merge_groups()
+        engine.clean_run_groups()
 
     # Done.
 
+    print('\nStatistics:')
+    print('Unmerged files added:      %d' % engine.total_unmerged_files_added)
+    print('Unmerged files deleted:    %d' % engine.total_unmerged_files_deleted)
+    print('SAM projects added:        %d' % engine.total_sam_projects_added)
+    print('SAM projects submitted:    %d' % engine.total_sam_projects_started)
+    print('SAM projects ended:        %d' % engine.total_sam_projects_ended)
+    print('SAM projects no processes: %d' % engine.total_sam_projects_noprocs)
+    print('SAM projects killed:       %d' % engine.total_sam_projects_killed)
+    print('SAM projects deleted:      %d' % engine.total_sam_projects_deleted)
+    print('SAM processes discovered:  %d' % engine.total_sam_processes)
+    print('SAM processes succeeded:   %d' % engine.total_sam_processes_succeeded)
+    print('SAM processes failed:      %d' % engine.total_sam_processes_failed)
     print('\nFinished.')
     return 0
 
