@@ -203,10 +203,22 @@
 # to be assigned to either a single run or a run group, possibly because the sam metadata 
 # of the file being merged contains multiple incompatible run numbers.
 #
+#
+#
+# Throttling sam queries.
+#
+# One of the potentially slowest processes done by this script is querying sam for new
+# unmerged files.  In order to speed up throughput and to reduce the load on the sam
+# database, this script has the ability to throttle sam queries (aka phase 1 processing).
+#
+# Each time the sam database is queried, this script creates or updates the access and
+# modification times ("touches") hidden file .merge2.query.<hostname>.  
+# 
+#
 ######################################################################
 
 from __future__ import print_function
-import sys, os, time, datetime, uuid, traceback, tempfile, subprocess, random
+import sys, os, time, datetime, uuid, traceback, tempfile, subprocess, random, socket
 import threading
 try:
     import queue as Queue
@@ -707,6 +719,25 @@ CREATE TABLE IF NOT EXISTS run_groups (
 
         if self.query_limit == 0 or self.max_groups == 0:
             return
+
+        # Stat time stamp file to determine how long since the last query.
+
+        ts_file = '.merge2.query.%s' % socket.gethostname()
+        if os.path.exists(ts_file):
+            sr = os.stat(ts_file)
+            age = time.time() - sr.st_mtime
+            print('Time since last sam query: %6.0f seconds.' % age)
+
+            # Limit sam queries to once every six hours.
+
+            if age < 21600.:
+                print('Skipping sam query.')
+                return
+
+        # Touch time stamp file.
+
+        with open(ts_file, 'a'):
+            os.utime(ts_file, None)
 
         print('Querying unmerged files from sam.')
         extra_clause = ''
