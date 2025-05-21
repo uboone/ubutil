@@ -203,10 +203,22 @@
 # to be assigned to either a single run or a run group, possibly because the sam metadata 
 # of the file being merged contains multiple incompatible run numbers.
 #
+#
+#
+# Throttling sam queries.
+#
+# One of the potentially slowest processes done by this script is querying sam for new
+# unmerged files.  In order to speed up throughput and to reduce the load on the sam
+# database, this script has the ability to throttle sam queries (aka phase 1 processing).
+#
+# Each time the sam database is queried, this script creates or updates the access and
+# modification times ("touches") hidden file .merge2.query.<hostname>.  
+# 
+#
 ######################################################################
 
 from __future__ import print_function
-import sys, os, time, datetime, uuid, traceback, tempfile, subprocess, random
+import sys, os, time, datetime, uuid, traceback, tempfile, subprocess, random, socket
 import threading
 try:
     import queue as Queue
@@ -285,6 +297,20 @@ class MergeEngine:
         self.fclpath = None
         self.numjobs = 0
 
+        # Statistics.
+
+        self.total_unmerged_files_added = 0
+        self.total_unmerged_files_deleted = 0
+        self.total_sam_projects_added = 0
+        self.total_sam_projects_deleted = 0
+        self.total_sam_projects_started = 0
+        self.total_sam_projects_ended = 0
+        self.total_sam_projects_noprocs = 0
+        self.total_sam_projects_killed = 0
+        self.total_sam_processes = 0
+        self.total_sam_processes_succeeded = 0
+        self.total_sam_processes_failed = 0
+        
         if xmlfile != '':
             xmlpath = project.normxmlpath(xmlfile)
             if not os.path.exists(xmlpath):
@@ -542,6 +568,7 @@ CREATE TABLE IF NOT EXISTS run_groups (
             c.execute(q, self.delete_unmerged_queue)
 
             self.conn.commit()
+            self.total_unmerged_files_deleted += len(self.delete_unmerged_queue)
 
             # Clear delete queue.
 
@@ -693,6 +720,25 @@ CREATE TABLE IF NOT EXISTS run_groups (
         if self.query_limit == 0 or self.max_groups == 0:
             return
 
+        # Stat time stamp file to determine how long since the last query.
+
+        ts_file = '.merge2.query.%s' % socket.gethostname()
+        if os.path.exists(ts_file):
+            sr = os.stat(ts_file)
+            age = time.time() - sr.st_mtime
+            print('Time since last sam query: %6.0f seconds.' % age)
+
+            # Limit sam queries to once every six hours.
+
+            if age < 21600.:
+                print('Skipping sam query.')
+                return
+
+        # Touch time stamp file.
+
+        with open(ts_file, 'a'):
+            os.utime(ts_file, None)
+
         print('Querying unmerged files from sam.')
         extra_clause = ''
         if self.defname != '':
@@ -774,7 +820,7 @@ CREATE TABLE IF NOT EXISTS run_groups (
         # First see if file is on tape.
 
         for loc in locs:
-            if loc['location_type'] == 'tape':
+            if loc['location_type'] == 'tape' or loc['location'].find('/tape/') >= 0:
                 on_tape = True
 
         if on_tape:
@@ -785,7 +831,7 @@ CREATE TABLE IF NOT EXISTS run_groups (
             # Delete and remove any disk locations from sam.
 
             for loc in locs:
-                if loc['location_type'] == 'disk':
+                if loc['location_type'] == 'disk' and loc['location'].find('/tape/') < 0:
 
                     # Delete unmerged file from disk.
 
@@ -819,7 +865,7 @@ CREATE TABLE IF NOT EXISTS run_groups (
 
                 print('Checking disk locations.')
                 for loc in locs:
-                    if loc['location_type'] == 'disk':
+                    if loc['location_type'] == 'disk' and loc['location'].find('/tape/') < 0:
                         dir = os.path.join(loc['mount_point'], loc['subdir'])
                         fp = os.path.join(dir, f)
                         if content_good and self.exists(fp):
@@ -843,6 +889,7 @@ CREATE TABLE IF NOT EXISTS run_groups (
             q = 'DELETE FROM unmerged_files WHERE name=?;'
             c.execute(q, (f,))
             self.conn.commit()
+            self.total_unmerged_files_deleted += 1
 
         # Done
 
@@ -859,7 +906,7 @@ CREATE TABLE IF NOT EXISTS run_groups (
 
         locs = self.samweb.locateFile(f)
         for loc in locs:
-            if loc['location_type'] == 'disk':
+            if loc['location_type'] == 'disk' and loc['location'].find('/tape/') < 0:
 
                 # Delete unmerged file from disk.
 
@@ -904,7 +951,7 @@ CREATE TABLE IF NOT EXISTS run_groups (
             on_tape = False
             on_disk = False
             for loc in locs:
-                if loc['location_type'] == 'tape':
+                if loc['location_type'] == 'tape' or loc['location'].find('/tape/') >= 0:
                     on_tape = True
 
             if on_tape:
@@ -923,7 +970,7 @@ CREATE TABLE IF NOT EXISTS run_groups (
                 # This shouldn't ever really happen.
 
                 for loc in locs:
-                    if loc['location_type'] == 'disk':
+                    if loc['location_type'] == 'disk' and loc['location'].find('/tape/') < 0:
 
                         # Delete unmerged file from disk.
 
@@ -941,7 +988,7 @@ CREATE TABLE IF NOT EXISTS run_groups (
 
                 print('Checking disk locations.')
                 for loc in locs:
-                    if loc['location_type'] == 'disk':
+                    if loc['location_type'] == 'disk' and loc['location'].find('/tape/') < 0:
                         dir = os.path.join(loc['mount_point'], loc['subdir'])
                         fp = os.path.join(dir, f)
                         if larbatch_posix.exists(fp):
@@ -970,6 +1017,7 @@ CREATE TABLE IF NOT EXISTS run_groups (
                            VALUES(?,?,?,?,?,?);'''
                     c.execute(q, (f, group_id, sam_project_id, sam_process_id, size,
                                   create_date))
+                    self.total_unmerged_files_added += 1
                     #self.conn.commit()
 
                 else:
@@ -1523,6 +1571,7 @@ CREATE TABLE IF NOT EXISTS run_groups (
                 q = 'UPDATE unmerged_files SET sam_project_id=? WHERE group_id=?;'
                 c.execute(q, (sam_project_id, group_id))
                 self.conn.commit()
+                self.total_sam_projects_added += 1
 
         # Done
 
@@ -1592,6 +1641,7 @@ CREATE TABLE IF NOT EXISTS run_groups (
             c.execute(q, self.delete_project_queue)
 
             self.conn.commit()
+            self.total_sam_projects_deleted += len(placeholders)
 
             # Clear delete queue.
 
@@ -1682,8 +1732,10 @@ CREATE TABLE IF NOT EXISTS run_groups (
                     if 'processes' in prjsum:
                         procs = prjsum['processes']
 
+                    self.total_sam_processes += len(procs)
                     if len(procs) == 0:
                         print('No processes.')
+                        self.total_sam_projects_noprocs += 1
 
                     for proc in procs:
                         pid = proc['process_id']
@@ -1700,6 +1752,7 @@ CREATE TABLE IF NOT EXISTS run_groups (
 
                         if len(consumed_files) == 0:
                             print('SAM project %s did not consume any files.' % sam_project)
+                            self.total_sam_processes_failed += 1
                         if len(consumed_files) > 0:
 
                             # Determine file names produced by this process.
@@ -1722,6 +1775,7 @@ CREATE TABLE IF NOT EXISTS run_groups (
                             if len(files) == 0:
 
                                 print('SAM project %s consumed %d files, but did not produce any files.' % (sam_project, len(consumed_files)))
+                                self.total_sam_processes_failed += 1
 
                                 # Loop over consumed files.
 
@@ -1738,6 +1792,9 @@ CREATE TABLE IF NOT EXISTS run_groups (
                                     print('Forgetting about %s' % f)
                                     self.delete_unmerged_file(f)
                                 self.flush_delete_unmerged_queue()
+
+                            else:
+                                self.total_sam_processes_succeeded += 1
 
                             # Loop over produced files.
 
@@ -1843,6 +1900,7 @@ CREATE TABLE IF NOT EXISTS run_groups (
                         q = 'UPDATE sam_projects SET status=? WHERE id=?;'
                         c.execute(q, (2, sam_project_id))
                         self.conn.commit()
+                        self.total_sam_projects_ended += 1
 
                     elif prj_started and 'project_status' in prjstat and \
                          (prjstat['project_status'] == 'reserved' or \
@@ -1855,6 +1913,7 @@ CREATE TABLE IF NOT EXISTS run_groups (
                         q = 'UPDATE sam_projects SET status=? WHERE id=?;'
                         c.execute(q, (2, sam_project_id))
                         self.conn.commit()
+                        self.total_sam_projects_killed += 1
 
                     elif prj_started:
 
@@ -1878,6 +1937,7 @@ CREATE TABLE IF NOT EXISTS run_groups (
                             q = 'UPDATE sam_projects SET status=? WHERE id=?;'
                             c.execute(q, (2, sam_project_id))
                             self.conn.commit()
+                            self.total_sam_projects_killed += 1
 
 
                     else:
@@ -1929,6 +1989,7 @@ CREATE TABLE IF NOT EXISTS run_groups (
                             q = 'UPDATE sam_projects SET status=? WHERE id=?;'
                             c.execute(q, (2, sam_project_id))
                             self.conn.commit()
+                            self.total_sam_projects_killed += 1
 
 
                 elif status == 0:
@@ -2020,6 +2081,7 @@ CREATE TABLE IF NOT EXISTS run_groups (
             # Done updating database in this function.
 
             self.conn.commit()
+            self.total_sam_projects_started += 1
 
         else:
 
@@ -2170,6 +2232,7 @@ CREATE TABLE IF NOT EXISTS run_groups (
             q = 'DELETE FROM sam_projects WHERE id=?'
             c.execute(q, (sam_project_id,))
             self.conn.commit()
+            self.total_sam_projects_deleted += 1
             return
         unmerged_file = row[0]
         self.conn.commit()
@@ -3151,6 +3214,18 @@ def main(argv):
 
     # Done.
 
+    print('\nStatistics:')
+    print('Unmerged files added:      %d' % engine.total_unmerged_files_added)
+    print('Unmerged files deleted:    %d' % engine.total_unmerged_files_deleted)
+    print('SAM projects added:        %d' % engine.total_sam_projects_added)
+    print('SAM projects submitted:    %d' % engine.total_sam_projects_started)
+    print('SAM projects ended:        %d' % engine.total_sam_projects_ended)
+    print('SAM projects no processes: %d' % engine.total_sam_projects_noprocs)
+    print('SAM projects killed:       %d' % engine.total_sam_projects_killed)
+    print('SAM projects deleted:      %d' % engine.total_sam_projects_deleted)
+    print('SAM processes discovered:  %d' % engine.total_sam_processes)
+    print('SAM processes succeeded:   %d' % engine.total_sam_processes_succeeded)
+    print('SAM processes failed:      %d' % engine.total_sam_processes_failed)
     print('\nFinished.')
     return 0
 
