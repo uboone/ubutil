@@ -230,6 +230,17 @@ def check_beam_timing(cfg, trigbit, beam):
     # Loop over procsss names.
 
     for process_name in cfg:
+
+        # Ignore any processes run in swizzler.
+
+        if process_name == 'Swizzler':
+            continue
+
+        # Ignore any processes run in reco1 except stand alone optical reco.
+
+        if process_name.find('Stage1') >= 0 and not process_name.endswith('Optical'):
+            continue
+
         print('Checking process name %s' % process_name)
         fcl_proc = cfg[process_name]
 
@@ -401,7 +412,10 @@ def check_optical(cfg, trigbit, beam, epoch, is_overlay):
 
         if process_name == 'Swizzler':
             continue
-        if process_name.find('Stage1') >= 0:
+
+        # Ignore any processes run in reco1 except stand alone optical reco.
+
+        if process_name.find('Stage1') >= 0 and not process_name.endswith('Optical'):
             continue
 
         print('Checking process name %s' % process_name)
