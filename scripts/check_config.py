@@ -34,6 +34,7 @@
 # --[no-]timing             - Check beam timing.
 # --[no-]optical            - Check optical waveform selection.
 # --[no-]flux               - Check flux.
+# --[no-]remap              - Check PMT remapping.
 #
 ########################################################################
 #
@@ -823,13 +824,104 @@ def check_flux(cfg, beam, epoch):
                                     if result:
                                         print('  Flux OK.')
                                     print()
+    # Done.
+
+    return result
+
+
+# Check PMT remapping.
+#
+# Here is a quick synopsis of PMT remapping.
+#
+# PMT remapping refers to the fact that OpChannels may have a different
+# interpretaiton in OpDetWaveforms vs. OpHits and OpFlashes.  This is the
+# case for real data and overlay, but not for pure mc.  This programs 
+# assumes that we are dealing with real data or overlay, therefomre PMT
+# remapping is always required.
+#
+# The only action performed by this function is to check whether producer
+# modules OpHitFinder and OpHitRemapProducer have been run in any given
+# trigger path.  It is an error if a trigger path contains an instance
+# of OpHitFinder but not OpHitRemapProducer.
+
+def check_remap(cfg):
+
+    result = True
+
+    # Loop over procsss names.
+
+    for process_name in cfg:
+
+        # Ignore any processes run in swizzler.
+
+        if process_name == 'Swizzler':
+            continue
+
+        # Ignore any processes run in reco1 except stand alone optical reco.
+
+        if process_name.find('Stage1') >= 0 and not process_name.endswith('Optical'):
+            continue
+
+        print('Checking process name %s' % process_name)
+        fcl_proc = cfg[process_name]
+
+        if 'physics' in fcl_proc:
+            fcl_physics = fcl_proc['physics']
+
+            # Extract lists of module by type.
+
+            producers = {}
+            filters = {}
+
+            if 'producers' in fcl_physics:
+                producers = fcl_physics['producers']
+            if 'filters' in fcl_physics:
+                filters = fcl_physics['filters']
+
+            # Loop over modules in trigger paths.
+
+            if 'trigger_paths' in fcl_physics:
+                trigger_paths = fcl_physics['trigger_paths']
+
+                # Loop over trigger path modules.
+
+                num_ophit = 0
+                num_remap = 0
+                for trigger_path in trigger_paths:
+                    if trigger_path in fcl_physics:
+                        modules = fcl_physics[trigger_path]
+                        for module in modules:
+                            if not module in producers and not module in filters:
+                                print('  ***** Module %s not found.' % module)
+                                result = False
+                            elif module in producers:
+                                module_type = producers[module]['module_type']
+                                if module_type == 'OpHitFinder':
+                                    #print('  Found OpHitFinder.')
+                                    num_ophit += 1
+                                elif module_type == 'OpHitRemapProducer':
+                                    #print('  Found OpHitRemapProducer.')
+                                    num_remap += 1
+
+                        if num_ophit != 0 or num_remap != 0:
+                            print('  Number of OpHitFinder modules = %d' % num_ophit)
+                            print('  Number of OpHitRemapProducer modules = %d' % num_remap)
+                        if num_ophit != num_remap:
+                            print('  ***** PMT remap mismatch.')
+                        else:
+                            print('  PMT remap OK.')
+                        print()
+
+    # Done.
+
+    return result
 
 
 # Check config.
 # Return True if good, False if bad.
 
 def check_config(cfg, trigbit, beam, epoch, is_overlay,
-                 do_services, do_output, do_timing, do_optical, do_flux):
+                 do_services, do_output, do_timing, do_optical, do_flux, do_remap):
 
     result = True
 
@@ -865,6 +957,15 @@ def check_config(cfg, trigbit, beam, epoch, is_overlay,
 
     if do_flux and epoch != '' and is_overlay:
         flux_ok = check_flux(cfg, beam, epoch)
+        if not flux_ok:
+            result = False
+
+    # Check PMT remapping.
+
+    if do_remap:
+        remap_ok = check_remap(cfg)
+        if not remap_ok:
+            result = False
 
     # Done.
 
@@ -1051,7 +1152,8 @@ def get_beam(md):
 # Check a single file.
 # Return True if file is OK, False if not OK.
 
-def check_file(f, md, do_crt, do_services, do_output, do_timing, do_optical, do_flux):
+def check_file(f, md, do_crt, do_services, do_output, do_timing, do_optical,
+               do_flux, do_remap):
 
     fname = os.path.basename(f)
     result = True
@@ -1134,7 +1236,8 @@ def check_file(f, md, do_crt, do_services, do_output, do_timing, do_optical, do_
 
         cfg = fcl.make_pset_str(fcltext.getvalue())
         cfgok = check_config(cfg, trigbit, beam, epoch, is_overlay,
-                             do_services, do_output, do_timing, do_optical, do_flux)
+                             do_services, do_output, do_timing, do_optical,
+                             do_flux, do_remap)
         if not cfgok:
             result = False
 
@@ -1169,12 +1272,14 @@ def main(argv):
     do_timing = False
     do_optical = False
     do_flux = False
+    do_remap = False
     skip_crt = False
     skip_services = False
     skip_output = False
     skip_timing = False
     skip_optical = False
     skip_flux = False
+    skip_remap = False
 
     args = argv[1:]
     while len(args) > 0:
@@ -1249,6 +1354,10 @@ def main(argv):
             do_flux = True
             do_all = False
             del args[0]
+        elif (args[0] == '--remap'):
+            do_remap = True
+            do_all = False
+            del args[0]
         elif (args[0] == '--no-crt'):
             skip_crt = True
             del args[0]
@@ -1266,6 +1375,9 @@ def main(argv):
             del args[0]
         elif (args[0] == '--no-flux'):
             skip_flux = True
+            del args[0]
+        elif (args[0] == '--no-remap'):
+            skip_remap = True
             del args[0]
         else:
             print('Unknown option %s' % args[0])
@@ -1285,6 +1397,7 @@ def main(argv):
         do_timing = True
         do_optical = True
         do_flux = True
+        do_remap = True
     if skip_crt:
         do_crt = False
     if skip_services:
@@ -1297,6 +1410,8 @@ def main(argv):
         do_optical = False
     if skip_flux:
         do_flux = False
+    if skip_remap:
+        do_remap = False
 
     #print('CRT      = %d' % do_crt)
     #print('Services = %d' % do_services)
@@ -1304,6 +1419,7 @@ def main(argv):
     #print('Timing   = %d' % do_timing)
     #print('Optical  = %d' % do_optical)
     #print('Flux     = %d' % do_flux)
+    #print('Remap    = %d' % do_remap)
 
     # Make a set of filenames to check.
 
@@ -1351,7 +1467,8 @@ def main(argv):
         pcfg = {process_name: cfg}
         nfile += 1
         ok = check_config(pcfg, trigbit, beam, epoch, is_overlay,
-                          do_services, do_output, do_timing, do_optical, do_flux)
+                          do_services, do_output, do_timing, do_optical,
+                          do_flux, do_remap)
         if ok:
             nfileok += 1        
 
@@ -1407,7 +1524,8 @@ def main(argv):
 
         # Do further checks for this file.
 
-        ok = check_file(f, md, do_crt, do_services, do_output, do_timing, do_optical, do_flux)
+        ok = check_file(f, md, do_crt, do_services, do_output, do_timing, do_optical,
+                        do_flux, do_remap)
         if ok:
             nfileok += 1
 
