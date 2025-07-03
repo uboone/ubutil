@@ -15,10 +15,25 @@
 # -f|--file <path>     - Specify file to check (full path, repeatable).
 # -d|--dir <dir>       - Check all .root files in specified directory (repeatable).
 # -c|--config <fcl>    - Check fcl file.
+#
+# The following options control variations (only for fcl mode).
+#
 # --trigger <trigger>  - Specify hardware trigger (bnb, numi, ext).
 # --beam <beam>        - Specify beam type (bnb, numi).
 # --epoch <epoch>      - Specify epoch (1x, 2x, 3x, 4x, 5).
 # --overlay            - Specify overlay.
+#
+# The following options control which checks are performed.
+# If none of these options is specified, all checks are performed.
+# Otherwise, just the specified checks are performed.
+# Use "--no-" prefix to skip specified checks.
+#
+# --[no-]crt                - Check CRT (artroot mode only).
+# --[no-]services           - Check services.
+# --[no-]output             - Check RootOutput.
+# --[no-]timing             - Check beam timing.
+# --[no-]optical            - Check optical waveform selection.
+# --[no-]flux               - Check flux.
 #
 ########################################################################
 #
@@ -29,11 +44,11 @@
 # 1.  Invoking this script without any options is equivalent to invoking
 #     with option "--dir ." (i.e. check root files in current directory).
 #
-# 2.  Fcl configurations can be checked by fcl files or root files.
-#     When checking root files, fcl configurations are extracted automatically
+# 2.  Fcl configurations can be checked by fcl files or artroot files.
+#     When checking artroot files, fcl configurations are extracted automatically
 #     from the processing history or sam metadata.
 #
-# 3.  To fully check a configuration, it is necessary to specify the following
+# 3.  To fully check a fcl configuration, it is necessary to specify the following
 #     parameters.
 #
 #     a) Hardware trigger (bnb, numi, ext).
@@ -53,8 +68,8 @@
 #     For beam on data, it is "bnb" or "numi."  For beam off data or overlay,
 #     it should be "ext."
 #
-# 4.  When checking files, trigger, beam, epoch, and overlay arguments are ignored.
-#     They are determined from file itself.
+# 4.  When checking artroot files, trigger, beam, epoch, and overlay arguments
+#     are ignored.  They are determined from file itself.
 #
 ########################################################################
 
@@ -719,38 +734,137 @@ def check_output(cfg):
     return result
 
 
+# Check Flux.
+
+def check_flux(cfg, beam, epoch):
+
+    result = True
+
+    # Loop over procsss names.
+
+    for process_name in cfg:
+
+        print('Checking process name %s' % process_name)
+        fcl_proc = cfg[process_name]
+
+        if 'physics' in fcl_proc:
+            fcl_physics = fcl_proc['physics']
+
+            # Extract lists of module by type.
+
+            producers = {}
+            filters = {}
+
+            if 'producers' in fcl_physics:
+                producers = fcl_physics['producers']
+            if 'filters' in fcl_physics:
+                filters = fcl_physics['filters']
+
+            # Loop over modules in trigger paths.
+
+            if 'trigger_paths' in fcl_physics:
+                trigger_paths = fcl_physics['trigger_paths']
+
+                # Loop over trigger path modules.
+
+                for trigger_path in trigger_paths:
+                    if trigger_path in fcl_physics:
+                        modules = fcl_physics[trigger_path]
+                        for module in modules:
+                            if not module in producers and not module in filters:
+                                print('  ***** Module %s not found.' % module)
+                                result = False
+                            elif module in producers:
+                                module_type = producers[module]['module_type']
+
+                                if module_type == 'GENIEGen':
+
+                                    print('\n  ===== Checking GENIEGen flux.')
+                                    flux_path = producers[module]['FluxSearchPaths']
+                                    print('  Flux path = %s' % flux_path)
+
+                                    # Make sure flux type matches beam type.
+
+                                    flux_path_lc = flux_path.lower()
+                                    flux_type = ''
+                                    if flux_path_lc.find('bnb') >= 0:
+                                        flux_type = 'bnb'
+                                    elif flux_path_lc.find('numi') >= 0:
+                                        flux_type = 'numi'
+                                    elif flux_path_lc.find('fhc') >= 0:
+                                        flux_type = 'numi'
+                                    elif flux_path_lc.find('rhc') >= 0:
+                                        flux_type = 'numi'
+
+                                    # All flux files in Nitish's persistent area are numi:
+
+                                    elif flux_path.startswith('/pnfs/uboone/persistent/users/bnayak/flux_files'):
+                                        flux_type = 'numi'
+
+                                    print('  Flux type = %s' % flux_type)
+                                    if flux_type != beam:
+                                        print('  ***** Flux type mismatch.')
+                                        result = False
+
+                                    # Check run 4a bnb flux.
+
+                                    if flux_type == 'bnb':
+                                        r4a = (flux_path_lc.find('run4a') >= 0)
+                                        if r4a:
+                                            print('  Run 4a flux.')
+                                        else:
+                                            print('  Not run 4a flux.')
+                                        if epoch == '4a' and not r4a:
+                                            print('  ***** Epoch is run 4a but bnb flux is not run 4a.')
+                                            result = False
+                                        elif epoch != '4a' and r4a:
+                                            print('  ***** Epoch is not run 4a but bnb flux is run 4a.')
+                                            result = False
+                                    if result:
+                                        print('  Flux OK.')
+                                    print()
+
+
 # Check config.
 # Return True if good, False if bad.
 
-def check_config(cfg, trigbit, beam, epoch, is_overlay):
+def check_config(cfg, trigbit, beam, epoch, is_overlay,
+                 do_services, do_output, do_timing, do_optical, do_flux):
 
     result = True
 
     # Check services.
 
-    services_ok = check_services(cfg, is_overlay)
-    if not services_ok:
-        result = False
+    if do_services:
+        services_ok = check_services(cfg, is_overlay)
+        if not services_ok:
+            result = False
 
     # Check outputs.
 
-    output_ok = check_output(cfg)
-    if not output_ok:
-        result = False
+    if do_output:
+        output_ok = check_output(cfg)
+        if not output_ok:
+            result = False
 
     # Check beam timing.
 
-    if trigbit != 0 and beam != '':
+    if do_timing and trigbit != 0 and beam != '':
         timing_ok = check_beam_timing(cfg, trigbit, beam)
         if not timing_ok:
             result = False
 
     # Check optical waveform selection.
 
-    if epoch != '':
+    if do_optical and epoch != '':
         optical_ok = check_optical(cfg, trigbit, beam, epoch, is_overlay)
         if not optical_ok:
             result = False
+
+    # Check flux.
+
+    if do_flux and epoch != '' and is_overlay:
+        flux_ok = check_flux(cfg, beam, epoch)
 
     # Done.
 
@@ -937,7 +1051,7 @@ def get_beam(md):
 # Check a single file.
 # Return True if file is OK, False if not OK.
 
-def check_file(f, md):
+def check_file(f, md, do_crt, do_services, do_output, do_timing, do_optical, do_flux):
 
     fname = os.path.basename(f)
     result = True
@@ -958,7 +1072,7 @@ def check_file(f, md):
 
     # Check crt merging.
 
-    if epoch >= '2b':
+    if do_crt and epoch >= '2b':
 
         print()
         print('Checking CRT merging.')
@@ -1019,7 +1133,8 @@ def check_file(f, md):
         # Convert fcl configuration to python dictionary.
 
         cfg = fcl.make_pset_str(fcltext.getvalue())
-        cfgok = check_config(cfg, trigbit, beam, epoch, is_overlay)
+        cfgok = check_config(cfg, trigbit, beam, epoch, is_overlay,
+                             do_services, do_output, do_timing, do_optical, do_flux)
         if not cfgok:
             result = False
 
@@ -1046,6 +1161,20 @@ def main(argv):
     beam_type = ''   # "bnb" or "numi"
     epoch = ''       # "1x", "2x", "3x", "4x", "5"
     is_overlay = False
+
+    do_all = True
+    do_crt = False
+    do_services = False
+    do_output = False
+    do_timing = False
+    do_optical = False
+    do_flux = False
+    skip_crt = False
+    skip_services = False
+    skip_output = False
+    skip_timing = False
+    skip_optical = False
+    skip_flux = False
 
     args = argv[1:]
     while len(args) > 0:
@@ -1096,6 +1225,48 @@ def main(argv):
         elif (args[0] == '--overlay'):
             is_overlay = True
             del args[0]
+        elif (args[0] == '--crt'):
+            do_crt = True
+            do_all = False
+            del args[0]
+        elif (args[0] == '--services'):
+            do_services = True
+            do_all = False
+            del args[0]
+        elif (args[0] == '--output'):
+            do_output = True
+            do_all = False
+            del args[0]
+        elif (args[0] == '--timing'):
+            do_timing = True
+            do_all = False
+            del args[0]
+        elif (args[0] == '--optical'):
+            do_optical = True
+            do_all = False
+            del args[0]
+        elif (args[0] == '--flux'):
+            do_flux = True
+            do_all = False
+            del args[0]
+        elif (args[0] == '--no-crt'):
+            skip_crt = True
+            del args[0]
+        elif (args[0] == '--no-services'):
+            skip_services = True
+            del args[0]
+        elif (args[0] == '--no-output'):
+            skip_output = True
+            del args[0]
+        elif (args[0] == '--no-timing'):
+            skip_timing = True
+            del args[0]
+        elif (args[0] == '--no-optical'):
+            skip_optical = True
+            del args[0]
+        elif (args[0] == '--no-flux'):
+            skip_flux = True
+            del args[0]
         else:
             print('Unknown option %s' % args[0])
             sys.exit(1)
@@ -1104,6 +1275,35 @@ def main(argv):
 
     if fclname == '' and len(filenames) == 0 and len(dirnames) == 0:
         dirnames.add('.')
+
+    # Update action flags.
+
+    if do_all:
+        do_crt = True
+        do_services = True
+        do_output = True
+        do_timing = True
+        do_optical = True
+        do_flux = True
+    if skip_crt:
+        do_crt = False
+    if skip_services:
+        do_services = False
+    if skip_output:
+        do_output = False
+    if skip_timing:
+        do_timing = False
+    if skip_optical:
+        do_optical = False
+    if skip_flux:
+        do_flux = False
+
+    #print('CRT      = %d' % do_crt)
+    #print('Services = %d' % do_services)
+    #print('Output   = %d' % do_output)
+    #print('Timing   = %d' % do_timing)
+    #print('Optical  = %d' % do_optical)
+    #print('Flux     = %d' % do_flux)
 
     # Make a set of filenames to check.
 
@@ -1150,7 +1350,8 @@ def main(argv):
         process_name = cfg['process_name']
         pcfg = {process_name: cfg}
         nfile += 1
-        ok = check_config(pcfg, trigbit, beam, epoch, is_overlay)
+        ok = check_config(pcfg, trigbit, beam, epoch, is_overlay,
+                          do_services, do_output, do_timing, do_optical, do_flux)
         if ok:
             nfileok += 1        
 
@@ -1206,7 +1407,7 @@ def main(argv):
 
         # Do further checks for this file.
 
-        ok = check_file(f, md)
+        ok = check_file(f, md, do_crt, do_services, do_output, do_timing, do_optical, do_flux)
         if ok:
             nfileok += 1
 
