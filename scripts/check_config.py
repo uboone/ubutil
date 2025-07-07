@@ -35,6 +35,7 @@
 # --[no-]optical            - Check optical waveform selection.
 # --[no-]flux               - Check flux.
 # --[no-]remap              - Check PMT remapping.
+# --[no-]asics              - Check ASICs settings database tag.
 #
 ########################################################################
 #
@@ -626,6 +627,9 @@ def check_services(cfg, is_overlay):
 
     result = True
 
+    print()
+    print('Checking sam service configuration.')
+
     for process_name in cfg:
 
         # Ignore any processes run in swizzler or reco1.
@@ -740,6 +744,8 @@ def check_output(cfg):
 def check_flux(cfg, beam, epoch):
 
     result = True
+    print()
+    print('Check run 4a flux.')
 
     # Loop over procsss names.
 
@@ -829,6 +835,65 @@ def check_flux(cfg, beam, epoch):
     return result
 
 
+# Check ASICs settings database tag.
+
+def check_asics(cfg, epoch):
+
+    result = True
+
+    # Calculate the minimum database tag based on epoch.
+
+    min_tag = ''
+    if epoch >= '1b' and epoch <= '3b':
+        min_tag = 'v1r2'
+    elif epoch >= '4a' and epoch <= '4d':
+        min_tag = 'v1r3'
+    elif epoch == '5':
+        min_tag = 'v1r4'
+    elif epoch == '1a':
+        min_tag = 'v1r5'
+
+    print()
+    print('Checking ASICs database tag.')
+    if min_tag == '':
+        print('Could not determine minimum database tag.')
+        result = False
+        return result
+    else:
+        print('Minimum database tag = %s' % min_tag)
+
+    # Loop over procsss names.
+
+    for process_name in cfg:
+
+        # Ignore any processes run in swizzler.
+
+        if process_name == 'Swizzler':
+            continue
+
+        # Ignore any processes run in reco1 except stand alone optical reco.
+
+        if process_name.find('Stage1') >= 0 and not process_name.endswith('Optical'):
+            continue
+
+        print('Checking process name %s' % process_name)
+        fcl_proc = cfg[process_name]
+        fcl_services = fcl_proc['services']
+        if 'ElectronicsCalibService' in fcl_services:
+            fcl_asics = fcl_services['ElectronicsCalibService']
+            dbtag = fcl_asics['ElectronicsCalibProvider']['DatabaseRetrievalAlg']['DBTag']
+            print('Database tag = %s' % dbtag)
+            if dbtag >= min_tag:
+                print('ASICs settings OK.')
+            else:
+                print('Wrong ASICs settings.')
+                result = False
+
+    # Done.
+
+    return result
+
+
 # Check PMT remapping.
 #
 # Here is a quick synopsis of PMT remapping.
@@ -847,6 +912,8 @@ def check_flux(cfg, beam, epoch):
 def check_remap(cfg):
 
     result = True
+    print()
+    print('Checking PMT remap configuraiton.')
 
     # Loop over procsss names.
 
@@ -921,7 +988,8 @@ def check_remap(cfg):
 # Return True if good, False if bad.
 
 def check_config(cfg, trigbit, beam, epoch, is_overlay,
-                 do_services, do_output, do_timing, do_optical, do_flux, do_remap):
+                 do_services, do_output, do_timing, do_optical, do_flux, do_remap,
+                 do_asics):
 
     result = True
 
@@ -965,6 +1033,13 @@ def check_config(cfg, trigbit, beam, epoch, is_overlay,
     if do_remap:
         remap_ok = check_remap(cfg)
         if not remap_ok:
+            result = False
+
+    # Check ASICs settigs database tag.
+
+    if do_asics:
+        asics_ok = check_asics(cfg, epoch)
+        if not asics_ok:
             result = False
 
     # Done.
@@ -1152,8 +1227,8 @@ def get_beam(md):
 # Check a single file.
 # Return True if file is OK, False if not OK.
 
-def check_file(f, md, do_crt, do_services, do_output, do_timing, do_optical,
-               do_flux, do_remap):
+def check_file(f, md, do_crt, do_services, do_output, do_timing, do_optical, do_flux, do_remap,
+               do_asics):
 
     fname = os.path.basename(f)
     result = True
@@ -1236,8 +1311,8 @@ def check_file(f, md, do_crt, do_services, do_output, do_timing, do_optical,
 
         cfg = fcl.make_pset_str(fcltext.getvalue())
         cfgok = check_config(cfg, trigbit, beam, epoch, is_overlay,
-                             do_services, do_output, do_timing, do_optical,
-                             do_flux, do_remap)
+                             do_services, do_output, do_timing, do_optical, do_flux, do_remap,
+                             do_asics)
         if not cfgok:
             result = False
 
@@ -1273,6 +1348,7 @@ def main(argv):
     do_optical = False
     do_flux = False
     do_remap = False
+    do_asics = False
     skip_crt = False
     skip_services = False
     skip_output = False
@@ -1280,6 +1356,7 @@ def main(argv):
     skip_optical = False
     skip_flux = False
     skip_remap = False
+    skip_asics = False
 
     args = argv[1:]
     while len(args) > 0:
@@ -1358,6 +1435,10 @@ def main(argv):
             do_remap = True
             do_all = False
             del args[0]
+        elif (args[0] == '--asics'):
+            do_asics = True
+            do_all = False
+            del args[0]
         elif (args[0] == '--no-crt'):
             skip_crt = True
             del args[0]
@@ -1379,6 +1460,9 @@ def main(argv):
         elif (args[0] == '--no-remap'):
             skip_remap = True
             del args[0]
+        elif (args[0] == '--no-asics'):
+            skip_asics = True
+            del args[0]
         else:
             print('Unknown option %s' % args[0])
             sys.exit(1)
@@ -1398,6 +1482,7 @@ def main(argv):
         do_optical = True
         do_flux = True
         do_remap = True
+        do_asics = True
     if skip_crt:
         do_crt = False
     if skip_services:
@@ -1412,6 +1497,8 @@ def main(argv):
         do_flux = False
     if skip_remap:
         do_remap = False
+    if skip_asics:
+        do_asics = False
 
     #print('CRT      = %d' % do_crt)
     #print('Services = %d' % do_services)
@@ -1420,6 +1507,7 @@ def main(argv):
     #print('Optical  = %d' % do_optical)
     #print('Flux     = %d' % do_flux)
     #print('Remap    = %d' % do_remap)
+    #print('ASICs    = %d' % do_asics)
 
     # Make a set of filenames to check.
 
@@ -1467,8 +1555,8 @@ def main(argv):
         pcfg = {process_name: cfg}
         nfile += 1
         ok = check_config(pcfg, trigbit, beam, epoch, is_overlay,
-                          do_services, do_output, do_timing, do_optical,
-                          do_flux, do_remap)
+                          do_services, do_output, do_timing, do_optical, do_flux, do_remap,
+                          do_asics)
         if ok:
             nfileok += 1        
 
@@ -1524,8 +1612,8 @@ def main(argv):
 
         # Do further checks for this file.
 
-        ok = check_file(f, md, do_crt, do_services, do_output, do_timing, do_optical,
-                        do_flux, do_remap)
+        ok = check_file(f, md, do_crt, do_services, do_output, do_timing, do_optical, 
+                        do_flux, do_remap, do_asics)
         if ok:
             nfileok += 1
 
