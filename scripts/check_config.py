@@ -80,7 +80,7 @@
 ########################################################################
 
 from __future__ import print_function
-import sys, os, random, subprocess, io
+import sys, os, random, subprocess, io, json
 import larbatch_utilities
 import fcl
 import check_crt_merge
@@ -1408,10 +1408,10 @@ def get_trigbit(f):
     trigbit = 0
     trigbits = set()
     cmd = ['lar', '-c', 'dump_triggers.fcl', '-s', f]
-    out = subprocess.check_output(cmd)
+    out = larbatch_utilities.convert_str(subprocess.check_output(cmd))
     parse = False
     for lineb in out.splitlines():
-        line = larbatch_utilities.convert_str(lineb).strip()
+        line = lineb.strip()
         if line == 'Trigger bits:':
             parse = True
         elif line == '':
@@ -1954,7 +1954,6 @@ def main(argv):
 
             # File not found errors are ignored.
 
-            print('Ignoring file %s because it does not have metadata.' % fname)
             md = {}
             mkok = False
             ignore = True
@@ -1968,9 +1967,40 @@ def main(argv):
             mdok = False
             ignore = False
 
-        # If we couldn't extract metadata from samweb, try sam_metadata_dumper
+        # If we got an ignorable metadata error, try sam_metadata_dumper
+
+        if ignore and not mdok and is_artroot(f):
+            print('File %s is not declared in sam.' % fname)
+            print('Trying sam_metadata_dumper')
+            cmd = ['sam_metadata_dumper', f]
+            mdout = larbatch_utilities.convert_str(subprocess.check_output(cmd))
+            mdtop = json.loads(mdout)
+            md = {}
+            if fname in mdtop:
+                md = mdtop[fname]
+
+            # If sam_metadata_dumper worked, fix up metadata dictionary to resemble 
+            # format returned by samweb.
+
+            if md != {}:
+                md['file_name'] = fname
+                if 'fclName' in md:
+                    md['fcl.name'] = md['fclName']
+                if 'fclVersion' in md:
+                    md['fcl.version'] = md['fclVersion']
+                if 'ubProjectName' in md:
+                    md['ub_project.name'] = md['ubProjectName']
+                if 'ubProjectStage' in md:
+                    md['ub_project.stage'] = md['ubProjectStage']
+                if 'ubProjectVersion' in md:
+                    md['ub_project.version'] = md['ubProjectVersion']
+
+                print('Extracted sam metadata using sam_metadata_dumper.')
+                mdok = True
+                ignore = False
 
         if ignore:
+            print('Ignoring file %s because it does not have metadata.' % fname)
             continue
 
         nfile += 1
