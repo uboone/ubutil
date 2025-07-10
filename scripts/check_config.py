@@ -1496,7 +1496,9 @@ def get_beam(md):
             mdf = md
         else:
             mdf = samweb.getMetadata(f)
-        prj = mdf['ub_project.name']
+        prj = ''
+        if 'ub_project.name' in mdf:
+            prj = mdf['ub_project.name']
         if prj.lower().find('_bnb_') >= 0:
             result = 'bnb'
             print('Beam type is %s based on sam project name.' % result)
@@ -1514,7 +1516,9 @@ def get_beam(md):
 
         # Look for clues in fcl file names.
         
-        fcls = mdf['fcl.name']
+        fcls = ''
+        if 'fcl.name' in mdf:
+            fcls = mdf['fcl.name']
         for fclname in fcls.split('/'):
             if fclname.lower().find('_bnb_') >= 0:
                 result = 'bnb'
@@ -1531,7 +1535,7 @@ def get_beam(md):
 
     if result == '':
         result = 'bnb'
-        print('Last result assuming beam type is bnb.')
+        print('Last resort assuming beam type is bnb.')
 
     # Done
 
