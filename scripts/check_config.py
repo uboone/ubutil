@@ -38,6 +38,8 @@
 # --[no-]asics              - Check ASICs settings database tag.
 # --[no-]chstat             - Check channel status database tag.
 # --[no-]pmt                - Check PMT gains database tag.
+# --[no-]ly                 - Check light yield database tag.
+# --[no-]elife              - Check electron lifetime database tag.
 #
 ########################################################################
 #
@@ -837,6 +839,145 @@ def check_flux(cfg, beam, epoch):
     return result
 
 
+# Check electron lifetime database tag.
+
+def check_elife(cfg, epoch):
+
+    result = True
+
+    # Calculate the minimum database tag based on epoch.
+
+    min_tag = ''
+    if epoch >= '4a' and epoch <= '4b':
+        min_tag = 'v4r3'
+    elif (epoch >= '1a' and epoch <= '1b') or (epoch >= '4c' and epoch <= '5'):
+        min_tag = 'v4r2'
+    elif epoch == '3b':
+        min_tag = 'v4r1'
+    elif epoch >= '1c' and epoch <= '3a':
+        min_tag = 'v4r0'
+
+    print()
+    print('Checking electron lifetime database tag.')
+    if min_tag == '':
+        print('Could not determine minimum database tag.')
+        result = False
+        return result
+    else:
+        print('Minimum database tag = %s' % min_tag)
+
+    # Loop over procsss names.
+
+    for process_name in cfg:
+
+        # Ignore any processes run in swizzler.
+
+        if process_name == 'Swizzler':
+            continue
+
+        # Ignore any processes run in reco1 including stand alone optical reco.
+
+        if process_name.find('Stage1') >= 0:
+            continue
+        if process_name.find('Stage2Lite') >= 0:
+            continue
+        if process_name.find('DLprod') >= 0:
+            continue
+
+        print('Checking process name %s' % process_name)
+        fcl_proc = cfg[process_name]
+        fcl_services = fcl_proc['services']
+        if 'UBElectronLifetimeService' in fcl_services:
+            fcl_elife_p = fcl_services['UBElectronLifetimeService']['ElectronLifetimeProvider']
+            usedb = False
+            if 'UseDB' in fcl_elife_p:
+                usedb = fcl_elife_p['UseDB']
+            if usedb:
+                print('  Electron lifetime database is being used.')
+                dbtag = fcl_elife_p['DatabaseRetrievalAlg']['DBTag']
+                print('  Database tag = %s' % dbtag)
+                if dbtag >= min_tag:
+                    print('  Electron lifetime OK.')
+                else:
+
+                    # Nonfatal if electron lifetime tag is at least v4r0.
+
+                    if dbtag >= 'v4r0':
+                        print('  ????? Wrong electron lifetime.')
+                    else:
+                        print('  ***** Wrong electron lifetime.')
+                        result = False
+            else:
+                print('  Electron lifetime database is not being used.')
+
+    # Done.
+
+    return result
+
+
+# Check light yield database tag.
+
+def check_ly(cfg, epoch):
+
+    result = True
+
+    # Calculate the minimum database tag based on epoch.
+
+    min_tag = ''
+    if epoch == '5':
+        min_tag = 'v2r3'
+    elif epoch == '4d':
+        min_tag = 'v2r2'
+    elif epoch >= '4a' and epoch <= '4c':
+        min_tag = 'v2r1'
+    elif epoch >= '1a' and epoch <= '3b':
+        min_tag = 'v2r0'
+
+    print()
+    print('Checking light yield database tag.')
+    if min_tag == '':
+        print('Could not determine minimum database tag.')
+        result = False
+        return result
+    else:
+        print('Minimum database tag = %s' % min_tag)
+
+    # Loop over procsss names.
+
+    for process_name in cfg:
+
+        # Ignore any processes run in swizzler.
+
+        if process_name == 'Swizzler':
+            continue
+
+        # Ignore any processes run in reco1 except stand alone optical reco.
+
+        if process_name.find('Stage1') >= 0 and not process_name.endswith('Optical'):
+            continue
+        if process_name.find('Stage2Lite') >= 0:
+            continue
+        if process_name.find('DLprod') >= 0:
+            continue
+
+        print('Checking process name %s' % process_name)
+        fcl_proc = cfg[process_name]
+        fcl_services = fcl_proc['services']
+        if 'LightYieldService' in fcl_services:
+            fcl_ly = fcl_services['LightYieldService']
+            dbtag = fcl_ly['LightYieldProvider']['DatabaseRetrievalAlg']['DBTag']
+            print('  Database tag = %s' % dbtag)
+            if dbtag >= min_tag:
+                print('  Light yield OK.')
+            else:
+                print('  ***** Wrong light yield.')
+                result = False
+
+    # Done.
+
+    return result
+
+
 # Check PMT gains database tag.
 
 def check_pmt(cfg, epoch):
@@ -892,7 +1033,7 @@ def check_pmt(cfg, epoch):
             fcl_pmt = fcl_services['PmtGainService']
         if fcl_pmt != None:
             dbtag = fcl_pmt['PmtGainProvider']['DatabaseRetrievalAlg']['DBTag']
-            print('Database tag = %s' % dbtag)
+            print('  Database tag = %s' % dbtag)
             if dbtag >= min_tag:
                 print('  PMT gains OK.')
             else:
@@ -964,7 +1105,7 @@ def check_chstat(cfg, epoch):
         if 'ChannelStatusService' in fcl_services:
             fcl_chstat = fcl_services['ChannelStatusService']
             dbtag = fcl_chstat['ChannelStatusProvider']['DatabaseRetrievalAlg']['DBTag']
-            print('Database tag = %s' % dbtag)
+            print('  Database tag = %s' % dbtag)
             if dbtag >= min_tag:
                 print('  Channel status OK.')
             else:
@@ -1023,7 +1164,7 @@ def check_asics(cfg, epoch):
         if 'ElectronicsCalibService' in fcl_services:
             fcl_asics = fcl_services['ElectronicsCalibService']
             dbtag = fcl_asics['ElectronicsCalibProvider']['DatabaseRetrievalAlg']['DBTag']
-            print('Database tag = %s' % dbtag)
+            print('  Database tag = %s' % dbtag)
             if dbtag >= min_tag:
                 print('  ASICs settings OK.')
             else:
@@ -1130,7 +1271,7 @@ def check_remap(cfg):
 
 def check_config(cfg, trigbit, beam, epoch, is_overlay,
                  do_services, do_output, do_timing, do_optical, do_flux, do_remap,
-                 do_asics, do_chstat, do_pmt):
+                 do_asics, do_chstat, do_pmt, do_ly, do_elife):
 
     result = True
 
@@ -1195,6 +1336,20 @@ def check_config(cfg, trigbit, beam, epoch, is_overlay,
     if do_pmt:
         pmt_ok = check_pmt(cfg, epoch)
         if not pmt_ok:
+            result = False
+
+    # Check light yield database tag.
+
+    if do_ly:
+        ly_ok = check_ly(cfg, epoch)
+        if not ly_ok:
+            result = False
+
+    # Check electron lifetime database tag.
+
+    if do_elife:
+        elife_ok = check_elife(cfg, epoch)
+        if not elife_ok:
             result = False
 
     # Done.
@@ -1336,7 +1491,11 @@ def get_beam(md):
 
         # Look for clues in metadata.
 
-        mdf = samweb.getMetadata(f)
+        mdf = None
+        if f == md['file_name']:
+            mdf = md
+        else:
+            mdf = samweb.getMetadata(f)
         prj = mdf['ub_project.name']
         if prj.lower().find('_bnb_') >= 0:
             result = 'bnb'
@@ -1383,7 +1542,7 @@ def get_beam(md):
 # Return True if file is OK, False if not OK.
 
 def check_file(f, md, do_crt, do_services, do_output, do_timing, do_optical, do_flux, do_remap,
-               do_asics, do_chstat, do_pmt):
+               do_asics, do_chstat, do_pmt, do_ly, do_elife):
 
     fname = os.path.basename(f)
     result = True
@@ -1467,7 +1626,7 @@ def check_file(f, md, do_crt, do_services, do_output, do_timing, do_optical, do_
         cfg = fcl.make_pset_str(fcltext.getvalue())
         cfgok = check_config(cfg, trigbit, beam, epoch, is_overlay,
                              do_services, do_output, do_timing, do_optical, do_flux, do_remap,
-                             do_asics, do_chstat, do_pmt)
+                             do_asics, do_chstat, do_pmt, do_ly, do_elife)
         if not cfgok:
             result = False
 
@@ -1506,6 +1665,8 @@ def main(argv):
     do_asics = False
     do_chstat = False
     do_pmt = False
+    do_ly = False
+    do_elife = False
     skip_crt = False
     skip_services = False
     skip_output = False
@@ -1516,6 +1677,8 @@ def main(argv):
     skip_asics = False
     skip_chstat = False
     skip_pmt = False
+    skip_ly = False
+    skip_elife = False
 
     args = argv[1:]
     while len(args) > 0:
@@ -1606,6 +1769,14 @@ def main(argv):
             do_pmt = True
             do_all = False
             del args[0]
+        elif (args[0] == '--ly'):
+            do_ly = True
+            do_all = False
+            del args[0]
+        elif (args[0] == '--elife'):
+            do_elife = True
+            do_all = False
+            del args[0]
         elif (args[0] == '--no-crt'):
             skip_crt = True
             del args[0]
@@ -1636,6 +1807,12 @@ def main(argv):
         elif (args[0] == '--no-pmt'):
             skip_pmt = True
             del args[0]
+        elif (args[0] == '--no-ly'):
+            skip_ly = True
+            del args[0]
+        elif (args[0] == '--no-elife'):
+            skip_elife = True
+            del args[0]
         else:
             print('Unknown option %s' % args[0])
             sys.exit(1)
@@ -1658,6 +1835,8 @@ def main(argv):
         do_asics = True
         do_chstat = True
         do_pmt = True
+        do_ly = True
+        do_elife = True
     if skip_crt:
         do_crt = False
     if skip_services:
@@ -1678,6 +1857,10 @@ def main(argv):
         do_chstat = False
     if skip_pmt:
         do_pmt = False
+    if skip_ly:
+        do_ly = False
+    if skip_elife:
+        do_elife = False
 
     #print('CRT            = %d' % do_crt)
     #print('Services       = %d' % do_services)
@@ -1689,6 +1872,7 @@ def main(argv):
     #print('ASICs          = %d' % do_asics)
     #print('Channel status = %d' % do_chstat)
     #print('PMT gains      = %d' % do_chstat)
+    #print('Light yield    = %d' % do_chstat)
 
     # Make a set of filenames to check.
 
@@ -1737,7 +1921,7 @@ def main(argv):
         nfile += 1
         ok = check_config(pcfg, trigbit, beam, epoch, is_overlay,
                           do_services, do_output, do_timing, do_optical, do_flux, do_remap,
-                          do_asics, do_chstat, do_pmt)
+                          do_asics, do_chstat, do_pmt, do_ly, do_elife)
         if ok:
             nfileok += 1        
 
@@ -1784,6 +1968,8 @@ def main(argv):
             mdok = False
             ignore = False
 
+        # If we couldn't extract metadata from samweb, try sam_metadata_dumper
+
         if ignore:
             continue
 
@@ -1794,7 +1980,7 @@ def main(argv):
         # Do further checks for this file.
 
         ok = check_file(f, md, do_crt, do_services, do_output, do_timing, do_optical, 
-                        do_flux, do_remap, do_asics, do_chstat, do_pmt)
+                        do_flux, do_remap, do_asics, do_chstat, do_pmt, do_ly, do_elife)
         if ok:
             nfileok += 1
 
