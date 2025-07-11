@@ -349,6 +349,8 @@ def check_beam_timing(cfg, trigbit, beam):
 
                                 elif module_type == 'DLPMTPreCuts':
 
+                                    # All errors for DLPMTPreCuts are nonfatal if beam type is numi.
+
                                     # Ignore wrong trigger module in swizzler.
 
                                     if process_name == 'Swizzler':
@@ -361,8 +363,11 @@ def check_beam_timing(cfg, trigbit, beam):
                                     inp = filters[module]['OpHitProducer']
                                     print('  Optical filter producer = %s' % inp)
                                     if inp != 'ophitBeam':
-                                       print('  ***** Wrong producer.')
-                                       result = False
+                                        if beam == 'numi':
+                                            print('  ????? Wrong producer.')
+                                        else:
+                                            print('  ***** Wrong producer.')
+                                            result = False
                                     else:
                                         print('  Producer OK.')
                                     t1b = filters[module]['WinStartTick']
@@ -373,8 +378,11 @@ def check_beam_timing(cfg, trigbit, beam):
                                     print('  Optical filter veto start = %d, veto end = %d' % (t1v, t2v))
                                     if beam_start_tick != t1b or beam_end_tick != t2b or \
                                        veto_start_tick != t1v or veto_end_tick != t2v:
-                                        print('  ***** Optical filter timing mismatch.')
-                                        result = False
+                                        if beam == 'numi':
+                                            print('  ????? Optical filter timing mismatch.')
+                                        else:
+                                            print('  ***** Optical filter timing mismatch.')
+                                            result = False
                                     else:
                                         print('  Timing OK.')
                                     print()
@@ -1830,7 +1838,7 @@ def main(argv):
 
     if do_all:
         do_crt = True
-        do_services = True
+        #do_services = True
         do_output = True
         do_timing = True
         do_optical = True
@@ -2002,6 +2010,10 @@ def main(argv):
                 print('Extracted sam metadata using sam_metadata_dumper.')
                 mdok = True
                 ignore = False
+
+                # Skip crt checks if file is not declared to sam.
+
+                do_crt = False
 
         if ignore:
             print('Ignoring file %s because it does not have metadata.' % fname)
