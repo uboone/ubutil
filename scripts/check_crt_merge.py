@@ -23,8 +23,7 @@
 ########################################################################
 
 from __future__ import print_function
-import sys, os, random, subprocess, json
-import larbatch_utilities
+import sys, os, random
 import samweb_cli
 
 # Global variables.
@@ -53,111 +52,6 @@ def help():
                 print()
 
 
-# Get metdata for the named file.
-# The argument can be the name of a file that is declared to sam, or the path
-# of an artroot file (can be just file name in local directory).
-
-def get_metadata(f):
-
-    fname = os.path.basename(f)
-    #print('Getting sam metadata for file %s.' % fname)
-    md = {}
-    mdok = False
-    try:
-        md = samweb.getMetadata(fname)
-        mdok = True
-    except:
-        md = {}
-        mdok = False
-
-    # If we failed to get metadata from sam, try sam_metadata_dumper
-
-    if not mdok:
-        print('File %s is not declared in sam.' % fname)
-        print('Trying sam_metadata_dumper')
-        cmd = ['sam_metadata_dumper', f]
-        mdout = larbatch_utilities.convert_str(subprocess.check_output(cmd))
-        mdtop = json.loads(mdout)
-        md = {}
-        if fname in mdtop:
-            md = mdtop[fname]
-            print('Extracted sam metadata using sam_metadata_dumper.')
-            mdok = True
-
-        # If sam_metadata_dumper worked, fix up metadata dictionary to resemble 
-        # format returned by samweb.
-
-        if mdok:
-            md['file_name'] = fname
-            if 'fclName' in md:
-                md['fcl.name'] = md['fclName']
-            if 'fclVersion' in md:
-                md['fcl.version'] = md['fclVersion']
-            if 'ubProjectName' in md:
-                md['ub_project.name'] = md['ubProjectName']
-            if 'ubProjectStage' in md:
-                md['ub_project.stage'] = md['ubProjectStage']
-            if 'ubProjectVersion' in md:
-                md['ub_project.version'] = md['ubProjectVersion']
-
-    # Done.
-
-    return md
-
-
-# Get parents of the named file.
-# The argument can be the name of a file that is declared to sam, or the path
-# of an artroot file (can be just file name in local directory).
-
-def get_parents(f):
-
-    result = []
-
-    md = get_metadata(f)
-    if 'parents' in md:
-        for parent in md['parents']:
-            if type(parent) == type({}):
-                result.append(parent['file_name'])
-            elif type(parent) == type(''):
-                result.append(parent)
-            else:
-                print('Parent unknown type: %s' % type(parent))
-
-    # Done.
-
-    return result
-
-
-# Get CRT parents of the named file.
-
-def get_crt_parents(f):
-
-    result = []
-    parents = get_parents(f)
-    for parent in parents:
-        if parent.startswith('CRTHits'):
-            result.append(parent)
-
-    # Done.
-
-    return result
-
-
-# Get CRT parents of the named file.
-
-def get_noncrt_parents(f):
-
-    result = []
-    parents = get_parents(f)
-    for parent in parents:
-        if not parent.startswith('CRTHits'):
-            result.append(parent)
-
-    # Done.
-
-    return result
-
-
 # Filter grandparents out of parent list.
 
 def filter_parents(parents):
@@ -167,7 +61,7 @@ def filter_parents(parents):
     # Loop over original parents.
 
     for parent in parents:
-        gparents = get_parents(parent)
+        gparents = samweb.listFiles('isparentof:( file_name %s ) with availability anylocation' % parent)
         for gparent in gparents:
             if gparent in result:
                 result.remove(gparent)
@@ -181,22 +75,21 @@ def filter_parents(parents):
 # Return name and ups version of fcl.
 
 def get_crt_merge_fcl(f):
-    #print('Called get_crt_merge_fcl for file %s.' % f)
 
     fclname = ''
     fclversion = ''
 
-    md = get_metadata(f)
+    md = samweb.getMetadata(f)
     if 'fcl.name' in md:
         fclname = md['fcl.name']
 
         # If this is a standard merge fcl, check unmerged parents.
 
         if fclname.startswith('merge'):
-            parents = get_noncrt_parents(f)
+            parents = samweb.listFiles('isparentof:( file_name %s ) and not file_name CRT%% with availability anylocation' % f)
             fparents = filter_parents(parents)
             if len(fparents) > 0:
-                mdp = get_metadata(fparents.pop())
+                mdp = samweb.getMetadata(fparents.pop())
                 if 'fcl.name' in mdp:
                     fclname = mdp['fcl.name']
                 if 'fcl.version' in mdp:
@@ -213,7 +106,6 @@ def get_crt_merge_fcl(f):
 # Recursively extract top panel CRT parent, and immediate parent of CRT file.
 
 def get_crt_parent(f):
-    #print('get_crt_parent called for file %s.' % f)
 
     crt = ''
 
@@ -221,24 +113,20 @@ def get_crt_parent(f):
 
         # Look for top panel CRT parent.
 
-        crts = get_crt_parents(f)
-        for c in crts:
-            if c.find('-crt01.1') >= 0:
-                crt = c
-                break
-        if crt != '':
+        crts = samweb.listFiles('isparentof:( file_name %s ) and file_name CRTHits%%-crt01.1%%' % f)
+        if len(crts) > 0:
+            crt = crts[0]
             break
 
         # This file doesn't have CRT parents.  Find non-CRT parent
 
-        parents = get_parents(f)
+        parents = samweb.listFiles('isparentof:( file_name %s )' % f)
         if len(parents) == 0:
             break
         f = parents[0]
 
     # Done.
 
-    #print('Returning %s, %s' % (crt, f))
     return crt, f
 
 
@@ -253,7 +141,7 @@ def check_file(filename):
 
     # Get metadata of this file.
 
-    md = get_metadata(filename)
+    md = samweb.getMetadata(filename)
 
     # Extract run number.
 
@@ -310,7 +198,7 @@ def check_file(filename):
     crtupsok = False
     if crtfile != '':
         print('Found top panel CRT parent %s' % crtfile)
-        mdcrt = get_metadata(crtfile)
+        mdcrt = samweb.getMetadata(crtfile)
         samv = ''
         upsv = ''
         if 'ub_project.version' in mdcrt:
