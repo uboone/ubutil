@@ -40,6 +40,7 @@
 # --[no-]pmt                - Check PMT gains database tag.
 # --[no-]ly                 - Check light yield database tag.
 # --[no-]elife              - Check electron lifetime database tag.
+# --[no-]larpid             - Check default vs. alternate larpid weights.
 #
 ########################################################################
 #
@@ -847,6 +848,81 @@ def check_flux(cfg, beam, epoch):
     return result
 
 
+# Check larpid weights.
+
+def check_larpid(cfg, epoch, is_overlay):
+
+    result = True
+
+    # Calculate the appropriate larpid weight (default or alternate)..
+
+    wt = 'default'
+    if epoch >= '3a' and epoch <= '3b' and is_overlay:
+        wt = 'alternate'
+
+    print()
+    print('Checking LArPID weights.')
+    print('LArPID weights should be: %s' % wt)
+
+    # Loop over procsss names.
+
+    for process_name in cfg:
+
+        # Ignore any processes run in swizzler.
+
+        if process_name == 'Swizzler':
+            continue
+
+        # Ignore any processes run in reco1 including stand alone optical reco.
+
+        if process_name.find('Stage1') >= 0:
+            continue
+        if process_name.find('Stage2Lite') >= 0:
+            continue
+        if process_name.find('DLprod') >= 0:
+            continue
+
+        print('Checking process name %s' % process_name)
+        fcl_proc = cfg[process_name]
+        if 'physics' in fcl_proc:
+            fcl_physics = fcl_proc['physics']
+
+            # Extract analyzer modules.
+
+            analyzers = {}
+
+            if 'analyzers' in fcl_physics:
+                analyzers = fcl_physics['analyzers']
+
+            # Loop over modules in end paths.
+
+            if 'end_paths' in fcl_physics:
+                end_paths = fcl_physics['end_paths']
+
+                # Loop over end path modules.
+
+                for end_path in end_paths:
+                    if end_path in fcl_physics:
+                        modules = fcl_physics[end_path]
+                        for module in modules:
+                            if module in analyzers:
+
+                                module_type = analyzers[module]['module_type']
+                                if module_type == 'WireCellAnaTree':
+
+                                    print('  Found module WireCellAnaTree')
+                                    fclwt = analyzers[module]['LArPIDModel']
+                                    print('  Weight file: %s' % fclwt)
+                                    if fclwt.find(wt) >= 0:
+                                        print('  LarPID weights OK.')
+                                    else:
+                                        print('  ***** Wrong LArPID weights.')
+                                        result = False
+    # Done.
+
+    return result
+
+
 # Check electron lifetime database tag.
 
 def check_elife(cfg, epoch):
@@ -1279,7 +1355,7 @@ def check_remap(cfg):
 
 def check_config(cfg, trigbit, beam, epoch, is_overlay,
                  do_services, do_output, do_timing, do_optical, do_flux, do_remap,
-                 do_asics, do_chstat, do_pmt, do_ly, do_elife):
+                 do_asics, do_chstat, do_pmt, do_ly, do_elife, do_larpid):
 
     result = True
 
@@ -1358,6 +1434,13 @@ def check_config(cfg, trigbit, beam, epoch, is_overlay,
     if do_elife:
         elife_ok = check_elife(cfg, epoch)
         if not elife_ok:
+            result = False
+
+    # Check larpid weights.
+
+    if do_larpid:
+        larpid_ok = check_larpid(cfg, epoch, is_overlay)
+        if not larpid_ok:
             result = False
 
     # Done.
@@ -1554,7 +1637,7 @@ def get_beam(md):
 # Return True if file is OK, False if not OK.
 
 def check_file(f, md, do_crt, do_services, do_output, do_timing, do_optical, do_flux, do_remap,
-               do_asics, do_chstat, do_pmt, do_ly, do_elife):
+               do_asics, do_chstat, do_pmt, do_ly, do_elife, do_larpid):
 
     fname = os.path.basename(f)
     result = True
@@ -1638,7 +1721,7 @@ def check_file(f, md, do_crt, do_services, do_output, do_timing, do_optical, do_
         cfg = fcl.make_pset_str(fcltext.getvalue())
         cfgok = check_config(cfg, trigbit, beam, epoch, is_overlay,
                              do_services, do_output, do_timing, do_optical, do_flux, do_remap,
-                             do_asics, do_chstat, do_pmt, do_ly, do_elife)
+                             do_asics, do_chstat, do_pmt, do_ly, do_elife, do_larpid)
         if not cfgok:
             result = False
 
@@ -1679,6 +1762,7 @@ def main(argv):
     do_pmt = False
     do_ly = False
     do_elife = False
+    do_larpid = False
     skip_crt = False
     skip_services = False
     skip_output = False
@@ -1691,6 +1775,7 @@ def main(argv):
     skip_pmt = False
     skip_ly = False
     skip_elife = False
+    skip_larpid = False
 
     args = argv[1:]
     while len(args) > 0:
@@ -1789,6 +1874,10 @@ def main(argv):
             do_elife = True
             do_all = False
             del args[0]
+        elif (args[0] == '--larpid'):
+            do_larpid = True
+            do_all = False
+            del args[0]
         elif (args[0] == '--no-crt'):
             skip_crt = True
             del args[0]
@@ -1825,6 +1914,9 @@ def main(argv):
         elif (args[0] == '--no-elife'):
             skip_elife = True
             del args[0]
+        elif (args[0] == '--no-larpid'):
+            skip_larpid = True
+            del args[0]
         else:
             print('Unknown option %s' % args[0])
             sys.exit(1)
@@ -1849,6 +1941,7 @@ def main(argv):
         do_pmt = True
         do_ly = True
         do_elife = True
+        do_larpid = True
     if skip_crt:
         do_crt = False
     if skip_services:
@@ -1873,18 +1966,22 @@ def main(argv):
         do_ly = False
     if skip_elife:
         do_elife = False
+    if skip_larpid:
+        do_larpid = False
 
-    #print('CRT            = %d' % do_crt)
-    #print('Services       = %d' % do_services)
-    #print('Output         = %d' % do_output)
-    #print('Timing         = %d' % do_timing)
-    #print('Optical        = %d' % do_optical)
-    #print('Flux           = %d' % do_flux)
-    #print('Remap          = %d' % do_remap)
-    #print('ASICs          = %d' % do_asics)
-    #print('Channel status = %d' % do_chstat)
-    #print('PMT gains      = %d' % do_chstat)
-    #print('Light yield    = %d' % do_chstat)
+    #print('CRT               = %d' % do_crt)
+    #print('Services          = %d' % do_services)
+    #print('Output            = %d' % do_output)
+    #print('Timing            = %d' % do_timing)
+    #print('Optical           = %d' % do_optical)
+    #print('Flux              = %d' % do_flux)
+    #print('Remap             = %d' % do_remap)
+    #print('ASICs             = %d' % do_asics)
+    #print('Channel status    = %d' % do_chstat)
+    #print('PMT gains         = % d' % do_pmg)
+    #print('Light yield       = %d' % do_ly)
+    #print('Electron lifetime = %d' % do_elife)
+    #print('LArPID weights    = %d' % do_larpid)
 
     # Make a set of filenames to check.
 
@@ -1933,7 +2030,7 @@ def main(argv):
         nfile += 1
         ok = check_config(pcfg, trigbit, beam, epoch, is_overlay,
                           do_services, do_output, do_timing, do_optical, do_flux, do_remap,
-                          do_asics, do_chstat, do_pmt, do_ly, do_elife)
+                          do_asics, do_chstat, do_pmt, do_ly, do_elife, do_larpid)
         if ok:
             nfileok += 1        
 
@@ -2026,7 +2123,8 @@ def main(argv):
         # Do further checks for this file.
 
         ok = check_file(f, md, do_crt, do_services, do_output, do_timing, do_optical, 
-                        do_flux, do_remap, do_asics, do_chstat, do_pmt, do_ly, do_elife)
+                        do_flux, do_remap, do_asics, do_chstat, do_pmt, do_ly, do_elife,
+                        do_larpid)
         if ok:
             nfileok += 1
 
