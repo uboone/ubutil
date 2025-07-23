@@ -40,9 +40,7 @@ fi
 #echo ${next_stage_input:0:-28}.root
 echo ${input_file}
 
-ifdh cp /pnfs/uboone/resilient/users/liangliu/crt/check_crt_merge.py . 
-chmod u+x check_crt_merge.py
-python check_crt_merge.py -f ${input_file}
+check_crt_merge.py -f ${input_file}
 
 #mv $next_stage_input ${next_stage_input:0:-28}.root
 

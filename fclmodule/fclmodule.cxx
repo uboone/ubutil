@@ -23,7 +23,14 @@
 // The function reads the fcl file and returns the expanded parameter set
 // in the form of a python dictionary.
 //
-// 2.  Function pretty(pset)
+// 2.  Function make_pset_str(fclstring)
+//
+// Similar as function make_pset, except that the argument is a string containing
+// fcl text (e.g. contents of fcl file).  Return value is expanded parameter set
+// in the form of a python dictionary.  This function can be used to parse output
+// from fhicl_dump or config_dumper without doing disk i/o.
+//
+// 3.  Function pretty(pset)
 //
 // Generate a prettified string corresponding to a parameter set dictionary.
 // String is valid fcl code.
@@ -576,9 +583,44 @@ static PyObject* make_pset(PyObject* self, PyObject *args)
 
   PyObject* result = 0;
   try {
-  std::string pathvar("FHICL_FILE_PATH");
-  cet::filepath_lookup maker(pathvar);
+    std::string pathvar("FHICL_FILE_PATH");
+    cet::filepath_lookup maker(pathvar);
     auto pset = fhicl::ParameterSet::make(fclstr, maker);
+    PythonDictConverter converter;
+    pset.walk(converter);
+    result = converter.result();
+  }
+  catch(cet::exception& e) {
+    PyErr_SetString(PyExc_IOError, e.what());
+    result = 0;
+  }
+
+  // Done.
+
+  return result;
+}
+
+static PyObject* make_pset_str(PyObject* self, PyObject *args)
+//
+// Purpose: Public module function to read fcl file and return a python dictionary.
+//
+// Arguments: self - Not used, because this is not a member function.
+//            args - Argument tuple.  A single string containing fcl text.
+// Returned value: A python dictionary.
+//
+{
+  // Extract argument as string.
+
+  const char* fcltext;
+  if(!PyArg_ParseTuple(args, "s", &fcltext))
+    return 0;
+  std::string fclstr(fcltext);
+
+  // Make parameter set.
+
+  PyObject* result = 0;
+  try {
+    auto pset = fhicl::ParameterSet::make(fcltext);
     PythonDictConverter converter;
     pset.walk(converter);
     result = converter.result();
@@ -637,6 +679,7 @@ static PyObject* pretty(PyObject* self, PyObject *args)
 
 static struct PyMethodDef fclmodule_methods[] = {
   {"make_pset", make_pset, METH_VARARGS, "Convert fcl ParameterSet to python dictionary"},
+  {"make_pset_str", make_pset_str, METH_VARARGS, "Convert fcl ParameterSet to python dictionary"},
   {"pretty", pretty, METH_VARARGS, "Convert dictionary parameter set to fcl text"},
   {0, 0, 0, 0}
 };
