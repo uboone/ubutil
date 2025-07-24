@@ -30,7 +30,7 @@
 #
 # --[no-]crt                - Check CRT (artroot mode only).
 # --[no-]services           - Check services.
-# --[no-]output             - Check RootOutput.
+# --[no-]io                 - Check RootInput and RootOutput.
 # --[no-]timing             - Check beam timing.
 # --[no-]optical            - Check optical waveform selection.
 # --[no-]flux               - Check flux.
@@ -673,9 +673,9 @@ def check_services(cfg, is_overlay):
 
     return result
 
-# Check output configuration.
+# Check i/o configuration.
 
-def check_output(cfg):
+def check_io(cfg):
 
     result = True
     print()
@@ -700,6 +700,10 @@ def check_output(cfg):
         if process_name == 'CellTreeUB':
             continue
         if process_name == 'DLprod':
+            continue
+        if process_name.startswith('EventWeight'):
+            continue
+        if process_name.startswith('DataOverlay'):
             continue
 
         print('Checking process name %s' % process_name)
@@ -742,10 +746,27 @@ def check_output(cfg):
                                     else:
                                         sm = fcl_out['saveMemoryObjectThreshold']
                                         if sm != 0:
-                                            print('  ????? Parameter "saveMemoryObjectThreshold" is present but nonzero.')
+                                            print('  ????? Parameter "saveMemoryObjectThreshold" is present but nonzero in RootOutput.')
                                             #result = False
                                         else:
                                             print('  Output OK.')
+
+            # Check source module.
+
+            if 'source' in fcl_proc:
+                fcl_source = fcl_proc['source']
+                module_type = fcl_source['module_type']
+                if module_type == 'RootInput':
+                    if not 'saveMemoryObjectThreshold' in fcl_source:
+                        print('  ????? Parameter "saveMemoryObjectThreshold" is not defined in RootInput.')
+                        #result = False
+                    else:
+                        sm = fcl_source['saveMemoryObjectThreshold']
+                        if sm != 0:
+                            print('  ????? Parameter "saveMemoryObjectThreshold" is present but nonzero in RootInput.')
+                            #result = False
+                        else:
+                            print('  Source OK.')
 
     # Done
 
@@ -1354,7 +1375,7 @@ def check_remap(cfg):
 # Return True if good, False if bad.
 
 def check_config(cfg, trigbit, beam, epoch, is_overlay,
-                 do_services, do_output, do_timing, do_optical, do_flux, do_remap,
+                 do_services, do_io, do_timing, do_optical, do_flux, do_remap,
                  do_asics, do_chstat, do_pmt, do_ly, do_elife, do_larpid):
 
     result = True
@@ -1366,11 +1387,11 @@ def check_config(cfg, trigbit, beam, epoch, is_overlay,
         if not services_ok:
             result = False
 
-    # Check outputs.
+    # Check i/o.
 
-    if do_output:
-        output_ok = check_output(cfg)
-        if not output_ok:
+    if do_io:
+        io_ok = check_io(cfg)
+        if not io_ok:
             result = False
 
     # Check beam timing.
@@ -1636,7 +1657,7 @@ def get_beam(md):
 # Check a single file.
 # Return True if file is OK, False if not OK.
 
-def check_file(f, md, do_crt, do_services, do_output, do_timing, do_optical, do_flux, do_remap,
+def check_file(f, md, do_crt, do_services, do_io, do_timing, do_optical, do_flux, do_remap,
                do_asics, do_chstat, do_pmt, do_ly, do_elife, do_larpid):
 
     fname = os.path.basename(f)
@@ -1720,7 +1741,7 @@ def check_file(f, md, do_crt, do_services, do_output, do_timing, do_optical, do_
 
         cfg = fcl.make_pset_str(fcltext.getvalue())
         cfgok = check_config(cfg, trigbit, beam, epoch, is_overlay,
-                             do_services, do_output, do_timing, do_optical, do_flux, do_remap,
+                             do_services, do_io, do_timing, do_optical, do_flux, do_remap,
                              do_asics, do_chstat, do_pmt, do_ly, do_elife, do_larpid)
         if not cfgok:
             result = False
@@ -1752,7 +1773,7 @@ def main(argv):
     do_all = True
     do_crt = False
     do_services = False
-    do_output = False
+    do_io = False
     do_timing = False
     do_optical = False
     do_flux = False
@@ -1765,7 +1786,7 @@ def main(argv):
     do_larpid = False
     skip_crt = False
     skip_services = False
-    skip_output = False
+    skip_io = False
     skip_timing = False
     skip_optical = False
     skip_flux = False
@@ -1834,8 +1855,8 @@ def main(argv):
             do_services = True
             do_all = False
             del args[0]
-        elif (args[0] == '--output'):
-            do_output = True
+        elif (args[0] == '--io'):
+            do_io = True
             do_all = False
             del args[0]
         elif (args[0] == '--timing'):
@@ -1884,8 +1905,8 @@ def main(argv):
         elif (args[0] == '--no-services'):
             skip_services = True
             del args[0]
-        elif (args[0] == '--no-output'):
-            skip_output = True
+        elif (args[0] == '--no-io'):
+            skip_io = True
             del args[0]
         elif (args[0] == '--no-timing'):
             skip_timing = True
@@ -1931,7 +1952,7 @@ def main(argv):
     if do_all:
         do_crt = True
         #do_services = True
-        do_output = True
+        do_io = True
         do_timing = True
         do_optical = True
         do_flux = True
@@ -1946,8 +1967,8 @@ def main(argv):
         do_crt = False
     if skip_services:
         do_services = False
-    if skip_output:
-        do_output = False
+    if skip_io:
+        do_io = False
     if skip_timing:
         do_timing = False
     if skip_optical:
@@ -1971,7 +1992,7 @@ def main(argv):
 
     #print('CRT               = %d' % do_crt)
     #print('Services          = %d' % do_services)
-    #print('Output            = %d' % do_output)
+    #print('I/O               = %d' % do_io)
     #print('Timing            = %d' % do_timing)
     #print('Optical           = %d' % do_optical)
     #print('Flux              = %d' % do_flux)
@@ -2029,7 +2050,7 @@ def main(argv):
         pcfg = {process_name: cfg}
         nfile += 1
         ok = check_config(pcfg, trigbit, beam, epoch, is_overlay,
-                          do_services, do_output, do_timing, do_optical, do_flux, do_remap,
+                          do_services, do_io, do_timing, do_optical, do_flux, do_remap,
                           do_asics, do_chstat, do_pmt, do_ly, do_elife, do_larpid)
         if ok:
             nfileok += 1        
@@ -2122,7 +2143,7 @@ def main(argv):
 
         # Do further checks for this file.
 
-        ok = check_file(f, md, do_crt, do_services, do_output, do_timing, do_optical, 
+        ok = check_file(f, md, do_crt, do_services, do_io, do_timing, do_optical, 
                         do_flux, do_remap, do_asics, do_chstat, do_pmt, do_ly, do_elife,
                         do_larpid)
         if ok:
