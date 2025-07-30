@@ -105,6 +105,7 @@ sys.argv = myargv
 samweb = samweb_cli.SAMWebClient(experiment = 'uboone')
 artroot_files = set()        # Files that are known to be artroot.
 non_artroot_files = set()    # Files that are known to not be artroot.
+warnfatal = False            # Make all warnings fatal.  This is true by default in fcl mode.
 
 # Help function.
 
@@ -364,7 +365,7 @@ def check_beam_timing(cfg, trigbit, beam):
                                     inp = filters[module]['OpHitProducer']
                                     print('  Optical filter producer = %s' % inp)
                                     if inp != 'ophitBeam':
-                                        if beam == 'numi':
+                                        if beam == 'numi' and not warnfatal:
                                             print('  ????? Wrong producer.')
                                         else:
                                             print('  ***** Wrong producer.')
@@ -379,7 +380,7 @@ def check_beam_timing(cfg, trigbit, beam):
                                     print('  Optical filter veto start = %d, veto end = %d' % (t1v, t2v))
                                     if beam_start_tick != t1b or beam_end_tick != t2b or \
                                        veto_start_tick != t1v or veto_end_tick != t2v:
-                                        if beam == 'numi':
+                                        if beam == 'numi' and not warnfatal:
                                             print('  ????? Optical filter timing mismatch.')
                                         else:
                                             print('  ***** Optical filter timing mismatch.')
@@ -660,8 +661,11 @@ def check_services(cfg, is_overlay):
             file_type = fcl_services['FileCatalogMetadata']['fileType']
             if (is_overlay and file_type != 'overlay') or \
                (not is_overlay and file_type != 'data'):
-                print('  ????? File type mismatch: %s.' % file_type)
-                #result = False
+                if warnfatal:
+                    print('  ***** File type mismatch: %s.' % file_type)
+                    result = False
+                else:
+                    print('  ????? File type mismatch: %s.' % file_type)
             else:
                 print('  File type OK.')
         else:
@@ -741,13 +745,19 @@ def check_io(cfg):
                                 if module_type == 'RootOutput':
 
                                     if not 'saveMemoryObjectThreshold' in fcl_out:
-                                        print('  ????? Parameter "saveMemoryObjectThreshold" is not defined in RootOutput.')
-                                        #result = False
+                                        if warnfatal:
+                                            print('  ***** Parameter "saveMemoryObjectThreshold" is not defined in RootOutput.')
+                                            result = False
+                                        else:
+                                            print('  ????? Parameter "saveMemoryObjectThreshold" is not defined in RootOutput.')
                                     else:
                                         sm = fcl_out['saveMemoryObjectThreshold']
                                         if sm != 0:
-                                            print('  ????? Parameter "saveMemoryObjectThreshold" is present but nonzero in RootOutput.')
-                                            #result = False
+                                            if warnfatal:
+                                                print('  ***** Parameter "saveMemoryObjectThreshold" is present but nonzero in RootOutput.')
+                                                result = False
+                                            else:
+                                                print('  ????? Parameter "saveMemoryObjectThreshold" is present but nonzero in RootOutput.')
                                         else:
                                             print('  Output OK.')
 
@@ -758,13 +768,19 @@ def check_io(cfg):
                 module_type = fcl_source['module_type']
                 if module_type == 'RootInput':
                     if not 'saveMemoryObjectThreshold' in fcl_source:
-                        print('  ????? Parameter "saveMemoryObjectThreshold" is not defined in RootInput.')
-                        #result = False
+                        if warnfatal:
+                            print('  ***** Parameter "saveMemoryObjectThreshold" is not defined in RootInput.')
+                            result = False
+                        else:
+                            print('  ????? Parameter "saveMemoryObjectThreshold" is not defined in RootInput.')
                     else:
                         sm = fcl_source['saveMemoryObjectThreshold']
                         if sm != 0:
-                            print('  ????? Parameter "saveMemoryObjectThreshold" is present but nonzero in RootInput.')
-                            #result = False
+                            if warnfatal:
+                                print('  ***** Parameter "saveMemoryObjectThreshold" is present but nonzero in RootInput.')
+                                result = False
+                            else:
+                                print('  ????? Parameter "saveMemoryObjectThreshold" is present but nonzero in RootInput.')
                         else:
                             print('  Source OK.')
 
@@ -1007,7 +1023,7 @@ def check_elife(cfg, epoch):
 
                     # Nonfatal if electron lifetime tag is at least v4r0.
 
-                    if dbtag >= 'v4r0':
+                    if dbtag >= 'v4r0' and not warnfatal:
                         print('  ????? Wrong electron lifetime.')
                     else:
                         print('  ***** Wrong electron lifetime.')
@@ -1142,7 +1158,7 @@ def check_pmt(cfg, epoch):
             if dbtag >= min_tag:
                 print('  PMT gains OK.')
             else:
-                if process_name == 'CellTreeUB':
+                if process_name == 'CellTreeUB' and not warnfatal:
                     print('  ????? Wrong PMT gains.')
                 else:
                     print('  ***** Wrong PMT gains.')
@@ -1755,6 +1771,8 @@ def check_file(f, md, do_crt, do_services, do_io, do_timing, do_optical, do_flux
 
 def main(argv):
 
+    global warnfatal
+
     # Statistics.
 
     nfile = 0
@@ -1815,6 +1833,7 @@ def main(argv):
             del args[0:2]
         elif (args[0] == '-c' or args[0] == '--config') and len(args) > 1:
             fclname = args[1]
+            warnfatal = True
             del args[0:2]
         elif (args[0] == '--trigger') and len(args) > 1:
             trigger = args[1]
