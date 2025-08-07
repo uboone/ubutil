@@ -599,6 +599,13 @@ done
 
 ups active
 
+# Check authentication.
+
+echo "Checking authentication."
+
+htdecodetoken -H
+samweb -s server-info
+
 cd $TMP/work
 
 # In case mrb setup didn't setup a version of ifdhc, set up ifdhc again.

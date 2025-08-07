@@ -2529,8 +2529,9 @@ CREATE TABLE IF NOT EXISTS run_groups (
             command.extend([' -c', os.path.basename(self.fclpath)])
         command.extend([' --nfile', '%d' % max_files_per_job])
         command.extend([' --ups', project_utilities.get_ups_products()])
-        if self.probj.release_tag != '':
-            command.extend([' -r', self.probj.release_tag])
+        #if self.probj.release_tag != '':
+        #    command.extend([' -r', self.probj.release_tag])
+        command.extend([' -r', app_version])
         command.extend([' -b', self.probj.release_qual])
         if self.probj.local_release_tar != '':
             command.extend([' --localtar', self.probj.local_release_tar])
