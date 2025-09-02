@@ -550,20 +550,23 @@ def check_optical(cfg, trigbit, beam, epoch, is_overlay):
                                 if module_type == 'NeutrinoSelectionFilter':
 
                                     print('\n  ===== Checking NeutrinoSelectionFilter.')
-                                    timing_tool = filters[module]['AnalysisTools']['timing']
-                                    label1 = 'pmtreadout:OpdetBeamHighGain'
-                                    if 'nstimePMTWFproducer' in timing_tool:
-                                        label1 = timing_tool['nstimePMTWFproducer']
-                                    n = label1.find(':')
-                                    if n >= 0:
-                                        label1 = label1[:n]
-                                    print('  HG Beam = %s' % label1)
-                                    if label1 != hgbeam and (is_overlay or label1 != 'doublePMTFilter'):
-                                        print('  ***** Wrong waveform label.')
-                                        result = False
+                                    if 'timing' in filters[module]['AnalysisTools']:
+                                        timing_tool = filters[module]['AnalysisTools']['timing']
+                                        label1 = 'pmtreadout:OpdetBeamHighGain'
+                                        if 'nstimePMTWFproducer' in timing_tool:
+                                            label1 = timing_tool['nstimePMTWFproducer']
+                                        n = label1.find(':')
+                                        if n >= 0:
+                                            label1 = label1[:n]
+                                        print('  HG Beam = %s' % label1)
+                                        if label1 != hgbeam and (is_overlay or label1 != 'doublePMTFilter'):
+                                            print('  ***** Wrong waveform label.')
+                                            result = False
+                                        else:
+                                            print('  Waveform label OK.')
+                                        print()
                                     else:
-                                        print('  Waveform label OK.')
-                                    print()
+                                        print('  ????? No timing tool.')
                                 
                                 
 
@@ -971,6 +974,21 @@ def check_sce(cfg):
 
     scale = 3.65096750639
 
+    # If the processing history includes a G4 process, and the G4 process
+    # sets the scale factor, use that as the expected scale factor.
+
+    for process_name in cfg:
+        if process_name.startswith('G4'):
+            fcl_proc = cfg[process_name]
+            if 'services' in fcl_proc:
+                fcl_services = fcl_proc['services']
+                if 'SpaceCharge' in fcl_services:
+                    fcl_sce = fcl_services['SpaceCharge']
+                    if 'EfieldOffsetScale' in fcl_sce:
+                        scale = fcl_sce['EfieldOffsetScale']
+                    else:
+                        scale = 1.
+
     print()
     print('Checking SCE E-field scale factor.')
     print('Scale factor should be: %f' % scale)
@@ -999,16 +1017,14 @@ def check_sce(cfg):
             fcl_services = fcl_proc['services']
             if 'SpaceCharge' in fcl_services:
                 fcl_sce = fcl_services['SpaceCharge']
+                sc = 1.
                 if 'EfieldOffsetScale' in fcl_sce:
                     sc = fcl_sce['EfieldOffsetScale']
-                    print('  SCE scale factor %f' % sc)
-                    if abs(scale - sc) < 1.e-6:
-                        print('  Scale factor OK.')
-                    else:
-                        print('  ***** Wrong scale factor.')
-                        result = False
+                print('  SCE scale factor %f' % sc)
+                if abs(scale - sc) < 1.e-6:
+                    print('  Scale factor OK.')
                 else:
-                    print('  ***** Space charge fcl parameter EfieldOffsetScale not found.')
+                    print('  ***** Wrong scale factor.')
                     result = False
 
     # Done.
@@ -1030,9 +1046,9 @@ def check_elife(cfg, epoch):
     elif (epoch >= '1a' and epoch <= '1b') or (epoch >= '4c' and epoch <= '5'):
         min_tag = 'v4r2'
     elif epoch == '3b':
-        min_tag = 'v4r1'
+        min_tag = 'v1r0'
     elif epoch >= '1c' and epoch <= '3a':
-        min_tag = 'v4r0'
+        min_tag = 'v1r0'
 
     print()
     print('Checking electron lifetime database tag.')
