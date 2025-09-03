@@ -1021,6 +1021,10 @@ def check_sce(cfg):
                 if 'EfieldOffsetScale' in fcl_sce:
                     sc = fcl_sce['EfieldOffsetScale']
                 print('  SCE scale factor %f' % sc)
+                if 'InputFilename' in fcl_sce:
+                    print('  Forward map:  %s' % fcl_sce['InputFilename'])
+                if 'CalibrationInputFilename' in fcl_sce:
+                    print('  Backward map: %s' % fcl_sce['CalibrationInputFilename'])
                 if abs(scale - sc) < 1.e-6:
                     print('  Scale factor OK.')
                 else:
