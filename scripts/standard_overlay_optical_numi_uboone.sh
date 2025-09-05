@@ -36,22 +36,22 @@ then
         echo "run run1 fhicl"
         cat $FCL
         mv $FCL backup_${FCL}.fcl
-        cat backup_${FCL}.fcl  | sed "s/standard_overlay_optical_numi_uboone/standard_overlay_optical_numi_uboone/g" > $FCL
+        cat backup_${FCL}.fcl  | sed "s/standard_overlay_optical_numi_uboone_updated/standard_overlay_optical_numi_uboone_updated/g" > $FCL
         cat $FCL
         cat wrapper.fcl
         mv wrapper.fcl backup_wrapper.fcl
-        cat backup_wrapper.fcl | sed "s/standard_overlay_optical_numi_uboone/standard_overlay_optical_numi_uboone/g" > wrapper.fcl
+        cat backup_wrapper.fcl | sed "s/standard_overlay_optical_numi_uboone_updated/standard_overlay_optical_numi_uboone_updated/g" > wrapper.fcl
         cat wrapper.fcl
 elif [ "$run_number" -ge "0011049"  ] && [  "0025769" -ge "$run_number"  ];   # run 2b and later; after full CRT
 then
         echo "run run2 fhicl"
         cat $FCL
         mv $FCL backup_${FCL}.fcl
-        cat backup_${FCL}.fcl  | sed "s/standard_overlay_optical_numi_uboone/standard_overlay_notpc_numi_uboone/g" > $FCL
+        cat backup_${FCL}.fcl  | sed "s/standard_overlay_optical_numi_uboone_updated/standard_overlay_notpc_numi_uboone_updated/g" > $FCL
         cat $FCL
         cat wrapper.fcl
         mv wrapper.fcl backup_wrapper.fcl
-        cat backup_wrapper.fcl | sed "s/standard_overlay_optical_numi_uboone/standard_overlay_notpc_numi_uboone/g" > wrapper.fcl
+        cat backup_wrapper.fcl | sed "s/standard_overlay_optical_numi_uboone_updated/standard_overlay_notpc_numi_uboone_updated/g" > wrapper.fcl
         cat wrapper.fcl
 fi
 
