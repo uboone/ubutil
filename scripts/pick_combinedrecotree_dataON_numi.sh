@@ -36,22 +36,33 @@ then
         echo "run run1 fhicl"
         cat $FCL
         mv $FCL backup_${FCL}.fcl
-        cat backup_${FCL}.fcl  | sed "s/standard_overlay_optical_numi_uboone_updated/standard_overlay_optical_numi_uboone_updated/g" > $FCL
+        cat backup_${FCL}.fcl  | sed "s/run_combinedrecotree_run1_dataON_numi/run_combinedrecotree_run1_dataON_numi/g" > $FCL
         cat $FCL
         cat wrapper.fcl
         mv wrapper.fcl backup_wrapper.fcl
-        cat backup_wrapper.fcl | sed "s/standard_overlay_optical_numi_uboone_updated/standard_overlay_optical_numi_uboone_updated/g" > wrapper.fcl
+        cat backup_wrapper.fcl | sed "s/run_combinedrecotree_run1_dataON_numi/run_combinedrecotree_run1_dataON_numi/g" > wrapper.fcl
         cat wrapper.fcl
-elif [ "$run_number" -ge "0011049"  ] && [  "0025769" -ge "$run_number"  ];   # run 2b and later; after full CRT
+elif [ "$run_number" -ge "0011049"  ] && [  "18960" -ge "$run_number"  ];   # run 2b after full CRT up through the end of run3
 then
-        echo "run run2 fhicl"
+        echo "run run3 fhicl"
         cat $FCL
         mv $FCL backup_${FCL}.fcl
-        cat backup_${FCL}.fcl  | sed "s/standard_overlay_optical_numi_uboone_updated/standard_overlay_notpc_numi_uboone_updated/g" > $FCL
+        cat backup_${FCL}.fcl  | sed "s/run_combinedrecotree_run1_dataON_numi/run_combinedrecotree_run3_dataON_numi/g" > $FCL
         cat $FCL
         cat wrapper.fcl
         mv wrapper.fcl backup_wrapper.fcl
-        cat backup_wrapper.fcl | sed "s/standard_overlay_optical_numi_uboone_updated/standard_overlay_notpc_numi_uboone_updated/g" > wrapper.fcl
+        cat backup_wrapper.fcl | sed "s/run_combinedrecotree_run1_dataON_numi/run_combinedrecotree_run3_dataON_numi/g" > wrapper.fcl
+        cat wrapper.fcl
+elif [ "$run_number" -ge "18961"  ] && [  "0025769" -ge "$run_number"  ];   # run 4 and beyond
+then
+        echo "run run4 fhicl"
+        cat $FCL
+        mv $FCL backup_${FCL}.fcl
+        cat backup_${FCL}.fcl  | sed "s/run_combinedrecotree_run1_dataON_numi/run_combinedrecotree_run4_dataON_numi/g" > $FCL
+        cat $FCL
+        cat wrapper.fcl
+        mv wrapper.fcl backup_wrapper.fcl
+        cat backup_wrapper.fcl | sed "s/run_combinedrecotree_run1_dataON_numi/run_combinedrecotree_run4_dataON_numi/g" > wrapper.fcl
         cat wrapper.fcl
 fi
 
