@@ -42,16 +42,26 @@ then
         mv wrapper.fcl backup_wrapper.fcl
         cat backup_wrapper.fcl | sed "s/run_combinedrecotree_run1_dataON/run_combinedrecotree_run1_dataON/g" > wrapper.fcl
         cat wrapper.fcl
-elif [ "$run_number" -ge "0011049"  ] && [  "18960" -ge "$run_number"  ];   # run 2b after full CRT up through the end of run3
+then
+        echo "run run2b fhicl"
+        cat $FCL
+        mv $FCL backup_${FCL}.fcl
+        cat backup_${FCL}.fcl  | sed "s/run_combinedrecotree_dataON/run_combinedrecotree_run3_normLArPIDWeights_dataON/g" > $FCL
+        cat $FCL
+        cat wrapper.fcl
+        mv wrapper.fcl backup_wrapper.fcl
+        cat backup_wrapper.fcl | sed "s/run_combinedrecotree_dataON/run_combinedrecotree_run3_normLArPIDWeights_dataON/g" > wrapper.fcl
+        cat wrapper.fcl
+elif [ "$run_number" -ge "13697"  ] && [  "18960" -ge "$run_number"  ];   # run 3
 then
         echo "run run3 fhicl"
         cat $FCL
         mv $FCL backup_${FCL}.fcl
-        cat backup_${FCL}.fcl  | sed "s/run_combinedrecotree_run1_dataON/run_combinedrecotree_run3_dataON/g" > $FCL
+        cat backup_${FCL}.fcl  | sed "s/run_combinedrecotree_dataON/run_combinedrecotree_run3_dataON/g" > $FCL
         cat $FCL
         cat wrapper.fcl
         mv wrapper.fcl backup_wrapper.fcl
-        cat backup_wrapper.fcl | sed "s/run_combinedrecotree_run1_dataON/run_combinedrecotree_run3_dataON/g" > wrapper.fcl
+        cat backup_wrapper.fcl | sed "s/run_combinedrecotree_dataON/run_combinedrecotree_run3_dataON/g" > wrapper.fcl
         cat wrapper.fcl
 elif [ "$run_number" -ge "18961"  ] && [  "0025769" -ge "$run_number"  ];   # run 4 and beyond
 then

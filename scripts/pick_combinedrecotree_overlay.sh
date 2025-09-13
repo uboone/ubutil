@@ -31,7 +31,7 @@ echo $next_stage_input
 run_number=`echo $next_stage_input | cut -d '-' -f3`
 echo $run_number
 
-if [ "$run_number" -ge "0003420"  ] && [  "0011048" -ge "$run_number"  ];    # in the run1 and run 2a run number interval; before full CRT
+if [ "$run_number" -ge "0003420"  ] && [  "0011048" -ge "$run_number"  ];    # run1 and run 2a run number interval; before full CRT
 then
         echo "run run1 fhicl"
         cat $FCL
@@ -42,7 +42,18 @@ then
         mv wrapper.fcl backup_wrapper.fcl
         cat backup_wrapper.fcl | sed "s/run_combinedrecotree_overlay/run_combinedrecotree_overlay/g" > wrapper.fcl
         cat wrapper.fcl
-elif [ "$run_number" -ge "0011049"  ] && [  "18960" -ge "$run_number"  ];   # run 2b after full CRT up through the end of run3
+elif [ "$run_number" -ge "0011049"  ] && [  "13696" -ge "$run_number"  ];   # run 2b after full CRT
+then
+        echo "run run2b fhicl"
+        cat $FCL
+        mv $FCL backup_${FCL}.fcl
+        cat backup_${FCL}.fcl  | sed "s/run_combinedrecotree_overlay/run_combinedrecotree_run3_normLArPIDWeights_overlay/g" > $FCL
+        cat $FCL
+        cat wrapper.fcl
+        mv wrapper.fcl backup_wrapper.fcl
+        cat backup_wrapper.fcl | sed "s/run_combinedrecotree_overlay/run_combinedrecotree_run3_normLArPIDWeights_overlay/g" > wrapper.fcl
+        cat wrapper.fcl
+elif [ "$run_number" -ge "13697"  ] && [  "18960" -ge "$run_number"  ];   # run 3
 then
         echo "run run3 fhicl"
         cat $FCL
