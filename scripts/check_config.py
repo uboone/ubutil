@@ -41,6 +41,7 @@
 # --[no-]ly                 - Check light yield database tag.
 # --[no-]elife              - Check electron lifetime database tag.
 # --[no-]larpid             - Check default vs. alternate larpid weights.
+# --[no-]sce                - Check SCE E-field scale factor.
 #
 ########################################################################
 #
@@ -549,20 +550,23 @@ def check_optical(cfg, trigbit, beam, epoch, is_overlay):
                                 if module_type == 'NeutrinoSelectionFilter':
 
                                     print('\n  ===== Checking NeutrinoSelectionFilter.')
-                                    timing_tool = filters[module]['AnalysisTools']['timing']
-                                    label1 = 'pmtreadout:OpdetBeamHighGain'
-                                    if 'nstimePMTWFproducer' in timing_tool:
-                                        label1 = timing_tool['nstimePMTWFproducer']
-                                    n = label1.find(':')
-                                    if n >= 0:
-                                        label1 = label1[:n]
-                                    print('  HG Beam = %s' % label1)
-                                    if label1 != hgbeam and (is_overlay or label1 != 'doublePMTFilter'):
-                                        print('  ***** Wrong waveform label.')
-                                        result = False
+                                    if 'timing' in filters[module]['AnalysisTools']:
+                                        timing_tool = filters[module]['AnalysisTools']['timing']
+                                        label1 = 'pmtreadout:OpdetBeamHighGain'
+                                        if 'nstimePMTWFproducer' in timing_tool:
+                                            label1 = timing_tool['nstimePMTWFproducer']
+                                        n = label1.find(':')
+                                        if n >= 0:
+                                            label1 = label1[:n]
+                                        print('  HG Beam = %s' % label1)
+                                        if label1 != hgbeam and (is_overlay or label1 != 'doublePMTFilter'):
+                                            print('  ***** Wrong waveform label.')
+                                            result = False
+                                        else:
+                                            print('  Waveform label OK.')
+                                        print()
                                     else:
-                                        print('  Waveform label OK.')
-                                    print()
+                                        print('  ????? No timing tool.')
                                 
                                 
 
@@ -960,6 +964,78 @@ def check_larpid(cfg, epoch, is_overlay):
     return result
 
 
+# Check SCE E-field scale factor.
+
+def check_sce(cfg):
+
+    result = True
+
+    # Calculate the appropriate SCE scale factor.
+
+    scale = 3.65096750639
+
+    # If the processing history includes a G4 process, and the G4 process
+    # sets the scale factor, use that as the expected scale factor.
+
+    for process_name in cfg:
+        if process_name.startswith('G4'):
+            fcl_proc = cfg[process_name]
+            if 'services' in fcl_proc:
+                fcl_services = fcl_proc['services']
+                if 'SpaceCharge' in fcl_services:
+                    fcl_sce = fcl_services['SpaceCharge']
+                    if 'EfieldOffsetScale' in fcl_sce:
+                        scale = fcl_sce['EfieldOffsetScale']
+                    else:
+                        scale = 1.
+
+    print()
+    print('Checking SCE E-field scale factor.')
+    print('Scale factor should be: %f' % scale)
+
+    # Loop over procsss names.
+
+    for process_name in cfg:
+
+        # Ignore any processes run in swizzler.
+
+        if process_name == 'Swizzler':
+            continue
+
+        # Ignore any processes run in reco1 including stand alone optical reco.
+
+        if process_name.find('Stage1') >= 0:
+            continue
+        if process_name.find('Stage2Lite') >= 0:
+            continue
+        if process_name.find('DLprod') >= 0:
+            continue
+
+        print('Checking process name %s' % process_name)
+        fcl_proc = cfg[process_name]
+        if 'services' in fcl_proc:
+            fcl_services = fcl_proc['services']
+            if 'SpaceCharge' in fcl_services:
+                fcl_sce = fcl_services['SpaceCharge']
+                sc = 1.
+                if 'EfieldOffsetScale' in fcl_sce:
+                    sc = fcl_sce['EfieldOffsetScale']
+                print('  SCE scale factor %f' % sc)
+                if 'InputFilename' in fcl_sce:
+                    print('  Forward map:  %s' % fcl_sce['InputFilename'])
+                if 'CalibrationInputFilename' in fcl_sce:
+                    print('  Backward map: %s' % fcl_sce['CalibrationInputFilename'])
+                if abs(scale - sc) < 1.e-6:
+                    print('  Scale factor OK.')
+                else:
+                    print('  ***** Wrong scale factor.')
+                    result = False
+
+    # Done.
+
+    return result
+
+
 # Check electron lifetime database tag.
 
 def check_elife(cfg, epoch):
@@ -974,9 +1050,9 @@ def check_elife(cfg, epoch):
     elif (epoch >= '1a' and epoch <= '1b') or (epoch >= '4c' and epoch <= '5'):
         min_tag = 'v4r2'
     elif epoch == '3b':
-        min_tag = 'v4r1'
+        min_tag = 'v1r0'
     elif epoch >= '1c' and epoch <= '3a':
-        min_tag = 'v4r0'
+        min_tag = 'v1r0'
 
     print()
     print('Checking electron lifetime database tag.')
@@ -1392,7 +1468,7 @@ def check_remap(cfg):
 
 def check_config(cfg, trigbit, beam, epoch, is_overlay,
                  do_services, do_io, do_timing, do_optical, do_flux, do_remap,
-                 do_asics, do_chstat, do_pmt, do_ly, do_elife, do_larpid):
+                 do_asics, do_chstat, do_pmt, do_ly, do_elife, do_larpid, do_sce):
 
     result = True
 
@@ -1478,6 +1554,13 @@ def check_config(cfg, trigbit, beam, epoch, is_overlay,
     if do_larpid:
         larpid_ok = check_larpid(cfg, epoch, is_overlay)
         if not larpid_ok:
+            result = False
+
+    # Check SCE E-field correction.
+
+    if do_sce:
+        sce_ok = check_sce(cfg)
+        if not sce_ok:
             result = False
 
     # Done.
@@ -1674,7 +1757,7 @@ def get_beam(md):
 # Return True if file is OK, False if not OK.
 
 def check_file(f, md, do_crt, do_services, do_io, do_timing, do_optical, do_flux, do_remap,
-               do_asics, do_chstat, do_pmt, do_ly, do_elife, do_larpid):
+               do_asics, do_chstat, do_pmt, do_ly, do_elife, do_larpid, do_sce):
 
     fname = os.path.basename(f)
     result = True
@@ -1758,7 +1841,7 @@ def check_file(f, md, do_crt, do_services, do_io, do_timing, do_optical, do_flux
         cfg = fcl.make_pset_str(fcltext.getvalue())
         cfgok = check_config(cfg, trigbit, beam, epoch, is_overlay,
                              do_services, do_io, do_timing, do_optical, do_flux, do_remap,
-                             do_asics, do_chstat, do_pmt, do_ly, do_elife, do_larpid)
+                             do_asics, do_chstat, do_pmt, do_ly, do_elife, do_larpid, do_sce)
         if not cfgok:
             result = False
 
@@ -1802,6 +1885,7 @@ def main(argv):
     do_ly = False
     do_elife = False
     do_larpid = False
+    do_sce = False
     skip_crt = False
     skip_services = False
     skip_io = False
@@ -1815,6 +1899,7 @@ def main(argv):
     skip_ly = False
     skip_elife = False
     skip_larpid = False
+    skip_sce = False
 
     args = argv[1:]
     while len(args) > 0:
@@ -1918,6 +2003,10 @@ def main(argv):
             do_larpid = True
             do_all = False
             del args[0]
+        elif (args[0] == '--sce'):
+            do_sce = True
+            do_all = False
+            del args[0]
         elif (args[0] == '--no-crt'):
             skip_crt = True
             del args[0]
@@ -1957,6 +2046,9 @@ def main(argv):
         elif (args[0] == '--no-larpid'):
             skip_larpid = True
             del args[0]
+        elif (args[0] == '--no-sce'):
+            skip_sce = True
+            del args[0]
         else:
             print('Unknown option %s' % args[0])
             sys.exit(1)
@@ -1982,6 +2074,7 @@ def main(argv):
         do_ly = True
         do_elife = True
         do_larpid = True
+        do_sce = True
     if skip_crt:
         do_crt = False
     if skip_services:
@@ -2008,6 +2101,8 @@ def main(argv):
         do_elife = False
     if skip_larpid:
         do_larpid = False
+    if skip_sce:
+        do_larpid = False
 
     #print('CRT               = %d' % do_crt)
     #print('Services          = %d' % do_services)
@@ -2018,10 +2113,11 @@ def main(argv):
     #print('Remap             = %d' % do_remap)
     #print('ASICs             = %d' % do_asics)
     #print('Channel status    = %d' % do_chstat)
-    #print('PMT gains         = % d' % do_pmg)
+    #print('PMT gains         = %d' % do_pmg)
     #print('Light yield       = %d' % do_ly)
     #print('Electron lifetime = %d' % do_elife)
     #print('LArPID weights    = %d' % do_larpid)
+    #print('SCE               = %d' % do_sce)
 
     # Make a set of filenames to check.
 
@@ -2070,7 +2166,7 @@ def main(argv):
         nfile += 1
         ok = check_config(pcfg, trigbit, beam, epoch, is_overlay,
                           do_services, do_io, do_timing, do_optical, do_flux, do_remap,
-                          do_asics, do_chstat, do_pmt, do_ly, do_elife, do_larpid)
+                          do_asics, do_chstat, do_pmt, do_ly, do_elife, do_larpid, do_sce)
         if ok:
             nfileok += 1        
 
@@ -2164,7 +2260,7 @@ def main(argv):
 
         ok = check_file(f, md, do_crt, do_services, do_io, do_timing, do_optical, 
                         do_flux, do_remap, do_asics, do_chstat, do_pmt, do_ly, do_elife,
-                        do_larpid)
+                        do_larpid, do_sce)
         if ok:
             nfileok += 1
 
