@@ -47,6 +47,8 @@ else
 fi
 echo $run_number
 
+TEMPLATE_FHILE="run_combinedrecotree_run1_overlay_numi"
+PICKED_FHICL="run_combinedrecotree_run1_overlay_numi"
 if [ "$run_number" -ge "0003420"  ] && [  "0011048" -ge "$run_number"  ];    # in the run1 and run 2a run number interval; before full CRT
 then
         echo "run run1 fhicl"
@@ -58,6 +60,7 @@ then
         mv wrapper.fcl backup_wrapper.fcl
         cat backup_wrapper.fcl | sed "s/run_combinedrecotree_run1_overlay_numi/run_combinedrecotree_run1_overlay_numi/g" > wrapper.fcl
         cat wrapper.fcl
+        TEMPLATE_FHILE="run_combinedrecotree_run1_overlay_numi"
 elif [ "$run_number" -ge "0011049"  ] && [  "18960" -ge "$run_number"  ];   # run 2b after full CRT up through the end of run3
 then
         echo "run run3 fhicl"
@@ -69,6 +72,7 @@ then
         mv wrapper.fcl backup_wrapper.fcl
         cat backup_wrapper.fcl | sed "s/run_combinedrecotree_run1_overlay_numi/run_combinedrecotree_run3_overlay_numi/g" > wrapper.fcl
         cat wrapper.fcl
+        TEMPLATE_FHILE="run_combinedrecotree_run3_overlay_numi"
 elif [ "$run_number" -ge "18961"  ] && [  "0025769" -ge "$run_number"  ];   # run 4 and beyond
 then
         echo "run run4 fhicl"
@@ -80,5 +84,11 @@ then
         mv wrapper.fcl backup_wrapper.fcl
         cat backup_wrapper.fcl | sed "s/run_combinedrecotree_run1_overlay_numi/run_combinedrecotree_run4_overlay_numi/g" > wrapper.fcl
         cat wrapper.fcl
+        TEMPLATE_FHILE="run_combinedrecotree_run4_overlay_numi"
 fi
 
+for fhicl_stage in Stage*fcl;
+do
+        mv $fhicl_stage backup_${fhicl_stage}.fcl
+        cat backup_${fhicl_stage}.fcl  | sed "s/${TEMPLATE_FHILE}/${PICKED_FHICL}/g" > $fhicl_stage
+done

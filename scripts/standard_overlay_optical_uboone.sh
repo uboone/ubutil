@@ -47,6 +47,8 @@ else
 fi
 echo $run_number
 
+TEMPLATE_FHILE="standard_overlay_optical_uboone"
+PICKED_FHICL="standard_overlay_optical_uboone"
 if [ "$run_number" -ge "0003420"  ] && [  "0011048" -ge "$run_number"  ];    # in the run1 and run 2a run number interval; before full CRT
 then
         echo "run run1 fhicl"
@@ -58,6 +60,7 @@ then
         mv wrapper.fcl backup_wrapper.fcl
         cat backup_wrapper.fcl | sed "s/standard_overlay_optical_uboone/standard_overlay_optical_uboone/g" > wrapper.fcl
         cat wrapper.fcl
+        PICKED_FHICL="standard_overlay_optical_uboone"
 elif [ "$run_number" -ge "0011049"  ] && [  "0025769" -ge "$run_number"  ];   # run 2b and later; after full CRT
 then
         echo "run run2 fhicl"
@@ -69,5 +72,11 @@ then
         mv wrapper.fcl backup_wrapper.fcl
         cat backup_wrapper.fcl | sed "s/standard_overlay_optical_uboone/standard_overlay_notpc_uboone/g" > wrapper.fcl
         cat wrapper.fcl
+        PICKED_FHICL="standard_overlay_notpc_uboone"
 fi
 
+for fhicl_stage in Stage*fcl;
+do
+        mv $fhicl_stage backup_${fhicl_stage}.fcl
+        cat backup_${fhicl_stage}.fcl  | sed "s/${TEMPLATE_FHILE}/${PICKED_FHICL}/g" > $fhicl_stage
+done
