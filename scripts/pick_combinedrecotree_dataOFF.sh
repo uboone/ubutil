@@ -58,7 +58,7 @@ then
         mv wrapper.fcl backup_wrapper.fcl
         cat backup_wrapper.fcl | sed "s/run_combinedrecotree_run1_dataOFF/run_combinedrecotree_run1_dataOFF/g" > wrapper.fcl
         cat wrapper.fcl
-elif [ "$run_number" -ge "0011049"  ] && [  "18960" -ge "$run_number"  ];   # run 2b after full CRT up through the end of run3
+elif [ "$run_number" -ge "0011049"  ] && [  "13696" -ge "$run_number"  ];   # run 2b after full CRT
 then
         echo "run run2b fhicl"
         cat $FCL
