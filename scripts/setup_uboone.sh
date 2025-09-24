@@ -30,6 +30,12 @@ if [ -d /opt/jobsub_lite ]; then
   fi
 fi
 
+# Make sure HOME is defined or root may break.
+
+if [ x$HOME = x ]; then
+  export HOME=`mktemp -d`
+fi
+
 # Do SL7 and AL9 specific initializations
 
 eval `grep PRETTY_NAME /etc/os-release`   # Define $PRETTY_NAME
