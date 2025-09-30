@@ -23,6 +23,11 @@
 # --epoch <epoch>      - Specify epoch (1x, 2x, 3x, 4x, 5).
 # --overlay            - Specify overlay.
 #
+# The following option can be used to skip specific process names in 
+# in the processing history (repeatable).
+#
+# --skip-process <process name>
+#
 # The following options control which checks are performed.
 # If none of these options is specified, all checks are performed.
 # Otherwise, just the specified checks are performed.
@@ -107,6 +112,7 @@ samweb = samweb_cli.SAMWebClient(experiment = 'uboone')
 artroot_files = set()        # Files that are known to be artroot.
 non_artroot_files = set()    # Files that are known to not be artroot.
 warnfatal = False            # Make all warnings fatal.  This is true by default in fcl mode.
+skip_processes = set()       # Skip process names.
 
 # Help function.
 
@@ -255,6 +261,9 @@ def check_beam_timing(cfg, trigbit, beam):
 
     for process_name in cfg:
 
+        if process_name in skip_processes:
+            continue
+
         # Ignore any processes run in swizzler.
 
         if process_name == 'Swizzler':
@@ -337,7 +346,7 @@ def check_beam_timing(cfg, trigbit, beam):
                             elif module in filters:
                                 module_type = filters[module]['module_type']
 
-                                if module_type == 'UBCRTCosmicFilter':
+                                if module_type == 'UBCRTCosmicFilter' and process_name != 'DataOpticalFilter':
 
                                     print('\n  ===== Checking UBCRTCosmicFilter timing.')
                                     t1 = filters[module]['BeamStart']
@@ -439,6 +448,9 @@ def check_optical(cfg, trigbit, beam, epoch, is_overlay):
     # Loop over processes.
 
     for process_name in cfg:
+
+        if process_name in skip_processes:
+            continue
 
         # Ignore any processes run in swizzler or reco1.
 
@@ -650,6 +662,9 @@ def check_services(cfg, is_overlay):
 
     for process_name in cfg:
 
+        if process_name in skip_processes:
+            continue
+
         # Ignore any processes run in swizzler or reco1.
 
         if process_name == 'Swizzler':
@@ -692,6 +707,9 @@ def check_io(cfg):
     # Loop over processes.
 
     for process_name in cfg:
+
+        if process_name in skip_processes:
+            continue
 
         # Ignore some processes.
 
@@ -805,6 +823,9 @@ def check_flux(cfg, beam, epoch):
 
     for process_name in cfg:
 
+        if process_name in skip_processes:
+            continue
+
         print('Checking process name %s' % process_name)
         fcl_proc = cfg[process_name]
 
@@ -909,6 +930,9 @@ def check_larpid(cfg, epoch, is_overlay):
 
     for process_name in cfg:
 
+        if process_name in skip_processes:
+            continue
+
         # Ignore any processes run in swizzler.
 
         if process_name == 'Swizzler':
@@ -997,9 +1021,17 @@ def check_sce(cfg):
 
     for process_name in cfg:
 
+        if process_name in skip_processes:
+            continue
+
         # Ignore any processes run in swizzler.
 
         if process_name == 'Swizzler':
+            continue
+
+        # Ignore CellTreeUB (doesn't use space charge service).
+
+        if process_name == 'CellTreeUB':
             continue
 
         # Ignore any processes run in reco1 including stand alone optical reco.
@@ -1009,6 +1041,8 @@ def check_sce(cfg):
         if process_name.find('Stage2Lite') >= 0:
             continue
         if process_name.find('DLprod') >= 0:
+            continue
+        if process_name == 'DataOpticalFilter':
             continue
 
         print('Checking process name %s' % process_name)
@@ -1066,6 +1100,9 @@ def check_elife(cfg, epoch):
     # Loop over procsss names.
 
     for process_name in cfg:
+
+        if process_name in skip_processes:
+            continue
 
         # Ignore any processes run in swizzler.
 
@@ -1143,6 +1180,9 @@ def check_ly(cfg, epoch):
 
     for process_name in cfg:
 
+        if process_name in skip_processes:
+            continue
+
         # Ignore any processes run in swizzler.
 
         if process_name == 'Swizzler':
@@ -1205,6 +1245,9 @@ def check_pmt(cfg, epoch):
     # Loop over procsss names.
 
     for process_name in cfg:
+
+        if process_name in skip_processes:
+            continue
 
         # Ignore any processes run in swizzler.
 
@@ -1282,6 +1325,9 @@ def check_chstat(cfg, epoch):
 
     for process_name in cfg:
 
+        if process_name in skip_processes:
+            continue
+
         # Ignore any processes run in swizzler.
 
         if process_name == 'Swizzler':
@@ -1294,6 +1340,8 @@ def check_chstat(cfg, epoch):
         if process_name.find('Stage2Lite') >= 0:
             continue
         if process_name.find('DLprod') >= 0:
+            continue
+        if process_name == 'DataOpticalFilter':
             continue
 
         print('Checking process name %s' % process_name)
@@ -1345,9 +1393,17 @@ def check_asics(cfg, epoch):
 
     for process_name in cfg:
 
+        if process_name in skip_processes:
+            continue
+
         # Ignore any processes run in swizzler.
 
         if process_name == 'Swizzler':
+            continue
+
+        # Ignore common optical filter.
+
+        if process_name == 'DataOpticalFilter':
             continue
 
         # Ignore any processes run in reco1 except stand alone optical reco.
@@ -1397,6 +1453,9 @@ def check_remap(cfg):
     # Loop over procsss names.
 
     for process_name in cfg:
+
+        if process_name in skip_processes:
+            continue
 
         # Ignore any processes run in swizzler.
 
@@ -1855,6 +1914,7 @@ def check_file(f, md, do_crt, do_services, do_io, do_timing, do_optical, do_flux
 def main(argv):
 
     global warnfatal
+    global skip_processes
 
     # Statistics.
 
@@ -1951,6 +2011,11 @@ def main(argv):
         elif (args[0] == '--overlay'):
             is_overlay = True
             del args[0]
+        elif args[0] == '--skip-process' and len(args) > 1:
+            pname = args[1]
+            if not pname in skip_processes:
+                skip_processes.add(pname)
+            del args[0:2]
         elif (args[0] == '--crt'):
             do_crt = True
             do_all = False
@@ -2102,7 +2167,7 @@ def main(argv):
     if skip_larpid:
         do_larpid = False
     if skip_sce:
-        do_larpid = False
+        do_sce = False
 
     #print('CRT               = %d' % do_crt)
     #print('Services          = %d' % do_services)
