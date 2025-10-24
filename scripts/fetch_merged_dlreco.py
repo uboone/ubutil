@@ -309,11 +309,12 @@ def main(argv):
                         input_tree = dlroot.Get(tree_name)
                         nentries = input_tree.GetEntriesFast()
                         print('Tree %s has %d entries.' % (tree_name, nentries))
-                        if num_entries < 0:
-                            num_entries = nentries
-                        if num_entries != nentries:
-                            print('Number of entries mismatch.')
-                            sys.exit(1)
+                        if tree_name!="potsummary_generator_tree":
+                            if num_entries < 0:
+                                num_entries = nentries
+                            if num_entries != nentries:
+                                print('Number of entries mismatch.')
+                                sys.exit(1)
                         output_trees[tree_name] = input_tree.CloneTree(0)  # Clone empty tree.
                         out.cd()
                         output_trees[tree_name].Write()
