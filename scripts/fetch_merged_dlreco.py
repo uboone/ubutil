@@ -214,6 +214,7 @@ def main(argv):
     # Scan the reco2 file to extract its event ids (run, subrun, event).
 
     event_ids = []
+    rs_ids = []
     events_tree = root.Get('Events')
     nevents = events_tree.GetEntriesFast()
     print('%d events.' % nevents)
@@ -239,9 +240,10 @@ def main(argv):
     # Loop over parent files of reco2 and identify matching dlreco files.
 
     dlreco_files = set()   # Dlreco file names.
-    dlreco_tfiles = {}     # dlreco name -> open dlreco tfile
-    dlreco_event_map = {}  # Event id -> dlreco file, entry #.
     output_trees = {}      # Tree name -> output TTree object.
+    dl_trees_chains = {}   # Tree name -> TChain of input dl reco trees
+    dlreco_event_map = {}  # Event id -> entry #.
+    dlreco_rs_map = {}     # Run-subrun id -> entry # for pot tree.
 
     parents = samweb.listFiles('isparentof:( file_name %s )' % reco2_file_name)
     for parent in parents:
@@ -295,7 +297,6 @@ def main(argv):
             dlroot = ROOT.TFile.Open(url[0], 'read')
             if dlroot and dlroot.IsOpen() and not dlroot.IsZombie():
                 print('Open successful.')
-                dlreco_tfiles[dl] = dlroot
                 keys = dlroot.GetListOfKeys()
 
                 # Clone empty output trees.
@@ -304,26 +305,38 @@ def main(argv):
                 num_entries = -1
                 for key in keys:
                     tree_name = key.GetName()
-                    if tree_name not in output_trees:
-                        print('Cloning tree: %s' % tree_name)
+
+                    if tree_name not in dl_trees_chains:
+                        print('Adding to TChain: %s' % tree_name)
                         input_tree = dlroot.Get(tree_name)
                         nentries = input_tree.GetEntriesFast()
                         print('Tree %s has %d entries.' % (tree_name, nentries))
-                        if num_entries < 0:
-                            num_entries = nentries
-                        if num_entries != nentries:
-                            print('Number of entries mismatch.')
-                            sys.exit(1)
-                        output_trees[tree_name] = input_tree.CloneTree(0)  # Clone empty tree.
+                        if tree_name!="potsummary_generator_tree":
+                            if num_entries < 0:
+                                num_entries = nentries
+                            if num_entries != nentries:
+                                print('Number of entries mismatch.')
+                                sys.exit(1)
+                        dl_chain = ROOT.TChain(tree_name)
+                        dl_trees_chains[tree_name] = dl_chain
+
+                    dl_trees_chains[tree_name].Add(url[0])
+
+                    if tree_name not in output_trees:
+                        print('Cloning tree: %s' % tree_name)
+                        input_tree = dl_trees_chains[tree_name]
+                        nentries = input_tree.GetEntries()
+                        print('Tree %s has %d entries and name %s.' % (tree_name, nentries,input_tree.GetName()))
                         out.cd()
-                        output_trees[tree_name].Write()
+                        output_trees[tree_name] = input_tree.CloneTree(0)  # Clone empty tree.
 
-                # Scan this dlreco file to extract event ids.
+                # Make the event to entry map for this file
 
+                dl_ids_chain = dl_trees_chains['larlite_id_tree']
+                dl_chain_nevents = dl_ids_chain.GetEntries()
                 dl_ids_tree = dlroot.Get('larlite_id_tree')
-                dl_nevents = dl_ids_tree.GetEntriesFast()
-                print('%d events.' % dl_nevents)
-
+                dl_nevents = dl_ids_tree.GetEntries()
+                offset = dl_chain_nevents - dl_nevents
                 dlr = ROOT.TTreeFormula('dlrun', '_run_id', dl_ids_tree)
                 dls = ROOT.TTreeFormula('dlsubrun', '_subrun_id', dl_ids_tree)
                 dle = ROOT.TTreeFormula('dlevent', '_event_id', dl_ids_tree)
@@ -333,46 +346,129 @@ def main(argv):
                     subrun = dls.EvalInstance64()
                     event = dle.EvalInstance64()
                     dl_event_id = (run, subrun, event)
-                    dlreco_event_map[dl_event_id] = (dl, entry)
+                    dlreco_event_map[dl_event_id] = entry+offset
+
+                # Make the pot run-subrun to entry map for this file
+                if "potsummary_generator_tree" in dl_trees_chains: 
+                    dl_ids_chain = dl_trees_chains['potsummary_generator_tree']
+                    dl_chain_nevents = dl_ids_chain.GetEntries()
+                    dl_ids_tree = dlroot.Get('potsummary_generator_tree')
+                    dl_nevents = dl_ids_tree.GetEntries()
+                    offset = dl_chain_nevents - dl_nevents
+                    dlr = ROOT.TTreeFormula('fRunNumber', 'fRunNumber', dl_ids_tree)
+                    dls = ROOT.TTreeFormula('fSubRunNumber', 'fSubRunNumber', dl_ids_tree)
+                    for entry in range(dl_nevents):
+                        dl_ids_tree.GetEntry(entry)
+                        run = dlr.EvalInstance64()
+                        subrun = dls.EvalInstance64()
+                        dl_rs_id = (run, subrun)
+                        dlreco_rs_map[dl_rs_id] = entry+offset
 
             else:
                 print('Open failed.')
                 sys.exit(1)
 
-    # Loop over output trees.
+    # Loop over event ids from reco2 file and look for a match in the TChain 
 
-    for tree_name in output_trees:
+    for event_id in event_ids:
 
-        print('Copying tree %s' % tree_name)
+        if event_id in dlreco_event_map:
 
-        # Loop over event ids from reco2 file.
+            entry = dlreco_event_map[event_id]
 
-        for event_id in event_ids:
+            # Loop over output trees.
 
-            # Search for matching dlreco event.
-
-            if event_id in dlreco_event_map:
-                dl_entry = dlreco_event_map[event_id]
-                dl = dl_entry[0]
-                entry = dl_entry[1]
-                dlroot = dlreco_tfiles[dl]
-                input_tree = dlroot.Get(tree_name)
+            for tree_name in output_trees:
+                input_tree = dl_trees_chains[tree_name]
                 input_tree.GetEntry(entry)
+                out.cd()
                 output_trees[tree_name].Fill()
-            else:
-                print('No matching dlreco event.')
-                sys.exit(1)
+                output_trees[tree_name].Write()
 
-        # Write output tree to output file.
+        else:
+            print('No matching dlreco event.')
+            sys.exit(1)
 
-        out.cd()
-        output_trees[tree_name].Write()
+    # Loop over rs ids from reco2 file and look for a match in the TChain, this is only to fill the pot tree
+
+    for rs_id in rs_ids:
+        if "potsummary_generator_tree" in dl_trees_chains: print("found pot tree")
+        else: break
+
+        # Find the matching dl reco rs
+
+        if rs_id in dlreco_rs_map:
+
+            entry = dlreco_rs_map[rs_id]
+            input_tree = dl_trees_chains["potsummary_generator_tree"]
+            input_tree.GetEntry(entry)
+            out.cd()
+            output_trees["potsummary_generator_tree"].Fill()
+            output_trees["potsummary_generator_tree"].Write()
+
+        else:
+            print('No matching dlreco rs.')
+            sys.exit(1)
 
     # Close output file.
 
+    out.Write()
     print('\nClosing output file.')
     out.Purge()
     out.Close()
+
+    # Checkout.
+
+    print('\nDoing checkout for output file %s.' % output_file)
+    out_event_ids = set()
+    dlroot3 = ROOT.TFile.Open(output_file, 'read')
+    if dlroot3 and dlroot3.IsOpen() and not dlroot3.IsZombie():
+        print('Checkout open successful.')
+        keys = dlroot3.GetListOfKeys()
+
+        # Scan this dlreco file to extract event ids.
+
+        out_ids_tree = dlroot3.Get('larlite_id_tree')
+        out_nevents = out_ids_tree.GetEntriesFast()
+        print('Output file has %d events.' % out_nevents)
+        if out_nevents != nevents:
+            print('Number of output events doesn\'t match number of reco2 events.')
+            sys.exit(1)
+
+        dlr = ROOT.TTreeFormula('dlrun', '_run_id', out_ids_tree)
+        dls = ROOT.TTreeFormula('dlsubrun', '_subrun_id', out_ids_tree)
+        dle = ROOT.TTreeFormula('dlevent', '_event_id', out_ids_tree)
+        for entry in range(out_nevents):
+            out_ids_tree.GetEntry(entry)
+            run = dlr.EvalInstance64()
+            subrun = dls.EvalInstance64()
+            event = dle.EvalInstance64()
+            out_event_id = (run, subrun, event)
+            #print(out_event_id)
+
+            if not out_event_id in out_event_ids:
+                out_event_ids.add(out_event_id)
+
+        # Check that all reco2 event ids are present.
+
+        ok = True
+        for event_id in event_ids:
+            if not event_id in out_event_ids:
+                print('reco2 event id (%d, %d, %d) is missing.' % event_id)
+                ok = False
+
+        if ok:
+            print('Output check passed.')
+        else:
+            print('Output check failed.')
+            sys.exit(1)
+
+    else:
+
+        # Open failed.
+
+        print('Checkout open unsuccessful.')
+        sys.exit(1)
 
     # Done.
 
