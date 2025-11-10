@@ -229,6 +229,20 @@ def main(argv):
         event = tfe.EvalInstance64()
         event_id = (run, subrun, event)
         event_ids.append(event_id)
+    event_id = sorted(event_id) # Need to make sure the list is in order, not guaranteed after merging
+
+    subruns_tree = root.Get('SubRuns')
+    nsubruns = subruns_tree.GetEntriesFast()
+    print('%d subruns.' % nsubruns)
+    tfr = ROOT.TTreeFormula('run', 'SubRunAuxiliary.id_.run_.run_', subruns_tree)
+    tfs = ROOT.TTreeFormula('subrun', 'SubRunAuxiliary.id_.subRun_', subruns_tree)
+    for entry in range(nsubruns):
+        subruns_tree.GetEntry(entry)
+        run = tfr.EvalInstance64()
+        subrun = tfs.EvalInstance64()
+        rs_id = (run, subrun)
+        rs_ids.append(rs_id)
+    rs_id = sorted(rs_id) # Need to make sure the list is in order, not guaranteed after merging
 
     # Get metadata of reco2 file.
 
