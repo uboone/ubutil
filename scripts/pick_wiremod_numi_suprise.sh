@@ -47,9 +47,11 @@ else
 fi
 echo $run_number
 
-TEMPLATE_FHILE=$FCL
-PICKED_FHICL=""
-
+# Grab the fhicl name and change it to the right run
+TEMPLATE_FHILE=$(head -n 1 $FCL)
+TEMPLATE_FHILE="${TEMPLATE_FHILE%%.*}"
+TEMPLATE_FHILE="${TEMPLATE_FHILE#*\"}"
+PICKED_FHICL=$TEMPLATE_FHILE
 if [ "$run_number" -ge "3420"  ] && [  "8316" -ge "$run_number"  ];    # in the run1 run number interval
 then
         echo "Using run1 wiremod fhicl"
