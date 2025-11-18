@@ -452,10 +452,15 @@ def check_optical(cfg, trigbit, beam, epoch, is_overlay):
         if process_name in skip_processes:
             continue
 
-        # Ignore any processes run in swizzler or reco1.
+        # Ignore any processes run in swizzler.
 
         if process_name == 'Swizzler':
             continue
+
+        # Ignore common optical filter.
+
+        if process_name == 'DataOpticalFilter':
+            continue        
 
         # Ignore any processes run in reco1 except stand alone optical reco.
 
