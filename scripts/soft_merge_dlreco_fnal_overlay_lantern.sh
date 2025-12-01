@@ -123,7 +123,9 @@ else
         ifdh cp $INFILE reco1input_$filename
         echo ""
     done <<< "$reco1filelist"
+
     # Rerun the relevant light simulation
+
     lar -c wirecell_reg4_LightPropTime_LY.fcl -s reco1input_* -o reco1input0.root -n-1
     check_exit
     rm reco1input_*
@@ -147,6 +149,7 @@ else
     rm reco1input1.root
 
     # Re-run WC to get the needed Lantern input
+
     mv reco1input2.root reco1input2_temp.root
     lar -c run_celltreeub_overlay_port_prod.fcl -s reco1input2_temp.root -n-1
     check_exit
@@ -172,7 +175,8 @@ EOF
     rm reco1input2_temp.root
 
     # Rerun Lantern
-    lar -c mcc10_dlreco_w_wirecell_driver_overlay_nowc_lantern_set1.fcl -s reco1input2.root -n-1
+
+    lar -c mcc10_dlreco_w_wirecell_driver_overlay_lantern_set1.fcl -s reco1input2.root -n-1
     check_exit
     lar -c mcc10_dlreco_w_wirecell_driver_overlay_lantern_set2.fcl -s reco1input2.root -n-1
     check_exit
@@ -184,6 +188,8 @@ EOF
     check_exit
     rm reco1input*
     bash merge_dlreco_fnal_overlay_and_mc_lantern_multiStage.sh
+    check_exit
+
 fi
 
 
