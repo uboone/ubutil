@@ -1034,9 +1034,31 @@ def check_sce(cfg):
         if process_name == 'Swizzler':
             continue
 
-        # Ignore CellTreeUB (doesn't use space charge service).
+        # Ignore wire cell processes (don't use space charge service).
 
-        if process_name == 'CellTreeUB':
+        if process_name.startswith('CellTreeUB'):
+            continue
+        if process_name == 'WireCellMCS':
+            continue
+        if process_name == 'PortSTM':
+            continue
+        if process_name == 'PortRedux':
+            continue
+        if process_name == 'PortPF':
+            continue
+
+        # Ignore optical processes.
+
+        if process_name == 'PhotonLibraryPropagationAndTiming':
+            continue
+        if process_name == 'OverlayDetsimOptical':
+            continue
+        if process_name == 'DataOverlayOptical':
+            continue
+
+        # Ignore lantern.
+
+        if process_name.startswith('DLDeploy'):
             continue
 
         # Ignore any processes run in reco1 including stand alone optical reco.
