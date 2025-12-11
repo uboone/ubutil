@@ -917,14 +917,14 @@ def check_flux(cfg, beam, epoch):
 
 # Check larpid weights.
 
-def check_larpid(cfg, epoch, is_overlay):
+def check_larpid(cfg, epoch, beam):
 
     result = True
 
     # Calculate the appropriate larpid weight (default or alternate)..
 
     wt = 'default'
-    if epoch >= '3a' and epoch <= '3b' and is_overlay:
+    if epoch >= '3a' and epoch <= '3b' and beam == 'bnb':
         wt = 'alternate'
 
     print()
@@ -1616,7 +1616,7 @@ def check_config(cfg, trigbit, beam, epoch, is_overlay,
     # Check larpid weights.
 
     if do_larpid:
-        larpid_ok = check_larpid(cfg, epoch, is_overlay)
+        larpid_ok = check_larpid(cfg, epoch, beam)
         if not larpid_ok:
             result = False
 
