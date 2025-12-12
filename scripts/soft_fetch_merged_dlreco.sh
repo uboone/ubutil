@@ -25,7 +25,7 @@ fi
 
 # First try to retrive the merged_dlreco file
 
-fetch_merge_dlreco.py
+fetch_merged_dlreco.py
 exit_code=$?
 echo $exit_code > fetch_merge_dlreco_status.txt
 
