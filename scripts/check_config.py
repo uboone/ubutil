@@ -1053,7 +1053,9 @@ def check_sce(cfg):
             continue
         if process_name == 'OverlayDetsimOptical':
             continue
-        if process_name == 'DataOverlayOptical':
+        if process_name.startswith('DataOverlayOptical'):
+            continue
+        if process_name.startswith('DataOverlayNoTPC'):
             continue
 
         # Ignore lantern.
