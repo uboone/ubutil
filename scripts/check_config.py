@@ -917,14 +917,14 @@ def check_flux(cfg, beam, epoch):
 
 # Check larpid weights.
 
-def check_larpid(cfg, epoch, is_overlay):
+def check_larpid(cfg, epoch, beam):
 
     result = True
 
     # Calculate the appropriate larpid weight (default or alternate)..
 
     wt = 'default'
-    if epoch >= '3a' and epoch <= '3b' and is_overlay:
+    if epoch >= '3a' and epoch <= '3b' and beam == 'bnb':
         wt = 'alternate'
 
     print()
@@ -1034,9 +1034,33 @@ def check_sce(cfg):
         if process_name == 'Swizzler':
             continue
 
-        # Ignore CellTreeUB (doesn't use space charge service).
+        # Ignore wire cell processes (don't use space charge service).
 
-        if process_name == 'CellTreeUB':
+        if process_name.startswith('CellTreeUB'):
+            continue
+        if process_name == 'WireCellMCS':
+            continue
+        if process_name == 'PortSTM':
+            continue
+        if process_name == 'PortRedux':
+            continue
+        if process_name == 'PortPF':
+            continue
+
+        # Ignore optical processes.
+
+        if process_name == 'PhotonLibraryPropagationAndTiming':
+            continue
+        if process_name == 'OverlayDetsimOptical':
+            continue
+        if process_name.startswith('DataOverlayOptical'):
+            continue
+        if process_name.startswith('DataOverlayNoTPC'):
+            continue
+
+        # Ignore lantern.
+
+        if process_name.startswith('DLDeploy'):
             continue
 
         # Ignore any processes run in reco1 including stand alone optical reco.
@@ -1616,7 +1640,7 @@ def check_config(cfg, trigbit, beam, epoch, is_overlay,
     # Check larpid weights.
 
     if do_larpid:
-        larpid_ok = check_larpid(cfg, epoch, is_overlay)
+        larpid_ok = check_larpid(cfg, epoch, beam)
         if not larpid_ok:
             result = False
 
