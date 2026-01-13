@@ -1452,7 +1452,7 @@ CREATE TABLE IF NOT EXISTS run_groups (
             # Calculate total size of this group.
             # Construct sam dimension for this group.
 
-            q = 'SELECT name, size FROM unmerged_files WHERE group_id=?;'
+            q = 'SELECT name, size FROM unmerged_files WHERE group_id=? AND sam_project_id=0 AND sam_process_id=0;'
             c.execute(q, (group_id,))
             rows = c.fetchall()
             file_names = []
@@ -1568,7 +1568,7 @@ CREATE TABLE IF NOT EXISTS run_groups (
 
                 # Update unmerged files table.
 
-                q = 'UPDATE unmerged_files SET sam_project_id=? WHERE group_id=?;'
+                q = 'UPDATE unmerged_files SET sam_project_id=? WHERE group_id=? AND sam_project_id=0 AND sam_process_id=0;'
                 c.execute(q, (sam_project_id, group_id))
                 self.conn.commit()
                 self.total_sam_projects_added += 1
@@ -2529,8 +2529,9 @@ CREATE TABLE IF NOT EXISTS run_groups (
             command.extend([' -c', os.path.basename(self.fclpath)])
         command.extend([' --nfile', '%d' % max_files_per_job])
         command.extend([' --ups', project_utilities.get_ups_products()])
-        if self.probj.release_tag != '':
-            command.extend([' -r', self.probj.release_tag])
+        #if self.probj.release_tag != '':
+        #    command.extend([' -r', self.probj.release_tag])
+        command.extend([' -r', app_version])
         command.extend([' -b', self.probj.release_qual])
         if self.probj.local_release_tar != '':
             command.extend([' --localtar', self.probj.local_release_tar])
