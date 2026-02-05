@@ -1049,13 +1049,20 @@ def check_sce(cfg):
 
         # Ignore optical processes.
 
-        if process_name == 'PhotonLibraryPropagationAndTiming':
+        if process_name.startswith('PhotonLibraryPropagation'):
+            continue
+        if process_name.startswith('PLPvarLY'):
             continue
         if process_name == 'OverlayDetsimOptical':
             continue
         if process_name.startswith('DataOverlayOptical'):
             continue
         if process_name.startswith('DataOverlayNoTPC'):
+            continue
+
+        # Ignore default map sce detvar.
+
+        if process_name == 'DetSysSCEDefaultMap':
             continue
 
         # Ignore lantern.
