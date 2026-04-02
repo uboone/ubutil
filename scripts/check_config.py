@@ -1007,7 +1007,7 @@ def check_sce(cfg):
     # sets the scale factor, use that as the expected scale factor.
 
     for process_name in cfg:
-        if process_name.startswith('G4'):
+        if process_name.startswith('G4') or process_name == 'SimInfoMixer':
             fcl_proc = cfg[process_name]
             if 'services' in fcl_proc:
                 fcl_services = fcl_proc['services']
