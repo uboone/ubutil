@@ -54,7 +54,7 @@ then
         echo "run run1 fhicl"
         cat $FCL
         mv $FCL backup_${FCL}.fcl
-        cat backup_${FCL}.fcl  | sed "s/run_combinedrecotree_wiremod_overlay_sce/run_combinedrecotree_wiremod_overlay_sce/g" > $FvCL
+        cat backup_${FCL}.fcl  | sed "s/run_combinedrecotree_wiremod_overlay_sce/run_combinedrecotree_wiremod_overlay_sce/g" > $FCL
         cat $FCL
         cat wrapper.fcl
         mv wrapper.fcl backup_wrapper.fcl
